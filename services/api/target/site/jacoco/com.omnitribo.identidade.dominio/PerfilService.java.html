@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PerfilService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">PerfilService.java</span></div><h1>PerfilService.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.identidade.api.ConquistaResponse;
+import com.omnitribo.identidade.api.PerfilResponse;
+import com.omnitribo.identidade.infra.UsuarioRepository;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Perfil completo: identidade, progressão e conquistas. */
+@Service
+public class PerfilService {
+
+  private final UsuarioRepository usuarioRepository;
+  private final TriboService triboService;
+  private final ParametrosConquistas calibracao;
+
+  public PerfilService(
+      UsuarioRepository usuarioRepository,
+      TriboService triboService,
+<span class="fc" id="L22">      ParametrosConquistas calibracao) {</span>
+<span class="fc" id="L23">    this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L24">    this.triboService = triboService;</span>
+<span class="fc" id="L25">    this.calibracao = calibracao;</span>
+<span class="fc" id="L26">  }</span>
+
+  @Transactional(readOnly = true)
+  public PerfilResponse perfil(UUID usuarioId) {
+<span class="fc" id="L30">    Usuario usuario =</span>
+        usuarioRepository
+<span class="fc" id="L32">            .findById(usuarioId)</span>
+            // Conta anonimizada some daqui como se não existisse. O access token vive 15 minutos e
+            // sobrevive à exclusão; sem este filtro, a tela de perfil exibiria &quot;Usuário removido&quot;
+            // com o XP intacto — um fantasma da conta que a pessoa acabou de pedir para apagar.
+<span class="pc bpc" id="L36" title="1 of 2 branches missed.">            .filter(u -&gt; !u.anonimizado())</span>
+            // 404 e não 401: o token é válido, o usuário é que não está mais lá.
+<span class="pc" id="L38">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário não encontrado.&quot;));</span>
+
+    // Nível DERIVADO do XP, não lido de usuario.nivel — aquela coluna é cache recalculado a cada
+    // concessão, e se as duas divergirem quem está certo é a fórmula.
+<span class="fc" id="L42">    int nivel = RegraNivel.nivelPara(usuario.getXp());</span>
+
+<span class="fc" id="L44">    return new PerfilResponse(</span>
+<span class="fc" id="L45">        usuario.getId(),</span>
+<span class="fc" id="L46">        usuario.getNome(),</span>
+<span class="fc" id="L47">        usuario.getEmail(),</span>
+<span class="fc" id="L48">        usuario.getHandle(),</span>
+<span class="fc" id="L49">        usuario.getPapel().name(),</span>
+<span class="fc" id="L50">        triboService.daUsuario(usuario.getTriboId()).orElse(null),</span>
+<span class="fc" id="L51">        usuario.getXp(),</span>
+        nivel,
+<span class="fc" id="L53">        RegraNivel.xpParaNivel(nivel),</span>
+<span class="fc" id="L54">        RegraNivel.xpParaNivel(nivel + 1),</span>
+<span class="fc" id="L55">        usuario.getStreak(),</span>
+<span class="fc" id="L56">        CalculadoraDeConquistas.avaliar(usuario.getXp(), nivel, usuario.getStreak(), calibracao)</span>
+<span class="fc" id="L57">            .stream()</span>
+<span class="fc" id="L58">            .map(</span>
+                c -&gt;
+<span class="fc" id="L60">                    new ConquistaResponse(</span>
+<span class="fc" id="L61">                        c.codigo(),</span>
+<span class="fc" id="L62">                        c.titulo(),</span>
+<span class="fc" id="L63">                        c.descricao(),</span>
+<span class="fc" id="L64">                        c.conquistada(),</span>
+<span class="fc" id="L65">                        c.progresso(),</span>
+<span class="fc" id="L66">                        c.meta()))</span>
+<span class="fc" id="L67">            .toList());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

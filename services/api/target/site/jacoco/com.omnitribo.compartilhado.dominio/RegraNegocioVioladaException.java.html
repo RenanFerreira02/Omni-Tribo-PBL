@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegraNegocioVioladaException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.dominio</a> &gt; <span class="el_source">RegraNegocioVioladaException.java</span></div><h1>RegraNegocioVioladaException.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.dominio;
+
+import org.springframework.http.HttpStatus;
+
+/**
+ * Requisição sintaticamente válida que viola uma regra de negócio verificável só no servidor. 422
+ * Unprocessable Entity.
+ *
+ * &lt;p&gt;Distinta do 400: o corpo passou por toda a validação de Bean Validation — os campos existem,
+ * os tipos batem, os limites de faixa foram respeitados. O que falha é a confrontação com estado
+ * que só o servidor conhece. No check-in de F6: a coordenada é um par lat/lon perfeitamente
+ * formado, mas está a 340 m de uma origem cujo raio é 50 m.
+ *
+ * &lt;p&gt;Distinta do 409: o 409 diz que a operação não cabe no estado atual do agregado e caberia em
+ * outro (missão ABERTA não recebe check-in, mas EM_ANDAMENTO recebe). O 422 diz que a operação cabe
+ * no estado atual e mesmo assim os dados enviados não a satisfazem — repetir a mesma requisição sem
+ * mudar nada falharia de novo.
+ *
+ * &lt;p&gt;Mora em compartilhado/dominio pelo mesmo motivo de {@link TransicaoInvalidaException}: o
+ * GlobalExceptionHandler está fora de com.omnitribo.missoes.. e de com.omnitribo.geolocalizacao..,
+ * e a regra ArchUnit o proibiria de importar o pacote interno de qualquer módulo. Herdando de
+ * DominioException, o handler existente já a mapeia pelo httpStatus, sem alteração nenhuma.
+ */
+public class RegraNegocioVioladaException extends DominioException {
+
+  public RegraNegocioVioladaException(String mensagem) {
+<span class="fc" id="L27">    super(HttpStatus.UNPROCESSABLE_ENTITY, mensagem);</span>
+<span class="fc" id="L28">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Mediana.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.dominio</a> &gt; <span class="el_source">Mediana.java</span></div><h1>Mediana.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.dominio;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.OptionalLong;
+
+/**
+ * Mediana de uma amostra de valores inteiros. Função pura, sem Spring e sem banco.
+ *
+ * &lt;p&gt;&lt;b&gt;Mediana e não média, e a escolha é sobre o que se quer afirmar.&lt;/b&gt; A métrica é &quot;quanto
+ * tempo o bairro leva para responder a uma entrega falida&quot;. Uma única missão aceita três dias
+ * depois — porque ninguém viu o alerta no fim de semana — desloca a média o bastante para descrever
+ * uma operação que não existe. A mediana absorve o caso extremo; e é justamente por isso que o
+ * painel publica o TAMANHO DA AMOSTRA junto: mediana de três pontos não é um fato sobre a operação,
+ * é uma anedota com aparência de estatística.
+ *
+ * &lt;p&gt;Amostra par devolve a média dos dois centrais, arredondada para baixo pela divisão inteira. A
+ * perda máxima é de meio segundo numa métrica de minutos ou horas, e evitar tanto ponto flutuante
+ * quanto {@code BigDecimal} onde a unidade já é discreta.
+ */
+public final class Mediana {
+
+  private Mediana() {}
+
+  /**
+   * @param valores não é modificada — a cópia existe porque ordenar a lista do chamador é efeito
+   *     colateral invisível, e uma função &quot;pura&quot; que reordena o argumento é a pior espécie de
+   *     armadilha
+   * @return vazio para amostra vazia. Nunca zero: &quot;nenhuma medição&quot; e &quot;mediana de zero segundos&quot;
+   *     são afirmações diferentes, e colapsá-las faria o painel anunciar resposta instantânea onde
+   *     ninguém apareceu
+   */
+  public static OptionalLong de(List&lt;Long&gt; valores) {
+<span class="fc bfc" id="L34" title="All 2 branches covered.">    if (valores.isEmpty()) {</span>
+<span class="fc" id="L35">      return OptionalLong.empty();</span>
+    }
+
+<span class="fc" id="L38">    List&lt;Long&gt; ordenados = new ArrayList&lt;&gt;(valores);</span>
+<span class="fc" id="L39">    ordenados.sort(null);</span>
+
+<span class="fc" id="L41">    int meio = ordenados.size() / 2;</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">    if (ordenados.size() % 2 == 1) {</span>
+<span class="fc" id="L43">      return OptionalLong.of(ordenados.get(meio));</span>
+    }
+    // Média dos dois centrais somando como long: dois Instant em segundos não chegam perto de
+    // estourar, e a soma antes da divisão evita o erro de arredondamento de dividir cada um.
+<span class="fc" id="L47">    return OptionalLong.of((ordenados.get(meio - 1) + ordenados.get(meio)) / 2);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

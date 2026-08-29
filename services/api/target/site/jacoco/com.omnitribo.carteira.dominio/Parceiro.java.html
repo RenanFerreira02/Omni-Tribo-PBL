@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Parceiro.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">Parceiro.java</span></div><h1>Parceiro.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+import org.locationtech.jts.geom.Point;
+
+/**
+ * Comércio do bairro que aceita token em troca de benefício.
+ *
+ * &lt;p&gt;Vive em {@code carteira} e não num módulo novo: os oito módulos são fixos, e criar o nono é
+ * decisão de ADR (precedente: {@code integracoes}, ADR 0011). {@code carteira} é dona das operações
+ * de valor e já abriga {@code SaqueService}, a saída em BRL desligada — o resgate é a saída em
+ * TOKEN, e o ledger fica junto do seu sumidouro.
+ *
+ * &lt;p&gt;&lt;b&gt;Distância não é campo.&lt;/b&gt; Ela é derivada por {@code ST_Distance} sobre {@code geography} a
+ * cada consulta, dentro de {@code ConsultasGeoespaciais}. Uma coluna de distância seria a resposta
+ * de uma pergunta só — a de quem estava num lugar específico quando ela foi calculada.
+ */
+@Entity
+@Table(name = &quot;parceiro&quot;)
+public class Parceiro {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  @Column(nullable = false, length = 100)
+  private String nome;
+
+  @Column(nullable = false, columnDefinition = &quot;geography(POINT,4326)&quot;)
+  private Point ponto;
+
+  // FK para tribo — carteira→identidade é permitido. Nulável: parceiro pode atender mais de um
+  // bairro, e nesse caso só a proximidade o encontra.
+  @Column(name = &quot;tribo_id&quot;)
+  private UUID triboId;
+
+  @Column(nullable = false, length = 8)
+  private String cep;
+
+  @Column(nullable = false, length = 200)
+  private String logradouro;
+
+  @Column(nullable = false, length = 100)
+  private String bairro;
+
+  @Column(nullable = false, length = 100)
+  private String cidade;
+
+  @Column(nullable = false, length = 2)
+  private String uf;
+
+  @Column(nullable = false)
+  private boolean ativo;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+<span class="fc" id="L64">  protected Parceiro() {}</span>
+
+  public UUID getId() {
+<span class="fc" id="L67">    return id;</span>
+  }
+
+  public String getNome() {
+<span class="fc" id="L71">    return nome;</span>
+  }
+
+  @SuppressFBWarnings(
+      value = &quot;EI_EXPOSE_REP&quot;,
+      justification = &quot;Point de JTS é imutável após construção; cópia defensiva sem benefício&quot;)
+  public Point getPonto() {
+<span class="nc" id="L78">    return ponto;</span>
+  }
+
+  public UUID getTriboId() {
+<span class="nc" id="L82">    return triboId;</span>
+  }
+
+  public String getCep() {
+<span class="nc" id="L86">    return cep;</span>
+  }
+
+  public String getLogradouro() {
+<span class="nc" id="L90">    return logradouro;</span>
+  }
+
+  public String getBairro() {
+<span class="fc" id="L94">    return bairro;</span>
+  }
+
+  public String getCidade() {
+<span class="nc" id="L98">    return cidade;</span>
+  }
+
+  public String getUf() {
+<span class="nc" id="L102">    return uf;</span>
+  }
+
+  public boolean isAtivo() {
+<span class="fc" id="L106">    return ativo;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="nc" id="L110">    return criadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

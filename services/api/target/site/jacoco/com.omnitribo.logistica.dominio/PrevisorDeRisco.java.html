@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrevisorDeRisco.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.dominio</a> &gt; <span class="el_source">PrevisorDeRisco.java</span></div><h1>PrevisorDeRisco.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.dominio;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+/**
+ * Regressão logística treinada, aplicada a uma entrega. Função pura.
+ *
+ * &lt;p&gt;Mesma forma de {@code CalculadoraDeRecompensa}: classe final, construtor privado, sem Spring,
+ * sem repositório, sem relógio. Mesmas entradas, sempre a mesma saída — o determinismo é requisito,
+ * não consequência, porque o multiplicador derivado daqui é CONGELADO na missão.
+ *
+ * &lt;pre&gt;
+ *   logOdds = intercepto + Σ  β_j · z_j
+ *   p       = sigmoide(logOdds)
+ * &lt;/pre&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;{@code StrictMath}, nunca {@code Math}.&lt;/b&gt; {@code Math.exp} só garante erro ≤ 1 ulp e pode
+ * usar intrínsecos diferentes por arquitetura de CPU e versão de JVM; {@code StrictMath} é
+ * especificado bit a bit (fdlibm). Como o treinador acumula milhões de chamadas a {@code exp} em
+ * somas, 1 ulp de divergência na primeira época se amplifica — e o teste que confere os
+ * coeficientes publicados passaria numa máquina e falharia noutra, sem nada ter mudado. É o que
+ * permite afirmar &quot;reprodutível&quot; sem ressalva. Trocar por {@code Math} aqui é regressão silenciosa.
+ *
+ * &lt;p&gt;&lt;b&gt;Honestidade:&lt;/b&gt; os coeficientes vieram de um dataset SINTÉTICO, com correlações que nós
+ * mesmos injetamos e documentamos em {@code docs/qualidade/modelo-previsao.md}. Isto é um modelo
+ * demonstrando um mecanismo, não um modelo validado contra a operação real — validar com dados
+ * reais é o próximo passo declarado no ADR 0022.
+ */
+public final class PrevisorDeRisco {
+
+  /** Quantos fatores a explicação devolve. Três cabe numa tela e é o que se defende em voz alta. */
+  private static final int TOP_FATORES = 3;
+
+  /**
+   * Contribuição abaixo disto é ruído de ponto flutuante e não entra no ranking.
+   *
+   * &lt;p&gt;Comparar com {@code == 0.0} seria {@code FE_FLOATING_POINT_EQUALITY} e quebraria o build no
+   * SpotBugs — mas o motivo de fundo é que uma dummy desligada pode produzir {@code -0.0} ou um
+   * resíduo de multiplicação, e listá-la como &quot;fator&quot; seria mentira.
+   */
+  private static final double EPSILON_CONTRIBUICAO = 1e-12;
+
+  private PrevisorDeRisco() {}
+
+  /**
+   * Sigmoide na forma numericamente estável.
+   *
+   * &lt;p&gt;A forma ingênua {@code 1/(1+exp(-z))} estoura para {@code z} muito negativo: {@code exp(-z)}
+   * vira infinito e o resultado vira 0 por overflow, em vez de aproximar 0 por baixo. Dividir o
+   * caso em dois ramos mantém o argumento de {@code exp} sempre ≤ 0.
+   */
+  public static double sigmoide(double z) {
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    if (z &gt;= 0.0) {</span>
+<span class="fc" id="L60">      return 1.0 / (1.0 + StrictMath.exp(-z));</span>
+    }
+<span class="fc" id="L62">    double e = StrictMath.exp(z);</span>
+<span class="fc" id="L63">    return e / (1.0 + e);</span>
+  }
+
+  /** Avalia sem nenhuma característica imputada — o caminho com dado completo. */
+  public static ResultadoRisco avaliar(FeaturesEntrega f, ParametrosRisco p) {
+<span class="fc" id="L68">    return avaliar(f, p, Set.of());</span>
+  }
+
+  /**
+   * Avalia a entrega e explica o resultado.
+   *
+   * @param imputadas características cujo valor real não estava disponível. Não altera a conta — o
+   *     chamador já colocou a média do treino em {@code f}, o que produz z-score 0 e contribuição
+   *     nula —, mas viaja no resultado para que quem lê saiba que o score se apoiou em suposição.
+   */
+  public static ResultadoRisco avaliar(
+      FeaturesEntrega f, ParametrosRisco p, Set&lt;CaracteristicaRisco&gt; imputadas) {
+
+<span class="fc" id="L81">    double[] bruto = CodificadorEntrega.codificar(f);</span>
+<span class="fc" id="L82">    double[] z = CodificadorEntrega.padronizar(bruto, p);</span>
+
+<span class="fc" id="L84">    double logOdds = p.intercepto();</span>
+<span class="fc" id="L85">    List&lt;FatorRisco&gt; candidatos = new ArrayList&lt;&gt;(CaracteristicaRisco.TOTAL);</span>
+<span class="fc" id="L86">    double somaAbsoluta = 0.0;</span>
+
+    // Ordem do ENUM, nunca iteração de mapa: a ordem de iteração de Map.of/copyOf muda entre
+    // execuções da JVM e decidiria tanto esta soma em ponto flutuante quanto o desempate do
+    // ranking.
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    for (CaracteristicaRisco c : CaracteristicaRisco.values()) {</span>
+<span class="fc" id="L92">      double contribuicao = p.coeficiente(c) * z[c.indice()];</span>
+<span class="fc" id="L93">      logOdds += contribuicao;</span>
+<span class="fc" id="L94">      somaAbsoluta += StrictMath.abs(contribuicao);</span>
+<span class="fc" id="L95">      candidatos.add(</span>
+          new FatorRisco(
+              c,
+<span class="fc" id="L98">              c.rotulo(),</span>
+              contribuicao,
+<span class="fc bfc" id="L100" title="All 2 branches covered.">              contribuicao &gt;= 0.0 ? DirecaoDoFator.AUMENTA : DirecaoDoFator.REDUZ,</span>
+              0.0, // peso relativo depende da soma total; preenchido abaixo
+<span class="fc" id="L102">              descrever(c, bruto[c.indice()])));</span>
+    }
+
+<span class="fc" id="L105">    double probabilidade = sigmoide(logOdds);</span>
+
+<span class="fc" id="L107">    return new ResultadoRisco(</span>
+<span class="fc" id="L108">        BigDecimal.valueOf(probabilidade).setScale(4, RoundingMode.HALF_UP),</span>
+<span class="fc" id="L109">        faixaDe(probabilidade, p),</span>
+<span class="fc" id="L110">        multiplicadorDe(probabilidade, p),</span>
+<span class="fc" id="L111">        principais(candidatos, somaAbsoluta),</span>
+        logOdds,
+<span class="fc" id="L113">        p.intercepto(),</span>
+<span class="fc" id="L114">        p.versao(),</span>
+<span class="fc" id="L115">        imputadas.stream().map(Enum::name).sorted().toList());</span>
+  }
+
+  /**
+   * Faixa a partir dos limiares publicados.
+   *
+   * &lt;p&gt;{@code ALTO} começa exatamente no limiar de decisão do modelo — ver {@link FaixaRisco}.
+   */
+  private static FaixaRisco faixaDe(double probabilidade, ParametrosRisco p) {
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (probabilidade &gt;= p.limiarAlto()) {</span>
+<span class="fc" id="L125">      return FaixaRisco.ALTO;</span>
+    }
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    return probabilidade &gt;= p.limiarMedio() ? FaixaRisco.MEDIO : FaixaRisco.BAIXO;</span>
+  }
+
+  /**
+   * Multiplicador da recompensa em TOKEN, linear na probabilidade e SEMPRE dentro do teto.
+   *
+   * &lt;p&gt;Linear e não uma curva: &quot;o dobro do risco paga o dobro do adicional&quot; é a única forma que se
+   * explica numa frase, e qualquer curva exigiria defender o formato dela.
+   *
+   * &lt;p&gt;&lt;b&gt;O teto é estreito de propósito, e a razão é econômica.&lt;/b&gt; Missões de ENTREGA hoje CUNHAM
+   * token — não pagam de pote — porque o financiador correto delas é o patrocinador, que ainda não
+   * existe (Pendência #1). Um multiplicador sem teto multiplicaria essa cunhagem pelo risco. Com o
+   * teto, a ampliação é limitada, conhecida e documentada, em vez de decidida por acidente. Piso ≥
+   * 1,0 garantido por {@link ParametrosRisco}: risco nunca REDUZ recompensa, o que inverteria a
+   * tese do produto.
+   */
+  private static BigDecimal multiplicadorDe(double probabilidade, ParametrosRisco p) {
+<span class="fc" id="L144">    double amplitude = p.multiplicadorMaximo() - p.multiplicadorMinimo();</span>
+<span class="fc" id="L145">    double bruto = p.multiplicadorMinimo() + amplitude * probabilidade;</span>
+<span class="fc" id="L146">    double limitado =</span>
+<span class="fc" id="L147">        StrictMath.min(StrictMath.max(bruto, p.multiplicadorMinimo()), p.multiplicadorMaximo());</span>
+<span class="fc" id="L148">    return BigDecimal.valueOf(limitado).setScale(2, RoundingMode.HALF_UP);</span>
+  }
+
+  /**
+   * Os três fatores de maior peso, com o peso relativo já normalizado.
+   *
+   * &lt;p&gt;O intercepto NÃO participa: não é um fator desta entrega, é a linha-base. Ver {@link
+   * ResultadoRisco#logOddsBase()}.
+   */
+  private static List&lt;FatorRisco&gt; principais(List&lt;FatorRisco&gt; candidatos, double somaAbsoluta) {
+<span class="fc" id="L158">    Comparator&lt;FatorRisco&gt; porImpacto =</span>
+<span class="fc" id="L159">        Comparator.comparingDouble((FatorRisco fr) -&gt; StrictMath.abs(fr.contribuicao()))</span>
+<span class="fc" id="L160">            .reversed()</span>
+            // Desempate explícito: List.sort é estável, mas deixar o critério implícito convidaria
+            // alguém a trocar a estrutura de origem e reintroduzir não-determinismo sem perceber.
+<span class="pc" id="L163">            .thenComparing(fr -&gt; fr.caracteristica().ordinal());</span>
+
+<span class="fc" id="L165">    return candidatos.stream()</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">        .filter(fr -&gt; StrictMath.abs(fr.contribuicao()) &gt;= EPSILON_CONTRIBUICAO)</span>
+<span class="fc" id="L167">        .sorted(porImpacto)</span>
+<span class="fc" id="L168">        .limit(TOP_FATORES)</span>
+<span class="fc" id="L169">        .map(fr -&gt; comPesoRelativo(fr, somaAbsoluta))</span>
+<span class="fc" id="L170">        .toList();</span>
+  }
+
+  private static FatorRisco comPesoRelativo(FatorRisco fr, double somaAbsoluta) {
+    double peso =
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">        somaAbsoluta &gt;= EPSILON_CONTRIBUICAO</span>
+<span class="fc" id="L176">            ? StrictMath.abs(fr.contribuicao()) / somaAbsoluta</span>
+<span class="pc" id="L177">            : 0.0;</span>
+<span class="fc" id="L178">    return new FatorRisco(</span>
+<span class="fc" id="L179">        fr.caracteristica(),</span>
+<span class="fc" id="L180">        fr.rotulo(),</span>
+<span class="fc" id="L181">        fr.contribuicao(),</span>
+<span class="fc" id="L182">        fr.direcao(),</span>
+        peso,
+<span class="fc" id="L184">        fr.valorObservado());</span>
+  }
+
+  /**
+   * Valor BRUTO em texto, para a explicação virar português.
+   *
+   * &lt;p&gt;{@code Locale.ROOT} obrigatório: em pt_BR o separador decimal vira vírgula, e um número
+   * formatado com vírgula dentro de um JSON quebra o parse do cliente.
+   */
+  private static String descrever(CaracteristicaRisco c, double valorBruto) {
+<span class="fc bfc" id="L194" title="All 7 branches covered.">    return switch (c) {</span>
+      case JANELA_MADRUGADA,
+          JANELA_TARDE,
+          JANELA_NOITE,
+          ENDERECO_COMERCIAL,
+          ENDERECO_CONDOMINIO,
+          ENDERECO_RURAL,
+          FIM_DE_SEMANA,
+          COMERCIAL_EM_FIM_DE_SEMANA -&gt;
+<span class="fc bfc" id="L203" title="All 2 branches covered.">          valorBruto &gt;= 0.5 ? &quot;sim&quot; : &quot;não&quot;;</span>
+      case TAXA_HISTORICA_CEP -&gt;
+<span class="fc" id="L205">          String.format(Locale.ROOT, &quot;%.1f%% de falha histórica&quot;, valorBruto * 100.0);</span>
+<span class="fc" id="L206">      case PESO_KG -&gt; String.format(Locale.ROOT, &quot;%.1f kg&quot;, valorBruto);</span>
+<span class="fc" id="L207">      case VOLUME_L -&gt; String.format(Locale.ROOT, &quot;%.0f L&quot;, valorBruto);</span>
+<span class="fc" id="L208">      case CHUVA_MM -&gt; String.format(Locale.ROOT, &quot;%.0f mm&quot;, valorBruto);</span>
+<span class="fc" id="L209">      case TEMPERATURA_C -&gt; String.format(Locale.ROOT, &quot;%.0f °C&quot;, valorBruto);</span>
+<span class="fc" id="L210">      case TENTATIVAS_ANTERIORES -&gt; String.format(Locale.ROOT, &quot;%.0f tentativa(s)&quot;, valorBruto);</span>
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

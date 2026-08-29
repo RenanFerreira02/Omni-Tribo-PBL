@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MotivoRecusa.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.dominio</a> &gt; <span class="el_source">MotivoRecusa.java</span></div><h1>MotivoRecusa.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.dominio;
+
+/**
+ * Por que uma encomenda não virou missão. Coluna {@code entrega_falida.motivo_recusa} (V23).
+ *
+ * &lt;p&gt;Os dois casos compartilham {@code recusada_em} de propósito, e não ganharam colunas separadas:
+ * para o resto do sistema eles são o MESMO fato — a encomenda não entrou na custódia, não ocupa
+ * vaga e não tem missão. É isso que a invariante de ocupação de {@code MigracaoTest} e o {@code
+ * ck_entrega_falida_recusada_sem_missao} da V21 verificam, e um terceiro estado paralelo obrigaria
+ * a alterar os dois.
+ *
+ * &lt;p&gt;O que difere é só a EXPLICAÇÃO devolvida à transportadora, e ela é operacionalmente relevante:
+ * um ponto lotado pode abrir vaga em horas, um patrocínio ausente não muda sozinho.
+ */
+<span class="fc" id="L15">public enum MotivoRecusa {</span>
+
+  /** Ponto de custódia sem vaga. Reenviar depois pode dar certo. */
+<span class="fc" id="L18">  PONTO_LOTADO,</span>
+
+  /**
+   * Sem patrocinador que financie o pote: inexistente, desativado, ou sem saldo.
+   *
+   * &lt;p&gt;As três causas colapsam num valor só de propósito. Distingui-las contaria à transportadora o
+   * estado financeiro de um terceiro sem nenhum ganho operacional — ela precisa saber que reenviar
+   * não adianta, não por quê. É a mesma doutrina do 401 único do {@code HmacWebhookFilter}.
+   */
+<span class="fc" id="L27">  SEM_PATROCINIO</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

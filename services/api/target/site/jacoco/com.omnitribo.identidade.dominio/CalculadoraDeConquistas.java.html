@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalculadoraDeConquistas.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">CalculadoraDeConquistas.java</span></div><h1>CalculadoraDeConquistas.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import java.util.List;
+
+/**
+ * Conquistas do usuário, DERIVADAS. Função pura, sem Spring e sem banco.
+ *
+ * &lt;p&gt;&lt;b&gt;Por que derivar em vez de guardar.&lt;/b&gt; Uma tabela {@code conquista} exigiria migration,
+ * regra de concessão, e um caminho de escrita que pode falhar deixando o usuário sem a medalha que
+ * já merece. Derivar de {@code xp}, {@code nivel} e {@code streak} — colunas que {@code usuario} já
+ * tem — torna a concessão impossível de perder: se o XP está lá, a conquista está. O preço é não
+ * existir &quot;quando foi conquistada&quot;, e essa data não aparece em nenhuma tela pedida.
+ *
+ * &lt;p&gt;&lt;b&gt;Só entram sinais que identidade POSSUI.&lt;/b&gt; &quot;Missões concluídas&quot; seria a métrica óbvia e
+ * está fora de propósito: a contagem vive em {@code missoes}, e buscá-la faria identidade depender
+ * de missoes — que já depende de identidade. O ciclo custaria mais do que a medalha vale. XP é
+ * proxy fiel, porque só conclusão de missão concede XP.
+ *
+ * &lt;p&gt;&lt;b&gt;Mudar limiar no YAML tira conquistas já exibidas, e não há como versionar isso.&lt;/b&gt; Como
+ * nada é gravado, baixar um limiar concede retroativamente e subi-lo REVOGA — o usuário perde uma
+ * medalha que já viu, sem registro de que a regra mudou. Diferente de {@code
+ * CalculadoraDeRecompensa}, aqui não existe coluna onde congelar a calibração vigente, então uma
+ * {@code versao} seria decoração. É o preço de derivar em vez de guardar; tratar esses números como
+ * estáveis é parte do desenho, não descuido.
+ *
+ * &lt;p&gt;Devolve o catálogo INTEIRO, com o que falta para cada uma, e não só as já obtidas. É o que
+ * permite à tela mostrar o próximo objetivo — uma lista só de conquistas ganhas não diz ao usuário
+ * o que fazer em seguida.
+ */
+public final class CalculadoraDeConquistas {
+
+  /**
+   * @param progresso quanto o usuário tem hoje da métrica desta conquista
+   * @param meta quanto é preciso — progresso ≥ meta é exatamente {@code conquistada}
+   */
+<span class="fc" id="L36">  public record Conquista(</span>
+      String codigo,
+      String titulo,
+      String descricao,
+      boolean conquistada,
+      long progresso,
+      long meta) {}
+
+  private CalculadoraDeConquistas() {}
+
+  public static List&lt;Conquista&gt; avaliar(long xp, int nivel, int streak, ParametrosConquistas c) {
+<span class="fc" id="L47">    return List.of(</span>
+<span class="fc" id="L48">        de(</span>
+            &quot;INICIANTE&quot;,
+            &quot;Primeiro passo&quot;,
+            &quot;Conclua a primeira missão do bairro.&quot;,
+            xp,
+<span class="fc" id="L53">            c.xpIniciante()),</span>
+<span class="fc" id="L54">        de(</span>
+            &quot;VIZINHO_PRESENTE&quot;,
+            &quot;Vizinho presente&quot;,
+            &quot;Acumule experiência ajudando por perto.&quot;,
+            xp,
+<span class="fc" id="L59">            c.xpVizinhoPresente()),</span>
+<span class="fc" id="L60">        de(</span>
+            &quot;PILAR_DA_TRIBO&quot;,
+            &quot;Pilar da tribo&quot;,
+            &quot;Torne-se uma das pessoas mais atuantes da sua tribo.&quot;,
+            xp,
+<span class="fc" id="L65">            c.xpPilarDaTribo()),</span>
+<span class="fc" id="L66">        de(</span>
+            &quot;VETERANO&quot;,
+            &quot;Veterano&quot;,
+<span class="fc" id="L69">            &quot;Alcance o nível &quot; + c.nivelVeterano() + &quot;.&quot;,</span>
+            nivel,
+<span class="fc" id="L71">            c.nivelVeterano()),</span>
+<span class="fc" id="L72">        de(</span>
+            &quot;CONSTANTE&quot;,
+            &quot;Constante&quot;,
+<span class="fc" id="L75">            &quot;Mantenha &quot; + c.streakConstante() + &quot; dias seguidos de atividade.&quot;,</span>
+            streak,
+<span class="fc" id="L77">            c.streakConstante()));</span>
+  }
+
+  /**
+   * O progresso é SATURADO na meta antes de sair.
+   *
+   * &lt;p&gt;Sem isso, uma barra de progresso ingênua com 4000 de 2000 renderizaria o dobro da largura do
+   * componente, e a tela mostraria &quot;4000/2000&quot; — que se lê como erro de cálculo, não como conquista
+   * superada há tempos.
+   */
+  private static Conquista de(
+      String codigo, String titulo, String descricao, long valor, long meta) {
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    return new Conquista(codigo, titulo, descricao, valor &gt;= meta, Math.min(valor, meta), meta);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

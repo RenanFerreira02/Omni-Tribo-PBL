@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Usuario.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">Usuario.java</span></div><h1>Usuario.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;usuario&quot;)
+public class Usuario {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  @Column(nullable = false, length = 100)
+  private String nome;
+
+  @Column(nullable = false, length = 255, unique = true)
+  private String email;
+
+  @Column(name = &quot;senha_hash&quot;, nullable = false, length = 255)
+  private String senhaHash;
+
+  @Column(nullable = false, length = 50, unique = true)
+  private String handle;
+
+  // triboId: FK para tribo — mesmo módulo identidade
+  @Column(name = &quot;tribo_id&quot;)
+  private UUID triboId;
+
+  @Column(nullable = false)
+  private long xp;
+
+  @Column(nullable = false)
+  private int nivel;
+
+  @Column(nullable = false)
+  private int streak;
+
+  @Column(nullable = false, precision = 2, scale = 1)
+  private BigDecimal rating;
+
+  // length = 20, e não 10: 'PATROCINADOR' tem 12 caracteres. A V23 alargou a coluna, e o valor aqui
+  // precisa acompanhar — `ddl-auto: validate` do Hibernate não confere comprimento de VARCHAR,
+  // então
+  // a divergência não apareceria no boot; apareceria como truncamento no INSERT.
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private PapelUsuario papel;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 10)
+  private StatusUsuario status;
+
+  /** Quando o titular exerceu o direito ao esquecimento. Null = conta normal. Ver V18. */
+  @Column(name = &quot;anonimizado_em&quot;)
+  private Instant anonimizadoEm;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+  @Column(name = &quot;atualizado_em&quot;, nullable = false)
+  private Instant atualizadoEm;
+
+  @Version
+  @Column(nullable = false)
+  private int versao;
+
+<span class="fc" id="L76">  protected Usuario() {}</span>
+
+  public Usuario(
+      UUID id,
+      String nome,
+      String email,
+      String senhaHash,
+      String handle,
+      UUID triboId,
+<span class="fc" id="L85">      Instant criadoEm) {</span>
+<span class="fc" id="L86">    this.id = id;</span>
+<span class="fc" id="L87">    this.nome = nome;</span>
+<span class="fc" id="L88">    this.email = email;</span>
+<span class="fc" id="L89">    this.senhaHash = senhaHash;</span>
+<span class="fc" id="L90">    this.handle = handle;</span>
+<span class="fc" id="L91">    this.triboId = triboId;</span>
+<span class="fc" id="L92">    this.xp = 0;</span>
+<span class="fc" id="L93">    this.nivel = 1;</span>
+<span class="fc" id="L94">    this.streak = 0;</span>
+<span class="fc" id="L95">    this.rating = BigDecimal.ZERO;</span>
+<span class="fc" id="L96">    this.papel = PapelUsuario.USUARIO;</span>
+<span class="fc" id="L97">    this.status = StatusUsuario.ATIVO;</span>
+<span class="fc" id="L98">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L99">    this.atualizadoEm = criadoEm;</span>
+<span class="fc" id="L100">  }</span>
+
+  /**
+   * A conta-titular de um patrocinador.
+   *
+   * &lt;p&gt;Fábrica separada, e não um parâmetro {@code papel} no construtor público: o construtor é o
+   * caminho do REGISTRO de gente, e abrir o papel ali deixaria &quot;crie-me como ADMIN&quot; a um campo de
+   * distância do corpo da requisição. Aqui o papel é fixo no código e não vem de lugar nenhum.
+   *
+   * &lt;p&gt;{@code INATIVO} é a trava que torna a conta inofensiva — {@code AutenticacaoService} recusa
+   * status diferente de ATIVO, então a senha marcadora abaixo não autentica nada. {@code triboId}
+   * nulo é semântico: patrocinador não pertence a bairro, e é por isso que ele não passa por {@code
+   * FinanciamentoService.validarAutorizacao}, que exige afiliação.
+   */
+  public static Usuario paraPatrocinador(
+      UUID id, String nome, String email, String handle, Instant criadoEm) {
+<span class="fc" id="L116">    Usuario patrocinador = new Usuario(id, nome, email, SENHA_INEXISTENTE, handle, null, criadoEm);</span>
+<span class="fc" id="L117">    patrocinador.papel = PapelUsuario.PATROCINADOR;</span>
+<span class="fc" id="L118">    patrocinador.status = StatusUsuario.INATIVO;</span>
+<span class="fc" id="L119">    return patrocinador;</span>
+  }
+
+  /**
+   * Marcador gravado em {@code senha_hash}, que é NOT NULL e precisa de algum valor.
+   *
+   * &lt;p&gt;Não tem forma de hash Argon2, então o verificador não consegue casá-lo com senha alguma —
+   * nem por acaso, nem por engenharia. Mesma técnica da V21 para o usuário-sistema.
+   */
+  private static final String SENHA_INEXISTENTE = &quot;CONTA-DE-PATROCINADOR-SEM-SENHA&quot;;
+
+  public UUID getId() {
+<span class="fc" id="L131">    return id;</span>
+  }
+
+  public String getNome() {
+<span class="fc" id="L135">    return nome;</span>
+  }
+
+  public String getEmail() {
+<span class="fc" id="L139">    return email;</span>
+  }
+
+  public String getSenhaHash() {
+<span class="fc" id="L143">    return senhaHash;</span>
+  }
+
+  public String getHandle() {
+<span class="fc" id="L147">    return handle;</span>
+  }
+
+  public UUID getTriboId() {
+<span class="fc" id="L151">    return triboId;</span>
+  }
+
+  public long getXp() {
+<span class="fc" id="L155">    return xp;</span>
+  }
+
+  public void adicionarXp(long quantidade) {
+<span class="fc" id="L159">    this.xp += quantidade;</span>
+<span class="fc" id="L160">  }</span>
+
+  public int getNivel() {
+<span class="fc" id="L163">    return nivel;</span>
+  }
+
+  public void setNivel(int nivel) {
+<span class="fc" id="L167">    this.nivel = nivel;</span>
+<span class="fc" id="L168">  }</span>
+
+  public int getStreak() {
+<span class="fc" id="L171">    return streak;</span>
+  }
+
+  public PapelUsuario getPapel() {
+<span class="fc" id="L175">    return papel;</span>
+  }
+
+  public StatusUsuario getStatus() {
+<span class="fc" id="L179">    return status;</span>
+  }
+
+  public void setStatus(StatusUsuario status) {
+<span class="nc" id="L183">    this.status = status;</span>
+<span class="nc" id="L184">  }</span>
+
+  /**
+   * Descaracteriza o titular, preservando os fatos contábeis. Direito ao esquecimento (LGPD art.
+   * 18, VI).
+   *
+   * &lt;p&gt;&lt;b&gt;Um método só, e não setters de e-mail e handle.&lt;/b&gt; Anonimizar é uma operação com cinco
+   * mutações que só fazem sentido juntas; expor {@code setEmail} para viabilizá-la abriria a porta
+   * para trocar e-mail em qualquer lugar do código, sem revalidação e sem reconfirmação. Não existe
+   * caso de uso de &quot;mudar e-mail&quot; neste sistema — existe o de esquecer alguém.
+   *
+   * &lt;p&gt;{@code email} e {@code handle} recebem valores derivados de UUID porque as duas colunas são
+   * UNIQUE: esvaziá-las ou usar um literal faria a segunda exclusão de conta violar a constraint.
+   *
+   * &lt;p&gt;A senha é sobrescrita por um hash impossível de reproduzir — a conta não pode ser reaberta
+   * por quem souber a senha antiga, e {@code status = INATIVO} já barra o login antes disso.
+   */
+  public void anonimizar(Instant quando, String hashInutilizavel) {
+<span class="fc" id="L202">    String sufixo = UUID.randomUUID().toString();</span>
+<span class="fc" id="L203">    this.nome = &quot;Usuário removido&quot;;</span>
+<span class="fc" id="L204">    this.email = &quot;removido+&quot; + sufixo + &quot;@anonimizado.invalid&quot;;</span>
+<span class="fc" id="L205">    this.handle = &quot;removido_&quot; + sufixo.substring(0, 8);</span>
+<span class="fc" id="L206">    this.senhaHash = hashInutilizavel;</span>
+<span class="fc" id="L207">    this.status = StatusUsuario.INATIVO;</span>
+<span class="fc" id="L208">    this.anonimizadoEm = quando;</span>
+<span class="fc" id="L209">    this.atualizadoEm = quando;</span>
+<span class="fc" id="L210">  }</span>
+
+  public boolean anonimizado() {
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">    return anonimizadoEm != null;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="nc" id="L217">    return criadoEm;</span>
+  }
+
+  public int getVersao() {
+<span class="nc" id="L221">    return versao;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

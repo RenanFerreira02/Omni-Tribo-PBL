@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransferirRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.api</a> &gt; <span class="el_source">TransferirRequest.java</span></div><h1>TransferirRequest.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.api;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import java.util.UUID;
+
+/**
+ * Corpo de {@code POST /api/v1/carteira/transferencias}.
+ *
+ * &lt;p&gt;O REMETENTE não está aqui — vem sempre do JWT. Aceitá-lo do corpo permitiria transferir da
+ * carteira alheia trocando um campo do JSON.
+ */
+@Schema(description = &quot;Transferência de tokens entre membros da mesma tribo&quot;)
+<span class="fc" id="L16">public record TransferirRequest(</span>
+    @NotNull(message = &quot;Destinatário é obrigatório&quot;) UUID destinatarioId,
+    @NotNull(message = &quot;Quantidade de tokens é obrigatória&quot;)
+        @Positive(message = &quot;Transferência deve ser positiva&quot;)
+        Long tokens,
+    @Size(max = 200, message = &quot;Mensagem deve ter no máximo 200 caracteres&quot;) String mensagem) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParametrosConquistas.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">ParametrosConquistas.java</span></div><h1>ParametrosConquistas.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Limiares do catálogo de conquistas, vinculados a {@code app.identidade.conquistas.*}.
+ *
+ * &lt;p&gt;A FÓRMULA é código ({@code CalculadoraDeConquistas}); os NÚMEROS são configuração. Record
+ * imutável, no molde de {@code ParametrosRecompensa}, {@code PoliticaCarteira} e {@code
+ * JwtProperties}: propriedade ausente falha no startup em vez de virar zero silencioso — e um
+ * limiar lido como zero concederia toda conquista a todo mundo, que é o pior desfecho possível para
+ * uma medalha.
+ *
+ * &lt;p&gt;Antes esta calibração era lida por seis {@code @Value} espalhados pelo construtor de {@code
+ * PerfilService}, cada um com default inline. Exatamente a propriedade que os outros três blocos
+ * defendem — falhar alto quando falta configuração — era a que este perdia.
+ *
+ * &lt;p&gt;&lt;b&gt;Não tem {@code versao}, e a ausência é deliberada.&lt;/b&gt; Conquista é DERIVADA e recalculada a
+ * cada leitura, nunca gravada: não há linha em banco que uma versão pudesse explicar depois. Havia
+ * uma {@code versao} aqui, lida do YAML e nunca usada de volta, com três javadocs prometendo que
+ * subi-la protegeria o histórico — não protegia nada. O contraste é {@code
+ * ParametrosRecompensa.versao}, que é congelada em {@code missao.versao_formula} e por isso
+ * responde de verdade &quot;este crédito estava certo quando foi feito?&quot;.
+ *
+ * &lt;p&gt;Registrado pelo {@code @ConfigurationPropertiesScan} de {@code ApiApplication}.
+ */
+@ConfigurationProperties(prefix = &quot;app.identidade.conquistas&quot;)
+<span class="fc" id="L28">public record ParametrosConquistas(</span>
+    long xpIniciante,
+    long xpVizinhoPresente,
+    long xpPilarDaTribo,
+    int nivelVeterano,
+    int streakConstante) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

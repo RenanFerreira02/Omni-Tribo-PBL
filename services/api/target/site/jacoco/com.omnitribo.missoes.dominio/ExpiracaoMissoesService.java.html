@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExpiracaoMissoesService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">ExpiracaoMissoesService.java</span></div><h1>ExpiracaoMissoesService.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import com.omnitribo.missoes.infra.CacheMissoesProximas;
+import com.omnitribo.missoes.infra.MissaoEventoRepository;
+import com.omnitribo.missoes.infra.MissaoRepository;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Move missões ABERTA com janela vencida para EXPIRADA — &lt;b&gt;uma transação por missão&lt;/b&gt;.
+ *
+ * &lt;p&gt;&lt;b&gt;Por que não um lote por transação, que era o desenho anterior.&lt;/b&gt; Dois defeitos com a
+ * mesma origem:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;Deadlock.&lt;/b&gt; O estorno trava as carteiras dos financiadores de CADA missão em ordem
+ *       crescente de id, o que é a regra global do projeto. Mas com N missões na mesma transação, a
+ *       ordenação é local por missão e não global pela transação: duas missões com financiadores
+ *       cruzados faziam a transação adquirir carteiras em ordem DECRESCENTE entre si, e uma
+ *       transferência P2P concorrente — que ordena certo — fechava o ciclo. PostgreSQL matava uma
+ *       das duas com 40P01, e o lote inteiro se perdia. O comentário antigo dizia que &quot;a ordem
+ *       global é respeitada porque a missão já está travada&quot;: isso cobre {@code missao → carteira},
+ *       não cobre {@code carteira(id crescente)}.
+ *   &lt;li&gt;&lt;b&gt;Item envenenado.&lt;/b&gt; Sem {@code try/catch} por item, uma única missão cujo pote diverge
+ *       da soma dos financiamentos ({@code IllegalStateException} em {@code
+ *       EstornoFinanciamentoService}) derrubava a transação inteira. Todas as outras perdiam a
+ *       expiração, e o job reencontrava a mesma missão a cada 5 minutos, indefinidamente.
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;Isto não viola a proibição de {@code REQUIRES_NEW}.&lt;/b&gt; A proibição existe porque a
+ * transação externa segura {@code FOR UPDATE} e a interna pediria uma segunda conexão — com N ≥
+ * tamanho do pool, deadlock de pool. Aqui não há transação externa: quem orquestra o laço é o
+ * {@code ExpiracaoMissoesJob}, que não é transacional. Cada missão abre e fecha uma transação
+ * {@code REQUIRED}, uma conexão por vez. É o mesmo formato de {@code MissaoService.aplicar} chamado
+ * pelo controller.
+ *
+ * &lt;p&gt;O que se perde: um lote deixa de ser atômico. Não há regra que exija isso — a atomicidade que
+ * importa é por missão (status + trilha + estorno), e ela está preservada. O que se ganha em
+ * contenção: hoje um lote de 200 missões financiadas segurava centenas de linhas de {@code
+ * carteira} do início ao fim.
+ *
+ * &lt;p&gt;Usa a MESMA máquina de estados do fluxo HTTP, com ator SISTEMA — não existe caminho paralelo
+ * capaz de divergir das regras de transição ou de deixar de gravar a trilha.
+ */
+@Service
+public class ExpiracaoMissoesService {
+
+  /**
+   * Candidata à expiração: o mínimo que o cursor precisa.
+   *
+   * &lt;p&gt;Não é a entidade, de propósito — a seleção roda FORA de transação e materializar {@code
+   * Missao} aqui não teria persistence context onde viver.
+   */
+<span class="fc" id="L59">  public record Candidata(UUID id, Instant marco) {</span>
+
+    /**
+     * Cursor do PRIMEIRO lote: menor que qualquer chave real.
+     *
+     * &lt;p&gt;Existe para que a consulta não precise de {@code :aposMarco is null}. Um parâmetro nulo
+     * sem tipo declarado faz o PostgreSQL recusar a consulta com {@code could not determine data
+     * type of parameter} — a mesma armadilha dos {@code CAST(:param AS ...)} das queries nativas.
+     * Um sentinela resolve com um caminho só no predicado, em vez de um cast e dois ramos.
+     */
+<span class="fc" id="L69">    static final Candidata INICIO = new Candidata(new UUID(0L, 0L), Instant.EPOCH);</span>
+  }
+
+  private final MissaoRepository missaoRepository;
+  private final MissaoEventoRepository missaoEventoRepository;
+  private final CacheMissoesProximas cacheMissoesProximas;
+  private final EstornoFinanciamentoService estornoFinanciamentoService;
+
+  public ExpiracaoMissoesService(
+      MissaoRepository missaoRepository,
+      MissaoEventoRepository missaoEventoRepository,
+      CacheMissoesProximas cacheMissoesProximas,
+<span class="fc" id="L81">      EstornoFinanciamentoService estornoFinanciamentoService) {</span>
+<span class="fc" id="L82">    this.missaoRepository = missaoRepository;</span>
+<span class="fc" id="L83">    this.missaoEventoRepository = missaoEventoRepository;</span>
+<span class="fc" id="L84">    this.cacheMissoesProximas = cacheMissoesProximas;</span>
+<span class="fc" id="L85">    this.estornoFinanciamentoService = estornoFinanciamentoService;</span>
+<span class="fc" id="L86">  }</span>
+
+  /**
+   * Próximas candidatas depois do cursor, sem lock e sem transação de escrita.
+   *
+   * &lt;p&gt;&lt;b&gt;Cursor keyset, e não {@code PageRequest.of(0, limite)}.&lt;/b&gt; Com uma transação por missão,
+   * uma missão que FALHA continua {@code ABERTA} e vencida — e, como a ordem é {@code janelaFim
+   * asc}, ela reapareceria na primeira posição do próximo lote. Com offset zero o job repetiria a
+   * mesma falha até bater o teto por execução, e o defeito do item envenenado voltaria em outra
+   * forma. O cursor garante progresso monotônico: cada candidata é tentada UMA vez por execução.
+   */
+  public List&lt;Candidata&gt; candidatas(
+      RegraExpiracao regra, Instant agora, Candidata apos, int limite) {
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">    Candidata cursor = apos == null ? Candidata.INICIO : apos;</span>
+    // O corte é o instante ANTES do qual o marco temporal precisa estar para a missão ter vencido.
+    // Para ABERTA o prazo é ZERO e o corte é o próprio `agora` — a janela de oferta já é o prazo.
+<span class="fc" id="L102">    Instant corte = agora.minus(regra.prazo());</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    return regra.marco() == RegraExpiracao.Marco.JANELA_FIM</span>
+<span class="fc" id="L104">        ? missaoRepository.candidatasPorJanela(</span>
+<span class="fc" id="L105">            regra.origem(), corte, cursor.marco(), cursor.id(), PageRequest.of(0, limite))</span>
+<span class="fc" id="L106">        : missaoRepository.candidatasPorEstadoDesde(</span>
+<span class="fc" id="L107">            regra.origem(), corte, cursor.marco(), cursor.id(), PageRequest.of(0, limite));</span>
+  }
+
+  /**
+   * Expira UMA missão, na própria transação.
+   *
+   * &lt;p&gt;Só para as regras que TERMINAM sem crédito (ABERTA e EM_ANDAMENTO, ambas para EXPIRADA com
+   * estorno). A regra de {@code AGUARDANDO_CONFIRMACAO} conclui PAGANDO o executor e por isso passa
+   * por {@code MissaoService.concluirPorOmissaoDoCriador}, que é o único caminho de crédito — o job
+   * escolhe qual chamar. Duplicar o crédito aqui seria criar um segundo caminho de valor, que é
+   * exatamente como a conservação da moeda se perde sem ninguém perceber.
+   *
+   * @return {@code false} quando a missão já não é elegível — transicionada entre a seleção e o
+   *     lock, ou travada por uma operação em curso (SKIP LOCKED). Não é erro: é a corrida sendo
+   *     perdida, e quem ganhou tem prioridade legítima sobre um job de manutenção.
+   */
+  @Transactional
+  public boolean expirarUma(RegraExpiracao regra, UUID missaoId, Instant agora) {
+    // PRIMEIRA leitura da transação, e é ela que fecha o deadlock: dentro desta transação a única
+    // missão travada é esta, então as carteiras estornadas são só as DELA — e estornarFinanciadores
+    // já as ordena por id crescente. A ordem global missao → carteira(crescente) volta a valer, o
+    // que era impossível com o lote inteiro numa transação só.
+<span class="fc" id="L129">    Optional&lt;Missao&gt; alvo = missaoRepository.travarSeAindaNoStatus(missaoId, regra.origem());</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">    if (alvo.isEmpty()) {</span>
+<span class="nc" id="L131">      return false;</span>
+    }
+
+<span class="fc" id="L134">    Missao missao = alvo.get();</span>
+<span class="fc" id="L135">    MissaoEvento trilha =</span>
+<span class="fc" id="L136">        MissaoStateMachine.transicionar(missao, regra.evento(), AtorMissao.sistema(), null, agora);</span>
+
+    // Estorno obrigatoriamente AQUI, e não só em MissaoService.aplicar. Este é o ÚNICO caminho que
+    // leva uma missão a EXPIRADA — o job dispara EXPIRAR sem passar por aplicar(). Sem esta chamada
+    // os tokens de quem financiou ficariam presos numa missão morta, e o pior: a reconciliação
+    // continuaria respondendo integro=true, porque ledger e projeção seguem batendo. A perda seria
+    // invisível justamente para o endpoint que existe para achá-la.
+<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (missao.getPoteTokens() &gt; 0) {</span>
+<span class="fc" id="L144">      estornoFinanciamentoService.estornarPote(missao, agora);</span>
+    }
+
+<span class="fc" id="L147">    missaoRepository.save(missao);</span>
+    // Mesma transação: status e trilha não têm como divergir.
+<span class="fc" id="L149">    missaoEventoRepository.save(trilha);</span>
+
+    // Este serviço NÃO passa por MissaoService.aplicar. Sem este gancho, missões ABERTA→EXPIRADA
+    // continuariam aparecendo no radar por até 30 s. Chamado uma vez por missão agora; o
+    // invalidateAll é idempotente e o cache tem TTL de 30 s e maximumSize, então repetir não custa.
+<span class="fc" id="L154">    cacheMissoesProximas.invalidarAposCommit();</span>
+<span class="fc" id="L155">    return true;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClimaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.integracoes.dominio</a> &gt; <span class="el_source">ClimaService.java</span></div><h1>ClimaService.java</h1><pre class="source lang-java linenums">package com.omnitribo.integracoes.dominio;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.omnitribo.integracoes.api.ClimaResponse;
+import com.omnitribo.integracoes.api.ConsultaClima;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+/**
+ * Clima com cache, arredondamento de coordenada e teto de entradas.
+ *
+ * &lt;p&gt;&lt;b&gt;A coordenada é arredondada para 2 casas antes de virar chave&lt;/b&gt;, o que agrega ~1,1 km. Sem
+ * isso o cache seria inútil por construção: cada micro-tremida do GPS produziria uma chave nova e
+ * toda leitura viraria uma chamada externa. E é meteorologicamente honesto — a previsão do provedor
+ * já tem resolução de quilômetros, então duas coordenadas a 300 m uma da outra recebem a mesma
+ * resposta de qualquer forma.
+ *
+ * &lt;p&gt;{@code maximumSize} existe pela mesma razão do cache de proximidade: a chave é escolhida pelo
+ * cliente, e sem teto um cliente hostil varreria o globo enchendo a heap.
+ *
+ * &lt;p&gt;Caffeine direto, sem {@code @Cacheable}, para manter o padrão já adotado em {@code
+ * CacheMissoesProximas} — e porque um cache observável num teste vale mais que a indireção.
+ */
+@Service
+public class ClimaService implements ConsultaClima {
+
+<span class="fc" id="L34">  private static final Logger log = LoggerFactory.getLogger(ClimaService.class);</span>
+
+  private static final int MAXIMO_ENTRADAS = 5_000;
+  private static final int CASAS_DA_CHAVE = 2;
+
+  private final FonteClima fonte;
+  private final Cache&lt;String, ClimaResponse&gt; cache;
+
+<span class="fc" id="L42">  public ClimaService(FonteClima fonte, @Value(&quot;${app.integracoes.clima.ttl:PT10M}&quot;) Duration ttl) {</span>
+<span class="fc" id="L43">    this.fonte = fonte;</span>
+<span class="fc" id="L44">    this.cache = Caffeine.newBuilder().expireAfterWrite(ttl).maximumSize(MAXIMO_ENTRADAS).build();</span>
+<span class="fc" id="L45">  }</span>
+
+  public ClimaResponse consultar(BigDecimal lat, BigDecimal lon) {
+<span class="fc" id="L48">    BigDecimal latChave = lat.setScale(CASAS_DA_CHAVE, RoundingMode.HALF_UP);</span>
+<span class="fc" id="L49">    BigDecimal lonChave = lon.setScale(CASAS_DA_CHAVE, RoundingMode.HALF_UP);</span>
+
+    // A falha do provedor NÃO é cacheada: `Cache.get` não guarda quando a carga lança. É o que
+    // queremos — cachear indisponibilidade prolongaria uma interrupção de segundos pelo TTL
+    // inteiro.
+<span class="fc" id="L54">    return cache.get(latChave + &quot;,&quot; + lonChave, chave -&gt; fonte.consultar(latChave, lonChave));</span>
+  }
+
+  /**
+   * Mesma consulta, mas indisponibilidade vira VALOR em vez de exceção.
+   *
+   * &lt;p&gt;Serve o modelo de risco, cujo consumidor principal é o webhook de transportadora. Ali,
+   * deixar a exceção subir transformaria em 5xx o registro de uma entrega falida — e a
+   * transportadora reenviaria em laço enquanto a encomenda continua no ponto de custódia sem
+   * missão. O clima é uma das oito características do modelo; perdê-la degrada o score (a
+   * característica é imputada), e degradar o score é infinitamente melhor que recusar o fato.
+   *
+   * &lt;p&gt;Reaproveita o MESMO cache da consulta normal: uma rajada de webhooks na mesma região consome
+   * uma única chamada externa.
+   */
+  @Override
+  public Optional&lt;CondicaoClimatica&gt; consultarParaRisco(BigDecimal lat, BigDecimal lon) {
+    try {
+<span class="fc" id="L72">      ClimaResponse clima = consultar(lat, lon);</span>
+<span class="fc" id="L73">      return Optional.of(new CondicaoClimatica(clima.chuvaMm(), clima.temperaturaC()));</span>
+<span class="fc" id="L74">    } catch (RuntimeException e) {</span>
+      // Captura larga de propósito: provedor fora do ar, tempo esgotado e recusa do bulkhead têm
+      // tipos diferentes e a MESMA reação correta aqui. Log em debug porque, ao contrário do card
+      // de clima, esta falha é esperada e já tem tratamento — não é sintoma de nada.
+<span class="fc" id="L78">      log.debug(&quot;Clima indisponível para o modelo de risco, será imputado: {}&quot;, e.toString());</span>
+<span class="fc" id="L79">      return Optional.empty();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

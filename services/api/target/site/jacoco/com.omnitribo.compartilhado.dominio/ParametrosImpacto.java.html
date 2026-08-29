@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParametrosImpacto.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.dominio</a> &gt; <span class="el_source">ParametrosImpacto.java</span></div><h1>ParametrosImpacto.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.dominio;
+
+import java.math.BigDecimal;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * A PREMISSA econômica do painel de impacto — e o adjetivo é a parte importante.
+ *
+ * &lt;p&gt;{@code custoReentregaBrl} é quanto se assume que custa uma re-entrega. &lt;b&gt;Este projeto não
+ * mediu esse número e não tem como medi-lo&lt;/b&gt;: não há operação real, logo não há série de custo
+ * para observar. Ele existe em configuração, e não em código, exatamente para que essa natureza
+ * fique visível — um literal no meio de um cálculo em Java pareceria resultado, e é assim que
+ * premissa vira &quot;dado&quot; no slide de alguém.
+ *
+ * &lt;p&gt;É por isso também que o endpoint devolve o resultado com este valor variando ±50%: a conclusão
+ * que interessa (&quot;o custo evitado é da ordem de X&quot;) precisa sobreviver ao número estar errado pela
+ * metade ou pela metade a mais. Ver ADR 0029 §5.
+ *
+ * &lt;p&gt;Não tem {@code versao} como {@code ParametrosRecompensa} e {@code ParametrosRisco} têm — e a
+ * assimetria é deliberada. Aqueles CONGELAM o resultado numa coluna, então a versão é o que explica
+ * um crédito antigo. Este só alimenta um relatório recalculado a cada chamada: nada foi gravado sob
+ * a premissa velha, e não há passado para reinterpretar.
+ */
+@ConfigurationProperties(prefix = &quot;app.impacto&quot;)
+public record ParametrosImpacto(BigDecimal custoReentregaBrl) {
+
+<span class="fc" id="L27">  public ParametrosImpacto {</span>
+    // Falha no BOOT, não na primeira chamada do painel. Premissa ausente ou negativa é erro de
+    // configuração, e descobri-lo numa demonstração — pela tela em branco — é tarde demais.
+<span class="pc bpc" id="L30" title="2 of 4 branches missed.">    if (custoReentregaBrl == null || custoReentregaBrl.signum() &lt; 0) {</span>
+<span class="nc" id="L31">      throw new IllegalArgumentException(</span>
+          &quot;app.impacto.custo-reentrega-brl é obrigatório e não pode ser negativo&quot;);
+    }
+<span class="fc" id="L34">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

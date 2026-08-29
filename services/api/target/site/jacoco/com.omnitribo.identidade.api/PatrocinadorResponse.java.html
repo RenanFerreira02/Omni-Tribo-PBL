@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PatrocinadorResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.api</a> &gt; <span class="el_source">PatrocinadorResponse.java</span></div><h1>PatrocinadorResponse.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.api;
+
+import com.omnitribo.compartilhado.api.RecursoAuditavel;
+import com.omnitribo.identidade.dominio.Patrocinador;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * O patrocinador como o ADMIN o vê.
+ *
+ * &lt;p&gt;&lt;b&gt;Sem saldo, de propósito.&lt;/b&gt; Saldo é estado da carteira e muda sob lock; devolvê-lo numa
+ * listagem seria uma leitura sem lock que envelhece antes de chegar à tela. Quem precisa do número
+ * atual usa a resposta do aporte, que o devolve depois de escrever. Ver ADR 0024 §6.
+ *
+ * @param usuarioId o titular da carteira. Aparece porque é ele que o extrato e a reconciliação usam
+ *     como chave — sem isto, ligar um lançamento ao patrocinador exigiria uma consulta manual.
+ */
+<span class="fc" id="L18">public record PatrocinadorResponse(</span>
+    UUID id,
+    UUID usuarioId,
+    String transportadoraSlug,
+    String nome,
+    boolean ativo,
+    Instant criadoEm)
+    implements RecursoAuditavel {
+
+  public static PatrocinadorResponse de(Patrocinador p) {
+<span class="fc" id="L28">    return new PatrocinadorResponse(</span>
+<span class="fc" id="L29">        p.getId(),</span>
+<span class="fc" id="L30">        p.getUsuarioId(),</span>
+<span class="fc" id="L31">        p.getTransportadoraSlug(),</span>
+<span class="fc" id="L32">        p.getNome(),</span>
+<span class="fc" id="L33">        p.isAtivo(),</span>
+<span class="fc" id="L34">        p.getCriadoEm());</span>
+  }
+
+  /**
+   * O patrocinador é o recurso auditado. Sem isto o {@code AuditoriaAspecto} gravaria {@code
+   * entidade_id} nulo, e a trilha diria &quot;um patrocinador foi cadastrado&quot; sem dizer qual.
+   */
+  @Override
+  public UUID idAuditoria() {
+<span class="fc" id="L43">    return id;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

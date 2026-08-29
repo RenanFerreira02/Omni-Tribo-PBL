@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>MissaoStateMachine.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package com.omnitribo.missoes.dominio;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.compartilhado.dominio.AcessoNegadoException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.compartilhado.dominio.TransicaoInvalidaException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.time.Instant;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.UUID;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#218;nico ponto do sistema onde o status de uma Missao muda.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;Classe utilit&#225;ria sem estado e sem Spring: o teste que percorre as 99 combina&#231;&#245;es status &#215;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * evento roda sem contexto de aplica&#231;&#227;o e sem Testcontainers, em milissegundos.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;O job de expira&#231;&#227;o usa exatamente esta m&#225;quina (com ator SISTEMA), de modo que n&#227;o existe</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * caminho paralelo capaz de divergir das regras de transi&#231;&#227;o.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>public final class MissaoStateMachine {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static final String MSG_TRANSICAO =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      &#34;Esta opera&#231;&#227;o n&#227;o &#233; permitida no estado atual da miss&#227;o.&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static final String MSG_ACESSO =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      &#34;Voc&#234; n&#227;o tem permiss&#227;o para esta opera&#231;&#227;o nesta miss&#227;o.&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>  private MissaoStateMachine() {}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Valida e aplica a transi&#231;&#227;o, devolvendo o evento de trilha AINDA N&#195;O PERSISTIDO. Quem grava &#233; o</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * MissaoService, na mesma transa&#231;&#227;o em que salva a miss&#227;o &#8212; status e trilha nunca divergem.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public static MissaoEvento transicionar(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      Missao missao, EventoMissao evento, AtorMissao ator, String payloadJson, Instant agora) {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_33'/>
+33
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_33'>1</a>
+<span>
+1. transicionar : removed call to com/omnitribo/missoes/dominio/MissaoStateMachine::validar &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    validar(missao, evento, ator);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    StatusMissao origem = missao.getStatus();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    StatusMissao destino = origem.destinoDe(evento).orElseThrow(); // j&#225; validado acima</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_38'/>
+38
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_38'>1</a>
+<span>
+1. transicionar : removed call to com/omnitribo/missoes/dominio/MissaoStateMachine::aplicarEfeitos &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    aplicarEfeitos(missao, evento, ator, agora);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // O carimbo de estadoDesde anda junto com o status, e &#233; o que torna &#34;h&#225; quanto tempo esta</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // miss&#227;o est&#225; parada aqui&#34; respond&#237;vel sem ler a trilha.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_41'/>
+41
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_41'>1</a>
+<span>
+1. transicionar : removed call to com/omnitribo/missoes/dominio/Missao::setStatus &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    missao.setStatus(destino, agora);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_43'/>
+43
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_43'>1</a>
+<span>
+1. transicionar : replaced return value with null for com/omnitribo/missoes/dominio/MissaoStateMachine::transicionar &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return new MissaoEvento(</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        UUID.randomUUID(),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        missao.getId(),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        evento.tipoTrilha(),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        ator.usuarioId(),</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        origem,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        destino,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        payloadJson,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        agora);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * S&#243; valida, n&#227;o muta. Existe para o check-in, que precisa recusar com 403 e 409 corretos ANTES</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * de qualquer efeito &#8212; inclusive antes de sondar a idempot&#234;ncia, que &#233; a &#250;nica opera&#231;&#227;o do</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * projeto a inserir um passo no meio da ordem can&#244;nica de erros.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_59'/>
+59
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_59'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public static void validar(Missao missao, EventoMissao evento, AtorMissao ator) {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_60'/>
+60
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_60'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // Autoriza&#231;&#227;o (403) ANTES da transi&#231;&#227;o (409). Na ordem inversa, um estranho descobriria o</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // status de uma miss&#227;o alheia pela diferen&#231;a entre as duas respostas.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_62'/>
+62
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_62'>1</a>
+<span>
+1. validar : removed call to com/omnitribo/missoes/dominio/MissaoStateMachine::validarAutorizacao &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    validarAutorizacao(missao, evento, ator);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_64'/>
+64
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_64'>1</a>
+<span>
+1. validar : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (!missao.getStatus().permite(evento)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new TransicaoInvalidaException(MSG_TRANSICAO);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_68'/>
+68
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_68'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /** PATCH n&#227;o &#233; transi&#231;&#227;o: exige ser o criador e a miss&#227;o estar em RASCUNHO ou ABERTA. */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_70'/>
+70
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_70'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public static void validarEdicao(Missao missao, AtorMissao ator) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_71'/>
+71
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_71'>1</a>
+<span>
+1. validarEdicao : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (!ator.ehMesmo(missao.getCriadorId())) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new AcessoNegadoException(MSG_ACESSO);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_73'/>
+73
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_73'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_74'/>
+74
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_74'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    StatusMissao status = missao.getStatus();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_75'/>
+75
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_75'>2</a>
+<span>
+1. validarEdicao : negated conditional &rarr; KILLED<br/>
+2. validarEdicao : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (status != StatusMissao.RASCUNHO &#38;&#38; status != StatusMissao.ABERTA) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_76'/>
+76
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_76'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new TransicaoInvalidaException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_77'/>
+77
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_77'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;Miss&#227;o s&#243; pode ser editada enquanto est&#225; em rascunho ou aberta.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_78'/>
+78
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_78'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_79'/>
+79
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_79'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_80'/>
+80
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_80'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_81'/>
+81
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_81'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_82'/>
+82
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_82'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * S&#243; a metade de autoriza&#231;&#227;o do {@link #validar}, sem a checagem de transi&#231;&#227;o.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_83'/>
+83
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_83'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_84'/>
+84
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_84'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;p&#62;P&#250;blica para o check-in idempotente: entre o 403 e o 409 &#233; preciso sondar a chave de</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_85'/>
+85
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_85'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * idempot&#234;ncia, porque um replay leg&#237;timo chega com a miss&#227;o j&#225; em AGUARDANDO_CONFIRMACAO e</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_86'/>
+86
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_86'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * levaria 409 se a transi&#231;&#227;o fosse checada antes. A autoriza&#231;&#227;o continua estritamente primeiro &#8212;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_87'/>
+87
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_87'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * sondar antes dela permitiria devolver dados da miss&#227;o a quem n&#227;o &#233; mais o executor.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_88'/>
+88
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_88'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_89'/>
+89
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_89'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public static void validarAutorizacao(Missao missao, EventoMissao evento, AtorMissao ator) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_90'/>
+90
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_90'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    boolean autorizado =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_91'/>
+91
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_91'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        switch (evento.atorEsperado()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_92'/>
+92
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_92'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          case CRIADOR -&#62; ator.ehMesmo(missao.getCriadorId());</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_93'/>
+93
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_93'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          // executorId nulo nega por constru&#231;&#227;o: ehMesmo(null) &#233; sempre falso.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_94'/>
+94
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_94'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          case EXECUTOR -&#62; ator.ehMesmo(missao.getExecutorId());</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_95'/>
+95
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_95'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          // Aceitar a pr&#243;pria miss&#227;o seria autoneg&#243;cio: o criador confirmaria a si mesmo e</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_96'/>
+96
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_96'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          // liberaria o cr&#233;dito sem contraparte.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_97'/>
+97
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_97'>2</a>
+<span>
+1. validarAutorizacao : negated conditional &rarr; KILLED<br/>
+2. validarAutorizacao : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>          case CANDIDATO -&#62; !ator.ehSistema() &#38;&#38; !ator.ehMesmo(missao.getCriadorId());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_98'/>
+98
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_98'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          case ADMIN -&#62; ator.ehAdmin();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_99'/>
+99
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_99'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          case SISTEMA -&#62; ator.ehSistema();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_100'/>
+100
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_100'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        };</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_101'/>
+101
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_101'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_102'/>
+102
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_102'>1</a>
+<span>
+1. validarAutorizacao : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (!autorizado) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_103'/>
+103
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_103'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new AcessoNegadoException(MSG_ACESSO);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_104'/>
+104
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_104'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_105'/>
+105
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_105'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_106'/>
+106
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_106'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_107'/>
+107
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_107'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static void aplicarEfeitos(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_108'/>
+108
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_108'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      Missao missao, EventoMissao evento, AtorMissao ator, Instant agora) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_109'/>
+109
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_109'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    switch (evento) {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_110'/>
+110
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_110'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      case ACEITAR -&#62; {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_111'/>
+111
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_111'>1</a>
+<span>
+1. aplicarEfeitos : removed call to com/omnitribo/missoes/dominio/Missao::setExecutorId &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        missao.setExecutorId(ator.usuarioId());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_112'/>
+112
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_112'>1</a>
+<span>
+1. aplicarEfeitos : removed call to com/omnitribo/missoes/dominio/Missao::setAceitaEm &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        missao.setAceitaEm(agora);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_113'/>
+113
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_113'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_114'/>
+114
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_114'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      case DESISTIR -&#62; {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_115'/>
+115
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_115'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        // Quem desistiu continua registrado em missao_evento.ator_id &#8212; a trilha &#233; a mem&#243;ria,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_116'/>
+116
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_116'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        // a miss&#227;o volta a ABERTA sem executor para ser aceita por outra pessoa.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_117'/>
+117
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_117'>1</a>
+<span>
+1. aplicarEfeitos : removed call to com/omnitribo/missoes/dominio/Missao::setExecutorId &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        missao.setExecutorId(null);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_118'/>
+118
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_118'>1</a>
+<span>
+1. aplicarEfeitos : removed call to com/omnitribo/missoes/dominio/Missao::setAceitaEm &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        missao.setAceitaEm(null);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_119'/>
+119
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_119'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_120'/>
+120
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_120'>1</a>
+<span>
+1. aplicarEfeitos : removed call to com/omnitribo/missoes/dominio/Missao::setConcluidaEm &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      case CONFIRMAR, RESOLVER_CONCLUIR -&#62; missao.setConcluidaEm(agora);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_121'/>
+121
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_121'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      default -&#62; {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_122'/>
+122
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_122'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        // Demais eventos n&#227;o t&#234;m efeito al&#233;m da mudan&#231;a de status.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_123'/>
+123
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_123'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_124'/>
+124
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_124'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_125'/>
+125
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_125'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@37f7ce20_126'/>
+126
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_126'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_33'>33</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_33'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transicionar<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#14]</span></span> removed call to com/omnitribo/missoes/dominio/MissaoStateMachine::validar &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_38'>38</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_38'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transicionar<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:conclusaoRegistraMomentoDaConclusao()]</span></span> removed call to com/omnitribo/missoes/dominio/MissaoStateMachine::aplicarEfeitos &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_41'>41</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_41'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transicionar<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:conclusaoRegistraMomentoDaConclusao()]</span></span> removed call to com/omnitribo/missoes/dominio/Missao::setStatus &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_43'>43</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_43'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transicionar<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#25]</span></span> replaced return value with null for com/omnitribo/missoes/dominio/MissaoStateMachine::transicionar &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_62'>62</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_62'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>validar<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#14]</span></span> removed call to com/omnitribo/missoes/dominio/MissaoStateMachine::validarAutorizacao &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_64'>64</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_64'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>validar<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:validarNaoMutaAMissao()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_71'>71</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_71'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>validarEdicao<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:edicaoSoPeloCriadorEApenasEmRascunhoOuAberta()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_75'>75</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_75'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>validarEdicao<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:edicaoSoPeloCriadorEApenasEmRascunhoOuAberta()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>validarEdicao<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:edicaoSoPeloCriadorEApenasEmRascunhoOuAberta()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_97'>97</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_97'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>validarAutorizacao<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:criadorNaoPodeAceitarAPropriaMissao()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>validarAutorizacao<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#72]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_102'>102</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_102'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>validarAutorizacao<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#14]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_111'>111</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_111'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>aplicarEfeitos<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:aceiteVinculaExecutorEDesistenciaDesvincula()]</span></span> removed call to com/omnitribo/missoes/dominio/Missao::setExecutorId &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_112'>112</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_112'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>aplicarEfeitos<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:aceiteVinculaExecutorEDesistenciaDesvincula()]</span></span> removed call to com/omnitribo/missoes/dominio/Missao::setAceitaEm &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_117'>117</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_117'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>aplicarEfeitos<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:aceiteVinculaExecutorEDesistenciaDesvincula()]</span></span> removed call to com/omnitribo/missoes/dominio/Missao::setExecutorId &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_118'>118</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_118'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>aplicarEfeitos<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:aceiteVinculaExecutorEDesistenciaDesvincula()]</span></span> removed call to com/omnitribo/missoes/dominio/Missao::setAceitaEm &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@37f7ce20_120'>120</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@37f7ce20_120'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>aplicarEfeitos<br/><b>Killed by : </b>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:conclusaoRegistraMomentoDaConclusao()]</span></span> removed call to com/omnitribo/missoes/dominio/Missao::setConcluidaEm &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:aceiteVinculaExecutorEDesistenciaDesvincula()] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#16] (0 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:iniciarComoNaoExecutorDaAcessoNegado()] (17 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:executorPassaAVerOEnderecoDepoisDeAceitar()] (20 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:desistenciaDevolveMissaoAoPoolSemExecutor()] (21 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:checkin_de_quem_nao_e_executor_responde_403_sem_gravar_linha()] (27 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:sem_header_de_idempotencia_responde_400()] (28 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:chave_de_idempotencia_curta_demais_responde_400()] (30 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:checkin_do_executor_em_missao_aceita_mas_nao_iniciada_responde_409_sem_gravar_linha()] (28 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:a_51_metros_de_um_raio_de_50_rejeita()] (31 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:resolverCancelandoNaoCreditaNinguem()] (32 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:checkin_rejeitado_nao_deixa_evento_na_trilha_da_missao()] (33 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:cicloCompleto_criarPublicarAceitarIniciarCheckin()] (30 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:mocked_ausente_no_json_e_tratado_como_false()] (31 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:acuracia_acima_de_50_responde_422_e_grava_a_tentativa()] (34 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:checkin_dentro_do_raio_transiciona_e_grava_linha_valida()] (36 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:a_49_metros_de_um_raio_de_50_aceita()] (37 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:checkin_fora_do_raio_responde_422_e_a_linha_de_auditoria_sobrevive()] (40 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:aceiteComNivelSuficientePassa()] (32 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:segundo_checkin_com_chave_nova_apos_transicao_responde_409_sem_gravar_linha()] (40 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:mesma_chave_duas_vezes_devolve_o_mesmo_resultado_sem_novo_registro()] (43 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:chave_repetida_numa_rejeicao_tambem_replica_sem_novo_registro()] (48 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:resolverComAdminEmDisputaConcluiECredita()] (36 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:mocked_responde_422_e_grava_mock_detectado()] (53 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:assinaturaInvalidaEh401()] (42 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:transportadoraAlheiaNaoConfirma()] (43 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:confirmarValidaAutorizacaoDepoisTransicaoDepoisCredita()] (49 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:chave_de_cliente_igual_vinda_de_outro_usuario_nao_colide()] (59 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:velocidade_implausivel_aceita_mas_marca_suspeito()] (67 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:caminhoFeliz()] (49 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:destravarExigeAdmin()] (74 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:replayNaoCreditaDeNovo()] (57 ms)</li><li>com.omnitribo.carteira.api.ConclusaoRollbackTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoRollbackTest]/[method:depoisDaFalhaAOperacaoContinuaRetentavel()] (75 ms)</li><li>com.omnitribo.missoes.api.CheckinConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinConcorrenteTest]/[method:cinquenta_requisicoes_com_chaves_distintas_produzem_um_vencedor_e_49_conflitos()] (90 ms)</li><li>com.omnitribo.carteira.api.ConservacaoTokensTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConservacaoTokensTest]/[test-template:conservacaoDaOfertaDeTokenDependeDaCategoria(com.omnitribo.missoes.dominio.CategoriaMissao)]/[test-template-invocation:#1] (82 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:conclusaoDaBaixaNaCustodia()] (71 ms)</li><li>com.omnitribo.carteira.api.ConservacaoTokensTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConservacaoTokensTest]/[test-template:conservacaoDaOfertaDeTokenDependeDaCategoria(com.omnitribo.missoes.dominio.CategoriaMissao)]/[test-template-invocation:#3] (82 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:adminDestravaMissaoParadaEEstornaOPote()] (95 ms)</li><li>com.omnitribo.carteira.api.ConservacaoTokensTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConservacaoTokensTest]/[test-template:conservacaoDaOfertaDeTokenDependeDaCategoria(com.omnitribo.missoes.dominio.CategoriaMissao)]/[test-template-invocation:#2] (91 ms)</li><li>com.omnitribo.carteira.api.ConservacaoTokensTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConservacaoTokensTest]/[test-template:conservacaoDaOfertaDeTokenDependeDaCategoria(com.omnitribo.missoes.dominio.CategoriaMissao)]/[test-template-invocation:#4] (94 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:confirmacaoOmitidaConcluiEPagaOExecutor()] (104 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:execucaoAbandonadaExpiraEEstornaOPote()] (133 ms)</li><li>com.omnitribo.carteira.api.ConclusaoRollbackTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoRollbackTest]/[method:falhaAntesDoCommitNaoDeixaResiduoEmTabelaNenhuma()] (129 ms)</li><li>com.omnitribo.missoes.api.MissaoAceiteConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoAceiteConcorrenteTest]/[method:cinquentaThreadsAceitandoMesmaMissao_apenasUmaVence()] (172 ms)</li><li>com.omnitribo.missoes.api.CheckinConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinConcorrenteTest]/[method:cinquenta_requisicoes_com_a_mesma_chave_gravam_um_unico_checkin()] (190 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cicloAjudaFinanciadaConserva()] (181 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cicloCompleto_financiarPublicarConcluir_conservaOsTokens()] (188 ms)</li><li>com.omnitribo.carteira.api.ConclusaoConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoConcorrenteTest]/[method:cemThreadsConfirmandoMesmaMissao_creditamExatamenteUmaVez()] (985 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:conclusaoRegistraMomentoDaConclusao()] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#25] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#69] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#54] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#64] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#19] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#63] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#48] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#33] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#56] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#79] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#5] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#70] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#32] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#80] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#31] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#1] (0 ms)</li><li>com.omnitribo.missoes.dominio.ExpiracaoMissoesServiceTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.ExpiracaoMissoesServiceTest]/[method:abertaComJanelaVencidaViraExpiradaERegistraEventoDoSistema()] (10 ms)</li><li>com.omnitribo.missoes.dominio.ExpiracaoMissoesServiceTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.ExpiracaoMissoesServiceTest]/[method:loteRespeitaOLimite()] (21 ms)</li><li>com.omnitribo.missoes.dominio.ExpiracaoMissoesServiceTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.ExpiracaoMissoesServiceTest]/[method:expirarLoteInvalidaOCacheDeProximidade()] (23 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:publicarDuasVezesDaConflito()] (13 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:resolverDisputaComoUsuarioComumDa403ENao500()] (13 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:iniciarSemTerAceitadoDaConflitoOuAcessoNegado()] (13 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:detalheDeMissaoAlheiaNaoRevelaEnderecoNemCoordenadaPrecisa()] (14 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:editarComoNaoCriadorDaAcessoNegado()] (14 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:cancelarComoNaoCriadorDaAcessoNegado()] (15 ms)</li><li>com.omnitribo.missoes.api.AuditoriaMissaoTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.AuditoriaMissaoTest]/[method:criarEPublicar_gravamTrilhaComAtorIpEEntidadeId()] (16 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:criadorNaoPodeAceitarAPropriaMissao()] (14 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:cancelarSemCorpoNaoQuebra()] (16 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:stubResolverComAdminEmEstadoErradoDaConflito()] (14 ms)</li><li>com.omnitribo.missoes.api.CheckinControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.CheckinControllerTest]/[method:checkin_em_missao_sem_executor_responde_403_sem_gravar_linha()] (18 ms)</li><li>com.omnitribo.missoes.api.AuditoriaMissaoTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.AuditoriaMissaoTest]/[method:escritaNegada_naoGeraLinhaDeAuditoria()] (23 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:previsaoEhGravadaNaEntregaFalida()] (21 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:listagemNaoVazaEnderecoDeMissaoAlheia()] (28 ms)</li><li>com.omnitribo.missoes.api.MissoesProximasCacheTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasCacheTest]/[method:segunda_busca_identica_nao_toca_o_banco()] (28 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:corpoAntigoSemContextoDeRiscoContinuaAceito()] (24 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:replayNaoCriaSegundaMissao()] (25 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:naoExigeJwt()] (26 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:caminhoFeliz()] (26 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:patchIgnoraStatusExecutorERecompensas()] (29 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:missaoEmEstadoInvalidoEh409()] (26 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:aceiteAbaixoDoNivelEh422()] (27 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:valorOfertadoNaoViraReais()] (31 ms)</li><li>com.omnitribo.missoes.api.MissoesProximasTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasTest]/[method:sem_raio_informado_usa_o_default_de_2000_metros()] (36 ms)</li><li>com.omnitribo.missoes.api.MissoesProximasTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasTest]/[method:filtro_por_categoria_restringe_o_resultado()] (35 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:riscoAltoCongelaMultiplicadorEPagaMais()] (35 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:tetoPorHoraCortaOExcesso()] (36 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:notificaSomenteQuemPodeEQuer()] (40 ms)</li><li>com.omnitribo.missoes.api.MissoesProximasCacheTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasCacheTest]/[method:publicar_missao_invalida_o_cache_e_a_nova_missao_aparece()] (52 ms)</li><li>com.omnitribo.missoes.api.MissoesProximasTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasTest]/[method:retorna_apenas_missoes_no_raio_ordenadas_por_distancia_crescente()] (55 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:expiracaoEstornaAoPatrocinador()] (55 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:mesmoFinanciadorEmDuasParcelasRecebeUmEstornoAgregado()] (64 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:expirarMissaoFinanciadaEstornaOPoteAoFinanciador()] (82 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cancelarRascunhoFinanciadoEstornaOPote()] (103 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:disputaPelaUltimaVaga()] (114 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cancelarAjudaEstorna()] (113 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:estornoComDoisFinanciadoresDevolveAParteDeCadaUm()] (122 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cancelarMissaoFinanciadaEstornaOPoteAoFinanciador()] (128 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:expirarAjudaEstorna()] (157 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:redespachoNaoDuplica()] (1262 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#14] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#7] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#8] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:criadorNaoPodeAceitarAPropriaMissao()] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#12] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#5] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:executorNuloNaoAutorizaEventosDeExecutor()] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#13] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#6] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#3] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#10] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#4] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#11] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#1] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#9] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:validarNaoMutaAMissao()] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:atorErradoRecebeAcessoNegado(com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#2] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#83] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#110] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#107] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#68] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#95] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#121] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:abertaNaoPodeSaltarParaConcluida()] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#11] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#82] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#67] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#94] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#10] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#9] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#124] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#109] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#24] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#51] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#112] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#13] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#97] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#84] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#111] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#108] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#123] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#23] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#96] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#122] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#12] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#41] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#126] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#26] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#53] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#38] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#40] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#125] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#52] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#14] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#37] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#98] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#81] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#28] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#66] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#93] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#55] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#42] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#27] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#65] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#39] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#60] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#22] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#45] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#72] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#118] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#34] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#57] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#8] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#29] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#106] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#44] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#21] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#71] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#120] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#18] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#117] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#62] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#85] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#101] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#47] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#74] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#100] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#6] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#59] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#36] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#61] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#46] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#73] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#50] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#119] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#7] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#35] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#58] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#103] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#49] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#87] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#30] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#91] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#114] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#4] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#76] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#15] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#99] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#102] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#86] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#90] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#113] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#75] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#105] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#20] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#43] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#89] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#17] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#116] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#2] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#78] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#104] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#88] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#92] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#115] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#3] (0 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[test-template:matrizCompletaDeTransicoes(com.omnitribo.missoes.dominio.StatusMissao, com.omnitribo.missoes.dominio.EventoMissao)]/[test-template-invocation:#77] (0 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:aceitarRascunhoDaConflito()] (9 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:publicarSemPoteSuficienteDa422()] (45 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:poteParcialAindaBloqueiaAPublicacao()] (78 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:publicarAjudaSemPoteDa422()] (112 ms)</li><li>com.omnitribo.missoes.dominio.MissaoStateMachineTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.dominio.MissaoStateMachineTest]/[method:edicaoSoPeloCriadorEApenasEmRascunhoOuAberta()] (0 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.25.9 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

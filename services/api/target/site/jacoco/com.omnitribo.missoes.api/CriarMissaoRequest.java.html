@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CriarMissaoRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.api</a> &gt; <span class="el_source">CriarMissaoRequest.java</span></div><h1>CriarMissaoRequest.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.api;
+
+import com.omnitribo.missoes.dominio.CategoriaMissao;
+import com.omnitribo.missoes.dominio.ComplexidadeMissao;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Corpo de criação de missão.
+ *
+ * &lt;p&gt;Não existem campos status, executorId nem criadorId: o status inicial é sempre RASCUNHO e o
+ * criador vem do JWT. Aceitá-los aqui seria mass assignment — o cliente escolheria em que estado a
+ * missão nasce e a quem ela pertence.
+ *
+ * &lt;p&gt;&lt;b&gt;Também não existem xpRecompensa nem tokensRecompensa&lt;/b&gt;, e a razão é a mesma: eram o
+ * caminho pelo qual o criador escolhia quanto a própria missão valia. Medido antes da remoção: uma
+ * missão sem peso, sem volume e sem destino foi criada com 5.000 XP e 1.000 tokens, o teto que o
+ * {@code @Max} permitia. Hoje quem calcula é {@code CalculadoraDeRecompensa}, a partir de
+ * categoria, complexidade, distância, peso e volume — e o valor é congelado com a versão da
+ * fórmula. Enviar os campos mesmo assim é inofensivo: {@code fail-on-unknown-properties: false} os
+ * descarta em silêncio, como já acontece com status e executorId.
+ */
+@CriacaoMissaoVerificador.MissaoCriacaoConsistente
+@Schema(description = &quot;Dados para criar uma missão. A missão nasce em RASCUNHO.&quot;)
+<span class="fc" id="L36">public record CriarMissaoRequest(</span>
+    @NotNull(message = &quot;Categoria é obrigatória&quot;) CategoriaMissao categoria,
+    @NotBlank(message = &quot;Título é obrigatório&quot;)
+        @Size(min = 5, max = 120, message = &quot;Título deve ter entre 5 e 120 caracteres&quot;)
+        String titulo,
+    @NotBlank(message = &quot;Descrição é obrigatória&quot;)
+        @Size(max = 2000, message = &quot;Descrição deve ter no máximo 2000 caracteres&quot;)
+        String descricao,
+    /**
+     * OPCIONAL, e só aceita zero ou nulo. Enviar valor positivo é &lt;b&gt;400&lt;/b&gt;, não é ignorado.
+     *
+     * &lt;p&gt;Era {@code @NotNull} com {@code @DecimalMin(&quot;0.00&quot;) @DecimalMax(&quot;500.00&quot;)} — obrigava todo
+     * cliente a enviar {@code &quot;valorBrl&quot;: 0} num campo que não podia ser outra coisa, e as
+     * constraints de faixa eram &lt;b&gt;validação inalcançável&lt;/b&gt;: desde o ADR 0009 e a {@code
+     * ck_missao_economia} da V15, nenhum valor entre 0,01 e 500 jamais chegaria a ser avaliado por
+     * elas.
+     *
+     * &lt;p&gt;&lt;b&gt;Por que não remover o campo de vez&lt;/b&gt;, que era a saída óbvia: com {@code
+     * fail-on-unknown-properties: false}, um cliente que enviasse {@code &quot;valorBrl&quot;: 50} teria a
+     * missão criada em silêncio, acreditando que ela vale R$ 50. É exatamente o que a regra (3)
+     * deste mesmo formulário recusa fazer com {@code complexidade} — &quot;ignorar em silêncio faria o
+     * app acreditar que declarou algo que não teve efeito&quot;. Opcional + recusa explícita tira a
+     * obrigação sem trocar um 400 honesto por um mal-entendido.
+     */
+    @DecimalMax(value = &quot;0.00&quot;, message = &quot;Missão não remunera em BRL — a recompensa é XP e tokens&quot;)
+        @DecimalMin(value = &quot;0.00&quot;, message = &quot;Valor em BRL não pode ser negativo&quot;)
+        BigDecimal valorBrl,
+    @Schema(
+            description =
+                &quot;Esforço da missão. Informe APENAS quando não houver peso e volume — com os dois&quot;
+                    + &quot; presentes o servidor deriva, e um valor aqui é recusado com 400.&quot;)
+        ComplexidadeMissao complexidade,
+    @NotNull(message = &quot;Latitude de origem é obrigatória&quot;)
+        @DecimalMin(value = &quot;-90.0&quot;, message = &quot;Latitude deve estar entre -90 e 90&quot;)
+        @DecimalMax(value = &quot;90.0&quot;, message = &quot;Latitude deve estar entre -90 e 90&quot;)
+        BigDecimal origemLat,
+    @NotNull(message = &quot;Longitude de origem é obrigatória&quot;)
+        @DecimalMin(value = &quot;-180.0&quot;, message = &quot;Longitude deve estar entre -180 e 180&quot;)
+        @DecimalMax(value = &quot;180.0&quot;, message = &quot;Longitude deve estar entre -180 e 180&quot;)
+        BigDecimal origemLon,
+    @DecimalMin(value = &quot;-90.0&quot;, message = &quot;Latitude deve estar entre -90 e 90&quot;)
+        @DecimalMax(value = &quot;90.0&quot;, message = &quot;Latitude deve estar entre -90 e 90&quot;)
+        BigDecimal destinoLat,
+    @DecimalMin(value = &quot;-180.0&quot;, message = &quot;Longitude deve estar entre -180 e 180&quot;)
+        @DecimalMax(value = &quot;180.0&quot;, message = &quot;Longitude deve estar entre -180 e 180&quot;)
+        BigDecimal destinoLon,
+    @NotBlank(message = &quot;CEP é obrigatório&quot;)
+        @Pattern(regexp = &quot;\\d{8}&quot;, message = &quot;CEP deve ter 8 dígitos, sem hífen&quot;)
+        String cep,
+    @NotBlank(message = &quot;Logradouro é obrigatório&quot;) @Size(max = 200) String logradouro,
+    @NotBlank(message = &quot;Bairro é obrigatório&quot;) @Size(max = 100) String bairro,
+    @NotBlank(message = &quot;Cidade é obrigatória&quot;) @Size(max = 100) String cidade,
+    @NotBlank(message = &quot;UF é obrigatória&quot;)
+        @Pattern(regexp = &quot;[A-Z]{2}&quot;, message = &quot;UF deve ter 2 letras maiúsculas&quot;)
+        String uf,
+    @Min(value = 10, message = &quot;Raio de check-in mínimo é 10 metros&quot;)
+        @Max(value = 2000, message = &quot;Raio de check-in máximo é 2000 metros&quot;)
+        int raioCheckinM,
+    @DecimalMin(value = &quot;0.00&quot;, message = &quot;Peso não pode ser negativo&quot;)
+        @Digits(integer = 4, fraction = 2, message = &quot;Peso deve ter no máximo 2 decimais&quot;)
+        BigDecimal pesoKg,
+    @DecimalMin(value = &quot;0.00&quot;, message = &quot;Volume não pode ser negativo&quot;)
+        @Digits(integer = 6, fraction = 2, message = &quot;Volume deve ter no máximo 2 decimais&quot;)
+        BigDecimal volumeL,
+    @NotNull(message = &quot;Início da janela é obrigatório&quot;) Instant janelaInicio,
+    @NotNull(message = &quot;Fim da janela é obrigatório&quot;) Instant janelaFim,
+    UUID pontoCustodiaId) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

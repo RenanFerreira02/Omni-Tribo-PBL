@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FinanciamentoResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.api</a> &gt; <span class="el_source">FinanciamentoResponse.java</span></div><h1>FinanciamentoResponse.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.api;
+
+import com.omnitribo.compartilhado.api.RecursoAuditavel;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.UUID;
+
+/**
+ * Resultado de um financiamento de missão.
+ *
+ * @param replay {@code true} quando a requisição foi um retry da mesma {@code Idempotency-Key} e
+ *     nada novo foi debitado
+ */
+@Schema(description = &quot;Estado do pote da missão após o financiamento&quot;)
+<span class="fc" id="L14">public record FinanciamentoResponse(</span>
+    UUID missaoId,
+    @Schema(description = &quot;Tokens em custódia na missão&quot;) long poteTokens,
+    @Schema(description = &quot;Quanto a missão promete pagar ao executor&quot;) long tokensRecompensa,
+    @Schema(description = &quot;Saldo de tokens do financiador após o débito&quot;) long saldoTokensRestante,
+    boolean replay)
+    implements RecursoAuditavel {
+
+  /** Id da missão para a trilha de auditoria. Não é componente do record, então não vai no JSON. */
+  @Override
+  public UUID idAuditoria() {
+<span class="fc" id="L25">    return missaoId;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

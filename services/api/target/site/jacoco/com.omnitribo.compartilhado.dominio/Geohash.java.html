@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Geohash.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.dominio</a> &gt; <span class="el_source">Geohash.java</span></div><h1>Geohash.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.dominio;
+
+import java.math.BigDecimal;
+
+/**
+ * Geohash (base-32 de Gustavo Niemeyer) — usado EXCLUSIVAMENTE como chave de cache.
+ *
+ * &lt;p&gt;Precisão 7 = 35 bits (18 para longitude, 17 para latitude) = célula de ~153 m × 153 m no
+ * equador e ~140 m × 153 m na latitude de São Paulo, onde o grau de longitude encolhe por
+ * cos(23,5°). Precisão 6 daria célula de ~1,2 km — grossa demais para um raio de 2 km. Precisão 8
+ * daria ~38 m × 19 m, e como dois fixes de GPS do mesmo aparelho parado diferem rotineiramente mais
+ * que isso, a taxa de acerto do cache tenderia a zero.
+ *
+ * &lt;p&gt;Implementação própria em vez de biblioteca, deliberadamente. Os artefatos verificáveis no
+ * Maven Central são {@code ch.hsr:geohash} (sem release desde 2016) e {@code
+ * com.github.davidmoten:geo}. Ambos custariam dependência, entrada de licença e superfície de
+ * SpotBugs para obter ~40 linhas de bisseção usadas para uma coisa só: compor chave de cache. Um
+ * geohash errado degrada a taxa de acerto; não produz resposta errada, porque todo MISS recalcula
+ * do PostGIS real.
+ *
+ * &lt;p&gt;LIMITAÇÃO CONHECIDA, documentada aqui e não escondida na camada de cache: célula de geohash é
+ * um RETÂNGULO, não um círculo, e as bordas são fixas no globo, não centradas em quem consulta.
+ * Duas consequências, ambas aceitáveis e nenhuma delas capaz de produzir resposta incorreta:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;Dois pontos a 10 m um do outro, em lados opostos de uma borda, caem em células diferentes.
+ *       Custa um cache MISS — nunca uma resposta errada.
+ *   &lt;li&gt;Dois pontos a até ~216 m (a diagonal da célula) compartilham a mesma entrada. Então uma
+ *       missão exatamente na borda do raio de BUSCA pode entrar ou sair do resultado por até essa
+ *       margem, durante os 30 s de TTL. Nenhuma regra de negócio depende da borda do raio de busca;
+ *       o raio de CHECK-IN é validado com ST_Distance exato, sem passar por cache algum.
+ * &lt;/ul&gt;
+ */
+public final class Geohash {
+
+  /** Precisão usada na chave de cache de proximidade. Ver justificativa no javadoc da classe. */
+  public static final int PRECISAO_CACHE = 7;
+
+  // Alfabeto base-32 do geohash: dígitos e letras minúsculas menos 'a', 'i', 'l' e 'o', escolhidas
+  // fora do conjunto por serem visualmente ambíguas.
+<span class="fc" id="L41">  private static final char[] BASE32 = &quot;0123456789bcdefghjkmnpqrstuvwxyz&quot;.toCharArray();</span>
+
+  private static final int BITS_POR_CARACTERE = 5;
+
+  private Geohash() {}
+
+  /** Célula de cache do ponto, na precisão {@link #PRECISAO_CACHE}. */
+  public static String celulaDeCache(BigDecimal latitude, BigDecimal longitude) {
+<span class="fc" id="L49">    return codificar(latitude, longitude, PRECISAO_CACHE);</span>
+  }
+
+  /**
+   * Codifica lat/lon no geohash da precisão pedida.
+   *
+   * &lt;p&gt;Bisseção alternada: cada bit divide ao meio o intervalo da dimensão da vez e registra em
+   * qual metade o ponto caiu. Começa pela LONGITUDE — é a convenção do formato, e inverter
+   * produziria um hash silenciosamente errado, a mesma armadilha que {@link Coordenadas} existe
+   * para evitar.
+   */
+  public static String codificar(BigDecimal latitude, BigDecimal longitude, int precisao) {
+<span class="fc bfc" id="L61" title="All 4 branches covered.">    if (latitude == null || longitude == null) {</span>
+<span class="fc" id="L62">      throw new IllegalArgumentException(&quot;Latitude e longitude são obrigatórias para o geohash.&quot;);</span>
+    }
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (precisao &lt; 1) {</span>
+<span class="fc" id="L65">      throw new IllegalArgumentException(&quot;Precisão do geohash deve ser positiva.&quot;);</span>
+    }
+
+<span class="fc" id="L68">    double lat = latitude.doubleValue();</span>
+<span class="fc" id="L69">    double lon = longitude.doubleValue();</span>
+
+<span class="fc" id="L71">    double latMin = -90.0;</span>
+<span class="fc" id="L72">    double latMax = 90.0;</span>
+<span class="fc" id="L73">    double lonMin = -180.0;</span>
+<span class="fc" id="L74">    double lonMax = 180.0;</span>
+
+<span class="fc" id="L76">    StringBuilder hash = new StringBuilder(precisao);</span>
+<span class="fc" id="L77">    boolean vezDaLongitude = true;</span>
+<span class="fc" id="L78">    int bits = 0;</span>
+<span class="fc" id="L79">    int valorParcial = 0;</span>
+
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    while (hash.length() &lt; precisao) {</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">      if (vezDaLongitude) {</span>
+<span class="fc" id="L83">        double meio = (lonMin + lonMax) / 2;</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if (lon &gt;= meio) {</span>
+<span class="fc" id="L85">          valorParcial = (valorParcial &lt;&lt; 1) | 1;</span>
+<span class="fc" id="L86">          lonMin = meio;</span>
+        } else {
+<span class="fc" id="L88">          valorParcial = valorParcial &lt;&lt; 1;</span>
+<span class="fc" id="L89">          lonMax = meio;</span>
+        }
+<span class="fc" id="L91">      } else {</span>
+<span class="fc" id="L92">        double meio = (latMin + latMax) / 2;</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (lat &gt;= meio) {</span>
+<span class="fc" id="L94">          valorParcial = (valorParcial &lt;&lt; 1) | 1;</span>
+<span class="fc" id="L95">          latMin = meio;</span>
+        } else {
+<span class="fc" id="L97">          valorParcial = valorParcial &lt;&lt; 1;</span>
+<span class="fc" id="L98">          latMax = meio;</span>
+        }
+      }
+<span class="fc bfc" id="L101" title="All 2 branches covered.">      vezDaLongitude = !vezDaLongitude;</span>
+
+<span class="fc bfc" id="L103" title="All 2 branches covered.">      if (++bits == BITS_POR_CARACTERE) {</span>
+<span class="fc" id="L104">        hash.append(BASE32[valorParcial]);</span>
+<span class="fc" id="L105">        bits = 0;</span>
+<span class="fc" id="L106">        valorParcial = 0;</span>
+      }
+    }
+
+<span class="fc" id="L110">    return hash.toString();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

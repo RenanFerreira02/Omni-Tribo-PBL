@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LimiteDeChamadasExternas.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.integracoes.infra</a> &gt; <span class="el_source">LimiteDeChamadasExternas.java</span></div><h1>LimiteDeChamadasExternas.java</h1><pre class="source lang-java linenums">package com.omnitribo.integracoes.infra;
+
+import com.omnitribo.integracoes.api.ServicoExternoIndisponivelException;
+import java.util.concurrent.Semaphore;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Bulkhead: teto de chamadas SIMULTÂNEAS a um provedor externo.
+ *
+ * &lt;p&gt;&lt;b&gt;O timeout sozinho não resolve o problema que este teto resolve.&lt;/b&gt; Os dois clientes já têm
+ * connect e read timeout de 2 s, e o cache deliberadamente não guarda falha (guardar tornaria a
+ * recuperação lenta de propósito). A consequência é que um provedor fora do ar não reduz o tráfego
+ * em nada: toda requisição vai até ele e segura uma thread do servlet por 2 s. Com tráfego
+ * suficiente, o pool de threads acaba — e aí o card de clima, que é decoração, derruba o login, que
+ * não é. Foi exatamente o cenário que o javadoc do timeout diz querer evitar; o timeout só o
+ * deslocou do infinito para 2 s.
+ *
+ * &lt;p&gt;Uma instância POR PROVEDOR, e é isso que faz dele um bulkhead: o CEP fora do ar não consome as
+ * permissões do clima. Compartilhar um contador só transformaria a queda de um na queda dos dois.
+ *
+ * &lt;p&gt;{@code tryAcquire()} sem espera: sem permissão, a resposta é o 503 imediato que a UI já sabe
+ * tratar (ADR 0011 — o recurso some da tela). Enfileirar seria recriar o problema com outro nome,
+ * porque quem espera também está segurando uma thread.
+ *
+ * &lt;p&gt;Deliberadamente sem Resilience4j: seria uma dependência nova para 20 linhas, e o CLAUDE.md
+ * corta infraestrutura que não foi pedida. Ver ADR 0023 para a verificação de compatibilidade que
+ * fundamentou manter essa escolha.
+ *
+ * &lt;p&gt;&lt;b&gt;Esta classe continua não sendo um circuit breaker, e agora existe um.&lt;/b&gt; Ela sozinha deixa
+ * o provedor ser consultado durante a queda inteira, só que por no máximo N threads de cada vez —
+ * protege a aplicação, não o provedor. Quem para de chamar é {@link DisjuntorDeChamadasExternas},
+ * que fica POR FORA desta ({@link ProtecaoDeChamadasExternas} monta a ordem), de modo que uma
+ * chamada recusada pelo circuito aberto não chega a consumir permissão nenhuma.
+ *
+ * &lt;p&gt;Uma consequência da ordem escolhida vale ficar registrada aqui, onde o contador mora: como o
+ * retry roda POR DENTRO desta classe, a permissão fica retida pela rajada inteira. É intencional —
+ * preserva a invariante afirmada acima, de que permissão retida significa thread nossa presa neste
+ * provedor. Uma thread dormindo no backoff está presa do mesmo jeito.
+ */
+final class LimiteDeChamadasExternas {
+
+<span class="fc" id="L44">  private static final Logger log = LoggerFactory.getLogger(LimiteDeChamadasExternas.class);</span>
+
+  private final String provedor;
+  private final Semaphore permissoes;
+
+<span class="fc" id="L49">  LimiteDeChamadasExternas(String provedor, int simultaneas) {</span>
+<span class="fc" id="L50">    this.provedor = provedor;</span>
+<span class="fc" id="L51">    this.permissoes = new Semaphore(simultaneas);</span>
+<span class="fc" id="L52">  }</span>
+
+  &lt;T&gt; T executar(Supplier&lt;T&gt; chamada) {
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">    if (!permissoes.tryAcquire()) {</span>
+      // warn e não error: é degradação prevista, com reação de UI definida. Mas precisa aparecer,
+      // porque é o sinal de que o provedor está lento — o 503 sozinho não distingue &quot;provedor
+      // respondeu erro&quot; de &quot;nossa fila encheu&quot;.
+<span class="nc" id="L59">      log.warn(</span>
+          &quot;Teto de chamadas simultâneas atingido para {}; devolvendo 503 sem chamar&quot;, provedor);
+<span class="nc" id="L61">      throw new ServicoExternoIndisponivelException(</span>
+          &quot;O serviço externo está congestionado. Tente novamente em instantes.&quot;);
+    }
+    try {
+<span class="fc" id="L65">      return chamada.get();</span>
+    } finally {
+<span class="fc" id="L67">      permissoes.release();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

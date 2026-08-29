@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BuscaUsuarioService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">BuscaUsuarioService.java</span></div><h1>BuscaUsuarioService.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.identidade.api.UsuarioBuscaResponse;
+import com.omnitribo.identidade.infra.TriboRepository;
+import com.omnitribo.identidade.infra.UsuarioRepository;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Busca de vizinho por handle EXATO, dentro da própria tribo.
+ *
+ * &lt;p&gt;Fecha a Pendência #3: a tela de transferência pedia o UUID do destinatário como texto —
+ * funcionava e era inutilizável, porque ninguém sabe o próprio UUID, muito menos o do vizinho.
+ *
+ * &lt;h2&gt;Por que busca exata e não listagem&lt;/h2&gt;
+ *
+ * &lt;p&gt;Listar membros da tribo daria a qualquer autenticado um mapa social do bairro, e como a
+ * transferência é restrita à mesma tribo, essa lista também seria uma lista de alvos — é a decisão
+ * que o javadoc de {@code TriboController} registra, e ela fica de pé. Aqui quem já sabe o
+ * {@code @} do vizinho o encontra; quem não sabe não descobre nada.
+ *
+ * &lt;h2&gt;O que protege, e o que não protege&lt;/h2&gt;
+ *
+ * &lt;p&gt;Três defesas, e &lt;b&gt;nenhuma delas é o código de status&lt;/b&gt;:
+ *
+ * &lt;ol&gt;
+ *   &lt;li&gt;restrição à MESMA TRIBO — o endpoint só responde sobre o grupo a que quem pergunta já
+ *       pertence;
+ *   &lt;li&gt;match EXATO — sem prefixo, sem similaridade, sem &quot;você quis dizer&quot;;
+ *   &lt;li&gt;teto próprio de requisições, bem abaixo do limite geral de leitura.
+ * &lt;/ol&gt;
+ *
+ * &lt;p&gt;Handle inexistente, handle de outra tribo e conta inutilizável respondem &lt;b&gt;o mesmo 404&lt;/b&gt;, o
+ * que os torna indistinguíveis. Ver ADR 0028 para o argumento completo — inclusive por que um 200
+ * vazio seria exatamente igual de seguro, e por que a escolha se decidiu por outro critério.
+ */
+@Service
+public class BuscaUsuarioService {
+
+  private final UsuarioRepository usuarioRepository;
+  private final TriboRepository triboRepository;
+  private final ConsultaAfiliacaoService consultaAfiliacaoService;
+
+  public BuscaUsuarioService(
+      UsuarioRepository usuarioRepository,
+      TriboRepository triboRepository,
+      // Classe concreta, e não a porta: os dois vivem no PRÓPRIO módulo `identidade`, e a regra do
+      // ArchUnit é sobre alcançar `dominio` de OUTRO módulo. Mesma isenção de
+      // `EstornoFinanciamentoService` em `missoes`.
+<span class="fc" id="L52">      ConsultaAfiliacaoService consultaAfiliacaoService) {</span>
+<span class="fc" id="L53">    this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L54">    this.triboRepository = triboRepository;</span>
+<span class="fc" id="L55">    this.consultaAfiliacaoService = consultaAfiliacaoService;</span>
+<span class="fc" id="L56">  }</span>
+
+  /**
+   * @param quemPergunta id vindo do JWT — NUNCA do corpo, da query ou de um cabeçalho. Se viesse do
+   *     cliente, a restrição de tribo seria decorativa: bastaria alegar ser de outra para procurar
+   *     em qualquer uma
+   * @throws RecursoNaoEncontradoException quando não há vizinho ATIVO com esse handle na tribo de
+   *     quem pergunta — os três motivos possíveis colapsam nesta única resposta
+   */
+  @Transactional(readOnly = true)
+  public UsuarioBuscaResponse porHandle(UUID quemPergunta, String handle) {
+    // Uma única mensagem para os três casos. Diferenciá-las aqui recriaria o oráculo que a
+    // indistinguibilidade existe para fechar — e &quot;não existe&quot; versus &quot;não é da sua tribo&quot; é
+    // exatamente a diferença que um enumerador quer.
+<span class="fc" id="L70">    RecursoNaoEncontradoException naoEncontrado =</span>
+        new RecursoNaoEncontradoException(&quot;Nenhum vizinho com esse @ na sua tribo.&quot;);
+
+<span class="fc" id="L73">    Usuario encontrado =</span>
+<span class="fc" id="L74">        usuarioRepository.buscarPorHandleExato(handle.trim()).orElseThrow(() -&gt; naoEncontrado);</span>
+
+    // A regra de tribo mora em `mesmaTribo` e não numa comparação aqui: ela já trata o caso de
+    // `tribo_id` nulo dos DOIS lados como &quot;não é a mesma tribo&quot;. Comparar dois Optional vazios
+    // daria `true` e liberaria a busca entre todos os usuários sem tribo.
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (!consultaAfiliacaoService.mesmaTribo(quemPergunta, encontrado.getId())) {</span>
+<span class="fc" id="L80">      throw naoEncontrado;</span>
+    }
+
+    // Buscar a própria conta é permitido e inofensivo: a pessoa já sabe quem é. Bloquear exigiria
+    // um
+    // caso especial que só serviria para deixar a resposta MENOS uniforme.
+<span class="fc" id="L86">    String nomeDaTribo =</span>
+<span class="fc" id="L87">        triboRepository.findById(encontrado.getTriboId()).map(Tribo::getNome).orElse(null);</span>
+
+<span class="fc" id="L89">    return new UsuarioBuscaResponse(</span>
+<span class="fc" id="L90">        encontrado.getId(), encontrado.getHandle(), encontrado.getNome(), nomeDaTribo);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProgressaoUsuarioService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">ProgressaoUsuarioService.java</span></div><h1>ProgressaoUsuarioService.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.identidade.api.ProgressaoUsuario;
+import com.omnitribo.identidade.api.ResultadoProgressao;
+import com.omnitribo.identidade.infra.UsuarioRepository;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Implementação de {@link ProgressaoUsuario}. Ver o javadoc da porta para o contrato. */
+@Service
+public class ProgressaoUsuarioService implements ProgressaoUsuario {
+
+  private final UsuarioRepository usuarioRepository;
+
+<span class="fc" id="L21">  public ProgressaoUsuarioService(UsuarioRepository usuarioRepository) {</span>
+<span class="fc" id="L22">    this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L23">  }</span>
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public ResultadoProgressao concederXp(UUID usuarioId, long quantidade) {
+<span class="pc bpc" id="L28" title="1 of 2 branches missed.">    if (quantidade &lt; 0) {</span>
+      // XP é monotônico por decisão de produto (ADR 0004). Recusar aqui e não silenciosamente
+      // ignorar: quem passou negativo tem um bug, e mascarar transformaria o bug num dado errado.
+<span class="nc" id="L31">      throw new IllegalArgumentException(&quot;XP não pode ser negativo.&quot;);</span>
+    }
+
+<span class="fc" id="L34">    Usuario usuario =</span>
+        usuarioRepository
+<span class="fc" id="L36">            .buscarParaAtualizar(usuarioId)</span>
+<span class="pc" id="L37">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário não encontrado.&quot;));</span>
+
+<span class="fc" id="L39">    int nivelAnterior = usuario.getNivel();</span>
+<span class="fc" id="L40">    usuario.adicionarXp(quantidade);</span>
+
+    // Nível é DERIVADO do XP, sempre recalculado, nunca incrementado. Incrementar acumularia erro:
+    // uma concessão perdida deixaria o nível permanentemente defasado do XP, e não haveria como
+    // detectar a divergência depois. Recalcular torna a coluna `nivel` um cache verificável.
+<span class="fc" id="L45">    int nivelAtual = RegraNivel.nivelPara(usuario.getXp());</span>
+<span class="fc" id="L46">    usuario.setNivel(nivelAtual);</span>
+<span class="fc" id="L47">    usuarioRepository.save(usuario);</span>
+
+<span class="fc" id="L49">    return new ResultadoProgressao(usuario.getXp(), nivelAnterior, nivelAtual);</span>
+  }
+
+  @Override
+  @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+  public int nivelDe(UUID usuarioId) {
+    // Só o XP é lido, e o nível sai de RegraNivel. Ler usuario.getNivel() aqui usaria o cache, que
+    // pode estar defasado se alguma concessão falhou — e barrar aceite por cache defasado é negar
+    // acesso a quem tem o XP, sem que a pessoa tenha o que fazer a respeito.
+    //
+    // REQUIRED e não MANDATORY, ao contrário de concederXp: aquele ESCREVE e precisa estar dentro
+    // da transação de quem chama; este é leitura e também é usado fora do caminho de valor.
+<span class="fc" id="L61">    return usuarioRepository</span>
+<span class="fc" id="L62">        .findById(usuarioId)</span>
+<span class="fc" id="L63">        .map(u -&gt; RegraNivel.nivelPara(u.getXp()))</span>
+<span class="pc" id="L64">        .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário não encontrado.&quot;));</span>
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List&lt;UUID&gt; filtrarPorNivelMinimo(Collection&lt;UUID&gt; usuarioIds, int nivelMinimo) {
+    // Coleção vazia num IN gera SQL inválido no PostgreSQL. Sem a guarda, uma tribo sem candidatos
+    // derrubaria o despacho com erro de sintaxe em vez de simplesmente não notificar ninguém.
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">    if (usuarioIds.isEmpty()) {</span>
+<span class="nc" id="L73">      return List.of();</span>
+    }
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">    if (nivelMinimo &lt;= 1) {</span>
+      // Nível 1 é o de qualquer conta nova: não filtra nada, e a consulta seria desperdício.
+<span class="nc" id="L77">      return List.copyOf(usuarioIds);</span>
+    }
+    // O limiar é calculado UMA vez, em Java, pela mesma RegraNivel que deriva o nível — em vez de
+    // reimplementar a curva quadrática em SQL, onde ela sairia de sincronia na primeira mudança.
+<span class="fc" id="L81">    return usuarioRepository.idsComXpMinimo(</span>
+<span class="fc" id="L82">        Set.copyOf(usuarioIds), RegraNivel.xpParaNivel(nivelMinimo));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

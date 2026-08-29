@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ChaveProximidade.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.infra</a> &gt; <span class="el_source">ChaveProximidade.java</span></div><h1>ChaveProximidade.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.infra;
+
+import com.omnitribo.missoes.dominio.CategoriaMissao;
+
+/**
+ * Chave do cache de proximidade.
+ *
+ * &lt;p&gt;A coordenada crua não entra: dois pedidos do mesmo aparelho parado quase nunca trazem o mesmo
+ * par lat/lon, e a taxa de acerto seria zero. Entra a célula de geohash de precisão 7 (~150 m), que
+ * agrupa consultas vizinhas na mesma entrada.
+ *
+ * &lt;p&gt;NÃO CONTÉM O ID DO USUÁRIO, e essa é uma propriedade que precisa continuar verdadeira. Vale
+ * hoje porque a busca só devolve missões ABERTA, que são visíveis a qualquer autenticado — o
+ * resultado não depende de quem pergunta. No dia em que o radar passar a devolver qualquer coisa
+ * específica do solicitante (rascunho próprio, missões restritas à tribo, distância personalizada),
+ * este record precisa ganhar o usuarioId NO MESMO COMMIT que fizer a mudança. Sem isso o cache
+ * passa a servir a um usuário o resultado calculado para outro.
+ */
+<span class="fc" id="L19">public record ChaveProximidade(</span>
+    String celulaGeohash, int raioMetros, CategoriaMissao categoria, int limite) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MetodoCheckin.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.geolocalizacao.dominio</a> &gt; <span class="el_source">MetodoCheckin.java</span></div><h1>MetodoCheckin.java</h1><pre class="source lang-java linenums">package com.omnitribo.geolocalizacao.dominio;
+
+/** Como a presença foi comprovada. Espelhado num {@code CHECK} da V4. */
+<span class="fc" id="L4">public enum MetodoCheckin {</span>
+
+  /** Único valor produzido hoje: {@code RegistroCheckinService} sempre grava GPS. */
+<span class="fc" id="L7">  GPS,</span>
+
+  /**
+   * RESERVADO. Código lido no ponto de custódia, para o caso em que o GPS é fraco (dentro de loja,
+   * subsolo) — exatamente onde a acurácia costuma estourar o teto e o check-in por GPS é recusado.
+   *
+   * &lt;p&gt;Depende do fluxo de entrega da F8, que é quem daria um código a cada ponto. Enquanto isso, é
+   * uma constante que o banco aceita e que nenhum caminho de código escreve.
+   */
+<span class="fc" id="L16">  QR</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

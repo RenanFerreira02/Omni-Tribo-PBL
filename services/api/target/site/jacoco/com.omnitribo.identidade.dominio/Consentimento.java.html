@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Consentimento.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">Consentimento.java</span></div><h1>Consentimento.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;consentimento&quot;)
+public class Consentimento {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  @Column(name = &quot;usuario_id&quot;, nullable = false, updatable = false)
+  private UUID usuarioId;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 15)
+  private TipoConsentimento tipo;
+
+  @Column(nullable = false)
+  private boolean concedido;
+
+  @Column(name = &quot;versao_texto&quot;, nullable = false, length = 20)
+  private String versaoTexto;
+
+  @Column(length = 45)
+  private String ip;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+<span class="fc" id="L39">  protected Consentimento() {}</span>
+
+  public Consentimento(
+      UUID id,
+      UUID usuarioId,
+      TipoConsentimento tipo,
+      boolean concedido,
+      String versaoTexto,
+      String ip,
+<span class="fc" id="L48">      Instant criadoEm) {</span>
+<span class="fc" id="L49">    this.id = id;</span>
+<span class="fc" id="L50">    this.usuarioId = usuarioId;</span>
+<span class="fc" id="L51">    this.tipo = tipo;</span>
+<span class="fc" id="L52">    this.concedido = concedido;</span>
+<span class="fc" id="L53">    this.versaoTexto = versaoTexto;</span>
+<span class="fc" id="L54">    this.ip = ip;</span>
+<span class="fc" id="L55">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L56">  }</span>
+
+  public UUID getId() {
+<span class="nc" id="L59">    return id;</span>
+  }
+
+  public UUID getUsuarioId() {
+<span class="nc" id="L63">    return usuarioId;</span>
+  }
+
+  public TipoConsentimento getTipo() {
+<span class="fc" id="L67">    return tipo;</span>
+  }
+
+  public boolean isConcedido() {
+<span class="fc" id="L71">    return concedido;</span>
+  }
+
+  public String getVersaoTexto() {
+<span class="fc" id="L75">    return versaoTexto;</span>
+  }
+
+  public String getIp() {
+<span class="nc" id="L79">    return ip;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="fc" id="L83">    return criadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

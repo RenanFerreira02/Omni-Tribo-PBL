@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExclusaoContaRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.api</a> &gt; <span class="el_source">ExclusaoContaRequest.java</span></div><h1>ExclusaoContaRequest.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.api;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+
+/**
+ * Confirmação da exclusão de conta.
+ *
+ * &lt;p&gt;Exige a SENHA ATUAL, e não só um toque em &quot;confirmar&quot;. A operação é irreversível e o token de
+ * acesso vive 15 minutos: um aparelho desbloqueado e esquecido em cima da mesa bastaria para apagar
+ * a identidade de alguém. A senha prova que quem está pedindo é o titular, e não quem pegou o
+ * telefone.
+ *
+ * &lt;p&gt;A dupla confirmação na tela é a outra metade da defesa, e não substitui esta: uma protege
+ * contra o toque acidental, a outra contra a pessoa errada.
+ */
+<span class="fc" id="L17">public record ExclusaoContaRequest(</span>
+    @NotBlank(message = &quot;Senha atual é obrigatória&quot;)
+        @Schema(description = &quot;Senha atual do titular, para provar que o pedido é dele&quot;)
+        String senha) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

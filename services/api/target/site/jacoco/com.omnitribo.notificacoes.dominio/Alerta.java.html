@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Alerta.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.notificacoes.dominio</a> &gt; <span class="el_source">Alerta.java</span></div><h1>Alerta.java</h1><pre class="source lang-java linenums">package com.omnitribo.notificacoes.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Uma entrada na caixa de notificações do usuário.
+ *
+ * &lt;p&gt;Mora em {@code notificacoes} desde que o módulo deixou de ser vazio. Antes vivia em {@code
+ * compartilhado}, onde escapava da regra do ArchUnit por isenção — a mudança não é cosmética: agora
+ * qualquer acesso de fora a esta classe reprova o teste de arquitetura, que é o comportamento certo
+ * para a entidade de um módulo de negócio.
+ *
+ * &lt;p&gt;Tabela criada em V7. A coluna {@code usuario_id} aceita nulo no schema, para um eventual
+ * alerta global — mas nenhum caminho de escrita produz isso hoje, e a caixa de entrada ignora esses
+ * casos de propósito: &quot;lido&quot; é estado POR USUÁRIO, e uma linha compartilhada não teria onde
+ * guardá-lo.
+ */
+@Entity
+@Table(name = &quot;alerta&quot;)
+public class Alerta {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  @Column(name = &quot;usuario_id&quot;)
+  private UUID usuarioId;
+
+  @Column(nullable = false, length = 50)
+  private String tipo;
+
+  @Column(nullable = false, length = 200)
+  private String titulo;
+
+  @Column(nullable = false, columnDefinition = &quot;TEXT&quot;)
+  private String corpo;
+
+  // UUID puro, sem FK — fronteira notificacoes→missoes; ver V7__compartilhado.sql
+  @Column(name = &quot;missao_id&quot;)
+  private UUID missaoId;
+
+  @Column(nullable = false)
+  private boolean lido;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+  /**
+   * 0 normal, 1 risco MEDIO, 2 risco ALTO.
+   *
+   * &lt;p&gt;{@code short} e não enum com {@code varchar}, ao contrário do resto do projeto: aqui o valor
+   * é ORDENÁVEL e a ordenação é o uso principal da coluna. Em ordem alfabética {@code 'ALTO' &lt;
+   * 'BAIXO' &lt; 'MEDIO'}, que é exatamente o contrário do pretendido — um {@code ORDER BY} sobre
+   * texto colocaria o alerta mais urgente no fim da lista.
+   */
+  @Column(nullable = false)
+  private short prioridade;
+
+<span class="fc" id="L64">  protected Alerta() {}</span>
+
+  /** Alerta de prioridade normal — a maioria. */
+  public Alerta(
+      UUID id,
+      UUID usuarioId,
+      String tipo,
+      String titulo,
+      String corpo,
+      UUID missaoId,
+      Instant criadoEm) {
+<span class="fc" id="L75">    this(id, usuarioId, tipo, titulo, corpo, missaoId, criadoEm, PRIORIDADE_NORMAL);</span>
+<span class="fc" id="L76">  }</span>
+
+  public Alerta(
+      UUID id,
+      UUID usuarioId,
+      String tipo,
+      String titulo,
+      String corpo,
+      UUID missaoId,
+      Instant criadoEm,
+<span class="fc" id="L86">      short prioridade) {</span>
+<span class="fc" id="L87">    this.id = id;</span>
+<span class="fc" id="L88">    this.usuarioId = usuarioId;</span>
+<span class="fc" id="L89">    this.tipo = tipo;</span>
+<span class="fc" id="L90">    this.titulo = titulo;</span>
+<span class="fc" id="L91">    this.corpo = corpo;</span>
+<span class="fc" id="L92">    this.missaoId = missaoId;</span>
+<span class="fc" id="L93">    this.lido = false;</span>
+<span class="fc" id="L94">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L95">    this.prioridade = prioridade;</span>
+<span class="fc" id="L96">  }</span>
+
+  public static final short PRIORIDADE_NORMAL = 0;
+  public static final short PRIORIDADE_MEDIA = 1;
+  public static final short PRIORIDADE_ALTA = 2;
+
+  public short getPrioridade() {
+<span class="nc" id="L103">    return prioridade;</span>
+  }
+
+  public void marcarLido() {
+<span class="fc" id="L107">    this.lido = true;</span>
+<span class="fc" id="L108">  }</span>
+
+  public UUID getId() {
+<span class="fc" id="L111">    return id;</span>
+  }
+
+  public UUID getUsuarioId() {
+<span class="nc" id="L115">    return usuarioId;</span>
+  }
+
+  public String getTipo() {
+<span class="fc" id="L119">    return tipo;</span>
+  }
+
+  public String getTitulo() {
+<span class="fc" id="L123">    return titulo;</span>
+  }
+
+  public String getCorpo() {
+<span class="fc" id="L127">    return corpo;</span>
+  }
+
+  public UUID getMissaoId() {
+<span class="fc" id="L131">    return missaoId;</span>
+  }
+
+  public boolean isLido() {
+<span class="fc" id="L135">    return lido;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="fc" id="L139">    return criadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

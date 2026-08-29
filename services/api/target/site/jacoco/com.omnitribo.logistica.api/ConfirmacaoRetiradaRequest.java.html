@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfirmacaoRetiradaRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.api</a> &gt; <span class="el_source">ConfirmacaoRetiradaRequest.java</span></div><h1>ConfirmacaoRetiradaRequest.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.api;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+/**
+ * Corpo de {@code POST /api/v1/webhooks/transportadora/confirmacao}.
+ *
+ * &lt;p&gt;Um campo só, e é proposital: a transportadora NÃO vem daqui. Ela vem do atributo que o {@code
+ * HmacWebhookFilter} publica depois de conferir a assinatura, exatamente como no webhook de entrega
+ * falida. Aceitar o slug do corpo deixaria a transportadora A confirmar entrega da B — e o caminho
+ * feliz continuaria funcionando, então o erro seria invisível.
+ *
+ * @param codigoRastreio o mesmo que a transportadora enviou quando reportou a falha. Junto com a
+ *     transportadora verificada, é a chave de {@code uk_entrega_falida_rastreio}
+ */
+<span class="fc" id="L17">public record ConfirmacaoRetiradaRequest(</span>
+    @NotBlank(message = &quot;Código de rastreio é obrigatório&quot;) @Size(max = 100)
+        String codigoRastreio) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

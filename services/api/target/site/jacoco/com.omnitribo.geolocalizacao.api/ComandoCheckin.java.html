@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ComandoCheckin.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.geolocalizacao.api</a> &gt; <span class="el_source">ComandoCheckin.java</span></div><h1>ComandoCheckin.java</h1><pre class="source lang-java linenums">package com.omnitribo.geolocalizacao.api;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Tudo que o módulo geolocalizacao precisa saber para avaliar e registrar um check-in.
+ *
+ * &lt;p&gt;Só tipos da JDK atravessam a fronteira. Nenhum tipo de missoes.dominio entra aqui, e nenhum
+ * tipo de geolocalizacao.dominio sai — é o que mantém os dois módulos independentes sob a regra do
+ * ArchUnit.
+ *
+ * &lt;p&gt;A origem da missão e o raio vêm como VALORES, não como um id para geolocalizacao ir buscar.
+ * Não é conveniência: buscar exigiria que este módulo lesse a tabela {@code missao}, que pertence a
+ * outro módulo — exatamente o que a regra do ArchUnit proíbe. E seria redundante, porque o chamador
+ * roda na MESMA transação, já segura {@code SELECT ... FOR UPDATE} sobre a linha e já a tem
+ * carregada.
+ *
+ * &lt;p&gt;(Este javadoc já justificou a decisão por {@code REQUIRES_NEW}. O registro não usa mais essa
+ * propagação — ela foi removida depois de derrubar o pool de conexões, e é proibida no caminho de
+ * valor. A decisão de trafegar valores permanece, pelas razões acima.)
+ */
+<span class="fc" id="L24">public record ComandoCheckin(</span>
+    UUID missaoId,
+    UUID usuarioId,
+    BigDecimal lat,
+    BigDecimal lon,
+    BigDecimal acuraciaM,
+    /**
+     * Flag reportada pelo dispositivo (expo-location / Android). Entrada não confiável por natureza
+     * — ver docs/seguranca/antifraude-geolocalizacao.md.
+     */
+    boolean mocked,
+    BigDecimal origemLat,
+    BigDecimal origemLon,
+    int raioCheckinM,
+    /**
+     * sha256(usuarioId|missaoId|chaveDoCliente), já calculado pelo chamador. Nunca a chave crua.
+     */
+    String chaveIdempotencia,
+    Instant agora) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

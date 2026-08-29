@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParametrosNotificacoes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.notificacoes.dominio</a> &gt; <span class="el_source">ParametrosNotificacoes.java</span></div><h1>ParametrosNotificacoes.java</h1><pre class="source lang-java linenums">package com.omnitribo.notificacoes.dominio;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/** Calibração do fan-out de alertas geográficos. */
+@ConfigurationProperties(prefix = &quot;app.notificacoes&quot;)
+public record ParametrosNotificacoes(
+    /**
+     * Raio do alerta, em metros, medido do local da missão até o CENTRO DA TRIBO do destinatário —
+     * não até a pessoa, que não tem coordenada no sistema. Ver ADR 0020.
+     */
+    int raioAlertaMetros,
+
+    /**
+     * Teto de alertas por usuário por hora.
+     *
+     * &lt;p&gt;Existe porque a densidade de entregas falidas é irregular: um ponto de custódia
+     * movimentado no fim da rota do dia gera uma rajada, e sem teto a mesma pessoa recebe dezenas
+     * de notificações em minutos. A reação a isso é desinstalar o app, não aceitar missão — ou
+     * seja, o excesso de notificação destrói exatamente o canal que a notificação existe para usar.
+     */
+    int alertasPorHora,
+
+    /**
+     * Teto de tribos consideradas por evento.
+     *
+     * &lt;p&gt;Guarda de segurança, não de produto. O fan-out roda dentro da transação do lote da outbox,
+     * que processa até 100 eventos por vez; sem teto, um ponto numa região densa expandiria um
+     * evento em milhares de inserts e seguraria a transação do lote inteiro.
+     */
+    int tribosPorEvento,
+
+    /**
+     * Teto por hora para alertas de risco ALTO.
+     *
+     * &lt;p&gt;Maior que {@code alertasPorHora}, e é essa folga que resolve o problema: sem ela, cinco
+     * entregas triviais chegando primeiro silenciariam a difícil pela hora seguinte — justamente a
+     * que mais precisa de alguém e a que paga melhor. É folga, não isenção: uma rajada de entregas
+     * de alto risco no mesmo ponto continua limitada.
+     */
+    int alertasAltaPrioridadePorHora) {
+
+<span class="fc" id="L43">  public ParametrosNotificacoes {</span>
+<span class="pc bpc" id="L44" title="1 of 2 branches missed.">    if (raioAlertaMetros &lt;= 0) {</span>
+<span class="nc" id="L45">      throw new IllegalArgumentException(&quot;app.notificacoes.raio-alerta-metros deve ser positivo&quot;);</span>
+    }
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">    if (alertasPorHora &lt;= 0) {</span>
+<span class="nc" id="L48">      throw new IllegalArgumentException(&quot;app.notificacoes.alertas-por-hora deve ser positivo&quot;);</span>
+    }
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">    if (tribosPorEvento &lt;= 0) {</span>
+<span class="nc" id="L51">      throw new IllegalArgumentException(&quot;app.notificacoes.tribos-por-evento deve ser positivo&quot;);</span>
+    }
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">    if (alertasAltaPrioridadePorHora &lt; alertasPorHora) {</span>
+      // Menor que o teto normal inverteria o sentido do carve-out: o alerta mais urgente seria o
+      // primeiro a ser descartado, e nada no comportamento denunciaria a inversão.
+<span class="nc" id="L56">      throw new IllegalArgumentException(</span>
+          &quot;app.notificacoes.alertas-alta-prioridade-por-hora não pode ser menor que&quot;
+              + &quot; alertas-por-hora&quot;);
+    }
+<span class="fc" id="L60">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

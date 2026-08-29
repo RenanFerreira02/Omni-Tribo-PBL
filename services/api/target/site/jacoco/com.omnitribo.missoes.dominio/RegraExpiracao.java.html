@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegraExpiracao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">RegraExpiracao.java</span></div><h1>RegraExpiracao.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import java.time.Duration;
+import java.util.List;
+
+/**
+ * O que a varredura procura, como DADO em vez de código.
+ *
+ * &lt;p&gt;Cada regra diz: neste status, passado este prazo desde a última transição, dispare este
+ * evento. Acrescentar um estado à varredura passa a ser uma linha aqui mais uma transição em {@code
+ * StatusMissao} — não um job novo, não um método novo no serviço.
+ *
+ * &lt;p&gt;Isso importa porque a alternativa já mostrou o custo: com o desenho anterior, cada estado
+ * varrido seria uma consulta a mais DENTRO da mesma transação de lote, multiplicando por três a
+ * superfície do deadlock e a do item envenenado que a reestruturação da expiração acabou de fechar.
+ *
+ * &lt;p&gt;{@code ABERTA} usa {@code janelaFim} e as demais usam {@code estadoDesde} — a diferença é
+ * real, não acidental: a janela de oferta é um prazo ABSOLUTO escolhido pelo criador (&quot;preciso
+ * disso até sexta&quot;), enquanto abandono e omissão são prazos RELATIVOS ao momento em que a missão
+ * parou.
+ */
+<span class="fc" id="L22">public record RegraExpiracao(</span>
+    StatusMissao origem, EventoMissao evento, Duration prazo, Marco marco) {
+
+  /** De onde sai o instante que o prazo conta. */
+<span class="fc" id="L26">  public enum Marco {</span>
+    /** {@code janela_fim}: prazo absoluto da oferta, definido na criação. */
+<span class="fc" id="L28">    JANELA_FIM,</span>
+    /** {@code estado_desde}: quando a missão entrou no status atual. */
+<span class="fc" id="L30">    ESTADO_DESDE</span>
+  }
+
+  /**
+   * As três varreduras de hoje.
+   *
+   * &lt;p&gt;Os prazos de execução e confirmação são generosos de propósito. Errar para o lado curto tira
+   * uma missão de quem está executando de boa-fé — trânsito, imprevisto, um dia ruim; errar para o
+   * lado longo só adia a devolução de um pote que, sem esta varredura, ficaria preso para sempre.
+   */
+  public static List&lt;RegraExpiracao&gt; padrao(Duration prazoExecucao, Duration prazoConfirmacao) {
+<span class="fc" id="L41">    return List.of(</span>
+        // Prazo ZERO: a janela de oferta já É o prazo. Assim que janelaFim passa, expira.
+        new RegraExpiracao(
+            StatusMissao.ABERTA, EventoMissao.EXPIRAR, Duration.ZERO, Marco.JANELA_FIM),
+        new RegraExpiracao(
+            StatusMissao.EM_ANDAMENTO,
+            EventoMissao.EXPIRAR_EXECUCAO,
+            prazoExecucao,
+            Marco.ESTADO_DESDE),
+        new RegraExpiracao(
+            StatusMissao.AGUARDANDO_CONFIRMACAO,
+            EventoMissao.EXPIRAR_CONFIRMACAO,
+            prazoConfirmacao,
+            Marco.ESTADO_DESDE));
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

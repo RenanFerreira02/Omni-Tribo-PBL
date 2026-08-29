@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExtratoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">ExtratoService.java</span></div><h1>ExtratoService.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import com.omnitribo.carteira.api.CarteiraResponse;
+import com.omnitribo.carteira.api.LancamentoFiltroRequest;
+import com.omnitribo.carteira.api.LancamentoResponse;
+import com.omnitribo.carteira.infra.CarteiraRepository;
+import com.omnitribo.carteira.infra.LancamentoRepository;
+import com.omnitribo.compartilhado.api.PaginaResponse;
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Leitura da carteira e do extrato do usuário autenticado. */
+@Service
+public class ExtratoService {
+
+  private static final String CARTEIRA_AUSENTE = &quot;Carteira não encontrada.&quot;;
+
+  private final CarteiraRepository carteiraRepository;
+  private final LancamentoRepository lancamentoRepository;
+
+  public ExtratoService(
+<span class="fc" id="L27">      CarteiraRepository carteiraRepository, LancamentoRepository lancamentoRepository) {</span>
+<span class="fc" id="L28">    this.carteiraRepository = carteiraRepository;</span>
+<span class="fc" id="L29">    this.lancamentoRepository = lancamentoRepository;</span>
+<span class="fc" id="L30">  }</span>
+
+  @Transactional(readOnly = true)
+  public CarteiraResponse saldo(UUID usuarioId) {
+<span class="fc" id="L34">    return carteiraRepository</span>
+<span class="fc" id="L35">        .findByUsuarioId(usuarioId)</span>
+<span class="fc" id="L36">        .map(CarteiraResponse::de)</span>
+<span class="pc" id="L37">        .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+  }
+
+  /**
+   * Extrato paginado, sempre cronológico decrescente.
+   *
+   * &lt;p&gt;A carteira é resolvida a partir do usuário do JWT, nunca de um id vindo do cliente: sem
+   * isso, trocar um parâmetro leria o extrato alheio — vazamento de dado financeiro por IDOR.
+   *
+   * &lt;p&gt;Sob READ COMMITTED, um lançamento inserido entre o {@code count} e o {@code select} do
+   * {@code Page} desloca a paginação. Aceitável e documentado para uma lista de UI; corrigir
+   * exigiria snapshot consistente entre as duas consultas, ao custo de contenção num caminho de
+   * leitura.
+   */
+  @Transactional(readOnly = true)
+  public PaginaResponse&lt;LancamentoResponse&gt; extrato(
+      UUID usuarioId, LancamentoFiltroRequest filtro) {
+
+<span class="fc" id="L55">    UUID carteiraId =</span>
+        carteiraRepository
+<span class="fc" id="L57">            .buscarIdPorUsuario(usuarioId)</span>
+<span class="pc" id="L58">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+
+<span class="fc" id="L60">    PageRequest pagina =</span>
+<span class="fc" id="L61">        PageRequest.of(filtro.pagina(), filtro.tamanho(), Sort.by(Sort.Direction.DESC, &quot;criadoEm&quot;));</span>
+
+<span class="fc" id="L63">    Page&lt;LancamentoResponse&gt; page =</span>
+<span class="fc" id="L64">        lancamentoRepository.findByCarteiraId(carteiraId, pagina).map(LancamentoResponse::de);</span>
+
+<span class="fc" id="L66">    return PaginaResponse.de(page);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

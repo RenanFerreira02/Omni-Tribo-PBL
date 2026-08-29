@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EstadoDaConta.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">EstadoDaConta.java</span></div><h1>EstadoDaConta.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Projeção escalar do que a autenticação precisa saber sobre uma conta.
+ *
+ * &lt;p&gt;&lt;b&gt;Projeção, e não a entidade {@code Usuario}&lt;/b&gt; — pelo mesmo motivo documentado em {@code
+ * UsuarioRepository.buscarTriboId}, e aqui o motivo é mais grave. Esta leitura acontece no FILTRO,
+ * antes de qualquer método de negócio. Materializar {@code Usuario} o poria no persistence context
+ * da requisição, e um {@code buscarParaAtualizar} posterior — que é como toda operação de valor
+ * adquire o lock — devolveria a instância em cache &lt;b&gt;sem reemitir o {@code SELECT ... FOR
+ * UPDATE}&lt;/b&gt;. O teste passaria e o lock nunca teria existido, em toda requisição autenticada do
+ * sistema.
+ */
+<span class="fc" id="L17">public record EstadoDaConta(</span>
+    UUID id, String email, PapelUsuario papel, StatusUsuario status, Instant anonimizadoEm) {
+
+  /**
+   * Conta apta a agir. Anonimizada é barrada mesmo se {@code status} divergir: são duas colunas, e
+   * exigir as duas evita que uma correção manual em só uma delas reabra a janela.
+   */
+  public boolean ativa() {
+<span class="pc bpc" id="L25" title="1 of 4 branches missed.">    return status == StatusUsuario.ATIVO &amp;&amp; anonimizadoEm == null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LancamentoFiltroRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.api</a> &gt; <span class="el_source">LancamentoFiltroRequest.java</span></div><h1>LancamentoFiltroRequest.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.api;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+
+/**
+ * Paginação do extrato.
+ *
+ * &lt;p&gt;Sem whitelist de ordenação, ao contrário de {@code MissaoFiltroRequest}: o extrato tem UMA
+ * ordem legítima, cronológica decrescente, e ela é fixa. Deixar o cliente reordenar um ledger
+ * convidaria a ordenar por coluna sem índice — e, pior, um extrato fora de ordem cronológica
+ * mostraria {@code saldoApos*} numa sequência que não faz sentido para quem lê.
+ */
+@Schema(description = &quot;Paginação do extrato&quot;)
+public record LancamentoFiltroRequest(
+    // Integer, não int: query param ausente chega como null, e o binder não converte null para
+    // primitivo — todo GET sem ?pagina= viraria 400.
+    @Min(value = 0, message = &quot;Página não pode ser negativa&quot;) Integer pagina,
+    @Min(value = 1, message = &quot;Tamanho mínimo de página é 1&quot;)
+        @Max(value = 100, message = &quot;Tamanho máximo de página é 100&quot;)
+        Integer tamanho) {
+
+<span class="fc" id="L24">  public LancamentoFiltroRequest {</span>
+<span class="fc bfc" id="L25" title="All 2 branches covered.">    if (pagina == null) {</span>
+<span class="fc" id="L26">      pagina = 0;</span>
+    }
+<span class="fc bfc" id="L28" title="All 2 branches covered.">    if (tamanho == null) {</span>
+<span class="fc" id="L29">      tamanho = 20;</span>
+    }
+<span class="fc" id="L31">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

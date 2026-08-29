@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AporteService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">AporteService.java</span></div><h1>AporteService.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import com.omnitribo.carteira.api.AporteToken;
+import com.omnitribo.carteira.api.ResultadoAporte;
+import com.omnitribo.carteira.infra.CarteiraRepository;
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Implementação de {@link AporteToken}. Ver o javadoc da porta para o porquê desta operação. */
+@Service
+public class AporteService implements AporteToken {
+
+  private static final String CARTEIRA_AUSENTE = &quot;Carteira do patrocinador não encontrada.&quot;;
+
+  private final CarteiraRepository carteiraRepository;
+  private final LivroRazaoService livroRazaoService;
+
+<span class="fc" id="L24">  public AporteService(CarteiraRepository carteiraRepository, LivroRazaoService livroRazaoService) {</span>
+<span class="fc" id="L25">    this.carteiraRepository = carteiraRepository;</span>
+<span class="fc" id="L26">    this.livroRazaoService = livroRazaoService;</span>
+<span class="fc" id="L27">  }</span>
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public ResultadoAporte aportar(
+      UUID patrocinadorUsuarioId, long tokens, String chaveIdempotencia, Instant agora) {
+
+<span class="pc bpc" id="L34" title="1 of 2 branches missed.">    if (tokens &lt;= 0) {</span>
+<span class="nc" id="L35">      throw new RegraNegocioVioladaException(&quot;Aporte precisa ser de pelo menos 1 token.&quot;);</span>
+    }
+
+    // 1. LOCK. Projeção escalar primeiro, nunca findByUsuarioId: materializar a Carteira aqui a
+    // poria no persistence context e o buscarParaAtualizar seguinte devolveria a instância em cache
+    // sem emitir o SELECT ... FOR UPDATE — o lock sumiria em silêncio.
+<span class="fc" id="L41">    UUID carteiraId =</span>
+        carteiraRepository
+<span class="fc" id="L43">            .buscarIdPorUsuario(patrocinadorUsuarioId)</span>
+<span class="pc" id="L44">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+<span class="fc" id="L45">    Carteira carteira =</span>
+        carteiraRepository
+<span class="fc" id="L47">            .buscarParaAtualizar(carteiraId)</span>
+<span class="pc" id="L48">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+
+    // 2. SONDA, sob o lock. É o que fecha a janela entre sondar e inserir: duas requisições com a
+    // mesma chave estão serializadas por esta linha, então a sondagem do perdedor roda depois do
+    // commit do vencedor e enxerga a linha dele.
+    //
+    // Num endpoint que EMITE moeda isto é a defesa principal, não conforto de cliente. Um retry que
+    // cunhasse duas vezes aumentaria a oferta sem deixar rastro detectável: a reconciliação
+    // continuaria verde, porque ledger e projeção estariam ambos errados na mesma direção.
+<span class="fc" id="L57">    Optional&lt;Lancamento&gt; existente = livroRazaoService.consultar(chaveIdempotencia);</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (existente.isPresent()) {</span>
+<span class="fc" id="L59">      return new ResultadoAporte(existente.get().getId(), carteira.getSaldoTokens(), true);</span>
+    }
+
+    // 3. ESCREVE. Sem missao_id e sem contraparte: um aporte não pertence a missão nenhuma e não
+    // tem
+    // outro lado — é exatamente isso que faz dele uma emissão, e é por isso que ele é o único
+    // motivo
+    // do enum que não soma zero com nada.
+<span class="fc" id="L67">    Lancamento lancamento =</span>
+<span class="fc" id="L68">        livroRazaoService.registrar(</span>
+            carteira,
+<span class="fc" id="L70">            Movimento.deTokens(</span>
+                SinalLancamento.CREDITO,
+                MotivoLancamento.APORTE_PATROCINADOR,
+                tokens,
+                null,
+                null,
+                chaveIdempotencia,
+                null,
+                agora));
+
+<span class="fc" id="L80">    return new ResultadoAporte(lancamento.getId(), carteira.getSaldoTokens(), false);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

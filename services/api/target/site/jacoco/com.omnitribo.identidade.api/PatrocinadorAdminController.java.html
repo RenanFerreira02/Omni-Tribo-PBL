@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PatrocinadorAdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.api</a> &gt; <span class="el_source">PatrocinadorAdminController.java</span></div><h1>PatrocinadorAdminController.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.api;
+
+import com.omnitribo.identidade.dominio.PatrocinadorService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Patrocinadores. Exclusivo de ADMIN.
+ *
+ * &lt;p&gt;Aqui mora o único ponto de EMISSÃO de token do sistema. Até a V23 a moeda era cunhada na
+ * conclusão de toda missão ENTREGA e AJUDA, implicitamente e sem registro de que uma emissão tinha
+ * acontecido — a reconciliação não via, porque ledger e projeção continuavam batendo. O aporte não
+ * elimina a cunhagem: concentra-a num evento explícito, com ator identificado, trilha de auditoria
+ * e chave de idempotência. Ver ADR 0024.
+ *
+ * &lt;p&gt;&lt;b&gt;Por que ADMIN e não um papel PATROCINADOR.&lt;/b&gt; A conta do patrocinador é titular de
+ * carteira e nunca autentica ({@code status = INATIVO}); dar a ela credencial de operação criaria
+ * uma porta de login para uma identidade que existe só para ser alvo de chave estrangeira. Quem
+ * opera em nome do patrocinador é um administrador do Omni-Tribo, e é a identidade DELE que a
+ * auditoria grava.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/admin/patrocinadores&quot;)
+@Tag(name = &quot;Administração&quot;, description = &quot;Conciliação e verificação de integridade&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+@Validated
+public class PatrocinadorAdminController {
+
+  private final PatrocinadorService patrocinadorService;
+
+<span class="fc" id="L52">  public PatrocinadorAdminController(PatrocinadorService patrocinadorService) {</span>
+<span class="fc" id="L53">    this.patrocinadorService = patrocinadorService;</span>
+<span class="fc" id="L54">  }</span>
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+  @Operation(
+      summary = &quot;Cadastrar patrocinador de uma transportadora&quot;,
+      description =
+          &quot;Cria a conta-titular (que nunca autentica), a carteira e a relação com o slug da &quot;
+              + &quot;transportadora. O slug precisa casar com a chave de app.webhooks.segredos, senão &quot;
+              + &quot;as entregas daquela transportadora caem em SEM_PATROCINIO.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Patrocinador cadastrado&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;403&quot;, ref = &quot;#/components/responses/AcessoNegado&quot;),
+    @ApiResponse(responseCode = &quot;422&quot;, ref = &quot;#/components/responses/RegraNegocioViolada&quot;)
+  })
+  public PatrocinadorResponse cadastrar(@Valid @RequestBody CadastrarPatrocinadorRequest corpo) {
+<span class="fc" id="L73">    return patrocinadorService.cadastrar(corpo.nome(), corpo.transportadoraSlug(), Instant.now());</span>
+  }
+
+  @GetMapping
+  @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+  @Operation(
+      summary = &quot;Listar patrocinadores&quot;,
+      description =
+          &quot;Sem saldo no corpo, de propósito: saldo muda sob lock e uma listagem devolveria uma &quot;
+              + &quot;leitura que envelhece antes de chegar à tela. O saldo atual vem na resposta do &quot;
+              + &quot;aporte.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Patrocinadores cadastrados&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;403&quot;, ref = &quot;#/components/responses/AcessoNegado&quot;)
+  })
+  public List&lt;PatrocinadorResponse&gt; listar() {
+<span class="nc" id="L90">    return patrocinadorService.listar();</span>
+  }
+
+  @PostMapping(&quot;/{patrocinadorId}/aportes&quot;)
+  @ResponseStatus(HttpStatus.CREATED)
+  @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+  @Operation(
+      summary = &quot;Aportar tokens na carteira do patrocinador&quot;,
+      description =
+          &quot;EMITE tokens. É o único ponto de cunhagem do sistema, e o único lugar onde a soma &quot;
+              + &quot;SUM(carteiras) + SUM(potes) muda. Idempotente pelo header Idempotency-Key: &quot;
+              + &quot;repetir a mesma chave devolve o saldo atual sem emitir de novo.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Aporte registrado&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;403&quot;, ref = &quot;#/components/responses/AcessoNegado&quot;),
+    @ApiResponse(responseCode = &quot;404&quot;, ref = &quot;#/components/responses/NaoEncontrado&quot;),
+    @ApiResponse(responseCode = &quot;422&quot;, ref = &quot;#/components/responses/RegraNegocioViolada&quot;)
+  })
+  public AporteResponse aportar(
+      @PathVariable UUID patrocinadorId,
+      @Valid @RequestBody AportarRequest corpo,
+      // Obrigatório, e num endpoint que cunha moeda isso é a defesa principal. Um retry de rede sem
+      // chave emitiria duas vezes, e a duplicata NÃO seria detectável depois: ledger e projeção
+      // ficariam ambos errados na mesma direção e a reconciliação continuaria respondendo
+      // integro=true. Ver ChaveIdempotencia.aportePatrocinador.
+      @RequestHeader(&quot;Idempotency-Key&quot;) @NotBlank @Size(min = 8, max = 200) String chaveDoCliente) {
+
+<span class="fc" id="L119">    return patrocinadorService.aportar(</span>
+<span class="fc" id="L120">        patrocinadorId, corpo.tokens(), chaveDoCliente, Instant.now());</span>
+  }
+
+  @DeleteMapping(&quot;/{patrocinadorId}&quot;)
+  @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+  @Operation(
+      summary = &quot;Encerrar o patrocínio&quot;,
+      description =
+          &quot;Desativa sem apagar: os lançamentos do patrocinador continuam no ledger, e apagar a &quot;
+              + &quot;relação deixaria o extrato sem explicação. A partir daqui as entregas daquela &quot;
+              + &quot;transportadora respondem SEM_PATROCINIO.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Patrocínio encerrado&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;403&quot;, ref = &quot;#/components/responses/AcessoNegado&quot;),
+    @ApiResponse(responseCode = &quot;404&quot;, ref = &quot;#/components/responses/NaoEncontrado&quot;)
+  })
+  public PatrocinadorResponse desativar(@PathVariable UUID patrocinadorId) {
+<span class="nc" id="L138">    return patrocinadorService.desativar(patrocinadorId);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

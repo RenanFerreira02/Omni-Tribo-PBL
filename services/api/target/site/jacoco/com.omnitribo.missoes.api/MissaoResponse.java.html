@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MissaoResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.api</a> &gt; <span class="el_source">MissaoResponse.java</span></div><h1>MissaoResponse.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.api;
+
+import com.omnitribo.compartilhado.api.RecursoAuditavel;
+import com.omnitribo.compartilhado.dominio.Coordenadas;
+import com.omnitribo.missoes.dominio.CategoriaMissao;
+import com.omnitribo.missoes.dominio.ComplexidadeMissao;
+import com.omnitribo.missoes.dominio.Missao;
+import com.omnitribo.missoes.dominio.StatusMissao;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+/** Representação de leitura de uma missão. Único ponto de conversão entidade → DTO. */
+@Schema(description = &quot;Missão em qualquer estado do ciclo de vida&quot;)
+<span class="fc" id="L16">public record MissaoResponse(</span>
+    UUID id,
+    UUID criadorId,
+    UUID executorId,
+    CategoriaMissao categoria,
+    StatusMissao status,
+    String titulo,
+    String descricao,
+    int xpRecompensa,
+    BigDecimal valorBrl,
+    long tokensRecompensa,
+    // Tokens já financiados e em custódia. Aditivo no envelope: nenhum cliente existente quebra,
+    // e o app precisa dele para mostrar o quanto falta financiar antes de a missão ser publicável.
+    long poteTokens,
+    BigDecimal origemLat,
+    BigDecimal origemLon,
+    BigDecimal destinoLat,
+    BigDecimal destinoLon,
+    UUID pontoCustodiaId,
+    String cep,
+    String logradouro,
+    String bairro,
+    String cidade,
+    String uf,
+    int raioCheckinM,
+    BigDecimal pesoKg,
+    BigDecimal volumeL,
+    Instant janelaInicio,
+    Instant janelaFim,
+    Instant criadaEm,
+    Instant aceitaEm,
+    Instant concluidaEm,
+    /**
+     * Complexidade EFETIVA e versão da fórmula, CONGELADAS na criação.
+     *
+     * &lt;p&gt;Existiam na entidade desde a V16 e não saíam por via nenhuma da API — os dois getters eram
+     * código morto. O campo cuja razão de existir é responder &quot;este crédito estava certo quando foi
+     * feito?&quot; não era legível por quem precisa da resposta.
+     *
+     * &lt;p&gt;{@code POST /previa-recompensa} já devolvia os dois; depois de criada, a missão parava de
+     * devolvê-los, e o app não tinha como mostrar por que aquela recompensa é aquela.
+     */
+    ComplexidadeMissao complexidade,
+    Integer versaoFormula,
+
+    /**
+     * Nível mínimo para aceitar. 1 = sem restrição, que é o caso de toda missão criada por usuário.
+     *
+     * &lt;p&gt;Vai na resposta para o app poder DESABILITAR o botão de aceitar com a explicação certa, em
+     * vez de deixar a pessoa tentar e levar 422. Um botão que só falha depois do toque é pior do
+     * que um botão desabilitado que diz o porquê — e o 422 continua existindo, porque a checagem do
+     * cliente é conveniência e a do servidor é a regra.
+     */
+    int nivelMinimo,
+
+    /**
+     * Risco de falha avaliado na criação, CONGELADO junto com {@code versaoFormula}.
+     *
+     * &lt;p&gt;Nulos em toda missão que não veio do webhook de entrega falida, que é a maioria — o app
+     * precisa tratar ausência como &quot;sem avaliação&quot;, nunca como risco baixo.
+     *
+     * &lt;p&gt;{@code multiplicadorRisco} sai na resposta porque é o que EXPLICA a recompensa: sem ele,
+     * duas entregas de mesmo peso e distância pagariam valores diferentes sem justificativa
+     * visível, e a economia pareceria arbitrária.
+     */
+    BigDecimal multiplicadorRisco,
+    String faixaRisco,
+
+    /**
+     * Texto pronto do aviso, ou nulo quando não há o que avisar.
+     *
+     * &lt;p&gt;Montado no SERVIDOR de propósito, pela mesma razão que a recompensa é: se o app compusesse
+     * a frase a partir da faixa, cada versão instalada teria a sua, e mudar a orientação exigiria
+     * publicar na loja. Aqui, muda com um deploy.
+     *
+     * &lt;p&gt;&lt;b&gt;Nunca contém logradouro nem CEP.&lt;/b&gt; Esta resposta tem recorte por participação —
+     * {@code montar(m, participa)} reduz o endereço a bairro para quem não participa — e um aviso
+     * citando a rua devolveria pela porta de trás exatamente o que aquele recorte protege.
+     */
+    String avisoRisco,
+    int versao)
+    implements RecursoAuditavel {
+
+  /**
+   * Id da missão para a trilha de auditoria. Não é componente novo do record nem getter no padrão
+   * getX/isX, então não entra na serialização JSON — o envelope da API continua idêntico.
+   */
+  @Override
+  public UUID idAuditoria() {
+<span class="fc" id="L105">    return id;</span>
+  }
+
+  /**
+   * Casas decimais da coordenada mostrada a quem NÃO participa da missão.
+   *
+   * &lt;p&gt;3 casas ≈ 110 m: o bastante para &quot;isso é perto de mim&quot;, insuficiente para achar a porta. O
+   * app já limita o radar a 20 km, então a precisão perdida não muda nenhuma decisão de quem
+   * procura missão — e muda tudo para quem estaria catalogando endereços.
+   */
+  private static final int CASAS_APROXIMADAS = 3;
+
+  /** Precisão plena para quem participa: o executor precisa CHEGAR ao lugar. */
+  private static final int CASAS_EXATAS = 6;
+
+  /**
+   * Visão completa. Use só quando o solicitante é participante por construção — ações do ciclo de
+   * vida (publicar, aceitar, check-in, confirmar) são sempre do criador ou do executor.
+   */
+  public static MissaoResponse de(Missao m) {
+<span class="fc" id="L125">    return montar(m, true);</span>
+  }
+
+  /**
+   * Visão recortada por PARTICIPAÇÃO: criador e executor veem tudo; os demais veem menos.
+   *
+   * &lt;p&gt;&lt;b&gt;O problema.&lt;/b&gt; {@code GET /missoes} devolvia coordenada com ~15 dígitos significativos
+   * mais logradouro e CEP de TODA missão não-rascunho, paginada, para qualquer autenticado. Um
+   * usuário comum colhia endereço exato do bairro inteiro — inclusive de missões já CONCLUIDAS —
+   * enquanto {@code TriboController} recusa listar membros porque &quot;essa lista seria uma lista de
+   * alvos&quot; e não existe {@code GET /usuarios/{id}} justamente por privacidade. A listagem entregava
+   * o mesmo mapa social por outra porta, com o endereço junto.
+   *
+   * &lt;p&gt;&lt;b&gt;O que muda para quem não participa:&lt;/b&gt; coordenada em 3 casas (~110 m) e endereço
+   * reduzido a bairro/cidade/UF. Some o logradouro e o CEP — que juntos identificam a residência.
+   *
+   * &lt;p&gt;Arredondar sozinho NÃO resolveria: 6 casas são ~11 cm, ainda é a porta. O recorte útil é o
+   * do CAMPO, não o da precisão.
+   */
+  public static MissaoResponse de(Missao m, UUID solicitanteId) {
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">    boolean participa =</span>
+        solicitanteId != null
+<span class="fc bfc" id="L147" title="All 4 branches covered.">            &amp;&amp; (solicitanteId.equals(m.getCriadorId()) || solicitanteId.equals(m.getExecutorId()));</span>
+<span class="fc" id="L148">    return montar(m, participa);</span>
+  }
+
+  /**
+   * Visão recortada para TODO MUNDO, independente de quem pergunta.
+   *
+   * &lt;p&gt;É o que o radar de proximidade usa, e a independência é obrigatória lá: o resultado é
+   * cacheado por célula geográfica, sem o usuário na chave, então uma resposta montada para um
+   * participante seria servida a um estranho. Pôr o solicitante na chave transformaria o cache numa
+   * entrada por usuário — ou seja, em nada.
+   */
+  public static MissaoResponse deAproximada(Missao m) {
+<span class="fc" id="L160">    return montar(m, false);</span>
+  }
+
+  private static MissaoResponse montar(Missao m, boolean participa) {
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    int casas = participa ? CASAS_EXATAS : CASAS_APROXIMADAS;</span>
+<span class="fc" id="L165">    return new MissaoResponse(</span>
+<span class="fc" id="L166">        m.getId(),</span>
+<span class="fc" id="L167">        m.getCriadorId(),</span>
+<span class="fc" id="L168">        m.getExecutorId(),</span>
+<span class="fc" id="L169">        m.getCategoria(),</span>
+<span class="fc" id="L170">        m.getStatus(),</span>
+<span class="fc" id="L171">        m.getTitulo(),</span>
+<span class="fc" id="L172">        m.getDescricao(),</span>
+<span class="fc" id="L173">        m.getXpRecompensa(),</span>
+<span class="fc" id="L174">        m.getValorBrl(),</span>
+<span class="fc" id="L175">        m.getTokensRecompensa(),</span>
+<span class="fc" id="L176">        m.getPoteTokens(),</span>
+<span class="fc" id="L177">        Coordenadas.arredondar(Coordenadas.latitude(m.getOrigem()), casas),</span>
+<span class="fc" id="L178">        Coordenadas.arredondar(Coordenadas.longitude(m.getOrigem()), casas),</span>
+<span class="fc" id="L179">        Coordenadas.arredondar(Coordenadas.latitude(m.getDestino()), casas),</span>
+<span class="fc" id="L180">        Coordenadas.arredondar(Coordenadas.longitude(m.getDestino()), casas),</span>
+<span class="fc" id="L181">        m.getPontoCustodiaId(),</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        participa ? m.getCep() : null,</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        participa ? m.getLogradouro() : null,</span>
+<span class="fc" id="L184">        m.getBairro(),</span>
+<span class="fc" id="L185">        m.getCidade(),</span>
+<span class="fc" id="L186">        m.getUf(),</span>
+<span class="fc" id="L187">        m.getRaioCheckinM(),</span>
+<span class="fc" id="L188">        m.getPesoKg(),</span>
+<span class="fc" id="L189">        m.getVolumeL(),</span>
+<span class="fc" id="L190">        m.getJanelaInicio(),</span>
+<span class="fc" id="L191">        m.getJanelaFim(),</span>
+<span class="fc" id="L192">        m.getCriadaEm(),</span>
+<span class="fc" id="L193">        m.getAceitaEm(),</span>
+<span class="fc" id="L194">        m.getConcluidaEm(),</span>
+<span class="fc" id="L195">        m.getComplexidade(),</span>
+<span class="fc" id="L196">        m.getVersaoFormula(),</span>
+<span class="fc" id="L197">        m.getNivelMinimo(),</span>
+<span class="fc" id="L198">        m.getMultiplicadorRisco(),</span>
+<span class="fc" id="L199">        m.getFaixaRisco(),</span>
+<span class="fc" id="L200">        avisoDe(m.getFaixaRisco()),</span>
+<span class="fc" id="L201">        m.getVersao());</span>
+  }
+
+  /**
+   * Orientação acionável para a faixa de risco, ou nulo quando não há o que dizer.
+   *
+   * &lt;p&gt;Só ALTO e MEDIO produzem aviso. BAIXO não gera texto porque um aviso que aparece sempre
+   * deixa de ser lido — e uma missão sem avaliação (a maioria) não tem nada a declarar.
+   *
+   * &lt;p&gt;O texto diz o que FAZER, não só o que temer. &quot;Risco alto&quot; sozinho deixa a pessoa sem ação;
+   * &quot;combine o horário antes de ir&quot; é o comportamento que efetivamente reduz a chance de a segunda
+   * tentativa também falhar.
+   */
+  private static String avisoDe(String faixaRisco) {
+<span class="fc bfc" id="L215" title="All 2 branches covered.">    if (faixaRisco == null) {</span>
+<span class="fc" id="L216">      return null;</span>
+    }
+<span class="pc bpc" id="L218" title="2 of 3 branches missed.">    return switch (faixaRisco) {</span>
+      case &quot;ALTO&quot; -&gt;
+<span class="nc" id="L220">          &quot;Entregas neste endereço costumam falhar. Combine o horário com o destinatário antes de&quot;</span>
+              + &quot; ir — é o que mais aumenta a chance de dar certo desta vez.&quot;;
+      case &quot;MEDIO&quot; -&gt;
+<span class="nc" id="L223">          &quot;Esta entrega tem histórico irregular. Vale confirmar se há alguém para receber antes de&quot;</span>
+              + &quot; sair.&quot;;
+<span class="fc" id="L225">      default -&gt; null;</span>
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

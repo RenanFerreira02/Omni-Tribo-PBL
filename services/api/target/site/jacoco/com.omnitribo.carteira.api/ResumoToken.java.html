@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResumoToken.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.api</a> &gt; <span class="el_source">ResumoToken.java</span></div><h1>ResumoToken.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.api;
+
+/**
+ * As duas pontas do ciclo do TOKEN mais o estoque parado em carteira.
+ *
+ * &lt;p&gt;A economia é um CICLO, não um estoque (ADR 0027): {@code aportados} é a única entrada — {@code
+ * APORTE_PATROCINADOR}, o único ponto de emissão — e {@code resgatados} a única saída, o {@code
+ * RESGATE} que queima sem creditar contraparte. Tudo entre as duas apenas muda token de lugar.
+ *
+ * &lt;p&gt;&lt;b&gt;Não espere {@code aportados - resgatados == emCarteiras + potes}.&lt;/b&gt; Antes do ADR 0024 a
+ * emissão acontecia na CONCLUSÃO de cada ENTREGA e AJUDA, implícita e sem lançamento de aporte, e a
+ * conversão 1:2 do seed (ADR 0009) criou saldo que nenhum aporte explica. Esse legado é real e
+ * transformar a diferença em asserção reprovaria por um motivo que não é defeito.
+ */
+<span class="fc" id="L15">public record ResumoToken(long aportados, long resgatados, long emCarteiras) {}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

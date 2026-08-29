@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RateLimitFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.infra</a> &gt; <span class="el_source">RateLimitFilter.java</span></div><h1>RateLimitFilter.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.infra;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.omnitribo.compartilhado.api.EnderecoDoCliente;
+import com.omnitribo.compartilhado.api.TipoProblema;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Rate limiting geral por usuário autenticado: 100 req/min escrita, 300 req/min leitura. Para
+ * login, usa BloqueioLoginService (verificado no AutenticacaoService, não aqui). Executa ANTES do
+ * JwtAuthFilter; portanto para endpoints autenticados o SecurityContext ainda está vazio — rate
+ * limiting por usuário funciona apenas após o primeiro parse do JWT. Solução: o filter aplica rate
+ * limit por userId quando o header Authorization está presente e o token é válido; caso contrário
+ * aplica por IP.
+ *
+ * &lt;p&gt;&lt;b&gt;Contagem em memória, e isso é uma decisão de escopo, não um esquecimento.&lt;/b&gt; Os buckets
+ * vivem em mapas locais do processo, o que só é correto porque o MVP roda em UMA instância. Com
+ * duas ou mais atrás de um balanceador, cada uma passaria a contar o seu próprio tráfego e o limite
+ * efetivo viraria N × 100/min — ou seja, o controle degradaria em silêncio, sem erro nenhum
+ * aparecer. A migração é trocar estes mapas por um contador distribuído (o módulo {@code
+ * bucket4j-redis} já cobre exatamente este caso, mantendo a mesma API de Bucket). Mesma observação
+ * vale para {@code BloqueioLoginService}. Ver CLAUDE.md, seção Escopo.
+ */
+@Component
+public class RateLimitFilter extends OncePerRequestFilter {
+
+<span class="fc" id="L43">  private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);</span>
+
+  /** Rota EXATA, não prefixo: só a busca tem teto próprio, e `/usuarios/me` não pode cair nele. */
+  private static final String BUSCA_HANDLE = &quot;/api/v1/usuarios/busca&quot;;
+
+  private final JwtService jwtService;
+
+  @Value(&quot;${app.rate-limit.escrita-por-minuto:100}&quot;)
+  private int escritaPorMinuto;
+
+  @Value(&quot;${app.rate-limit.leitura-por-minuto:300}&quot;)
+  private int leituraPorMinuto;
+
+  /**
+   * Teto PRÓPRIO da busca por handle, muito abaixo do de leitura.
+   *
+   * &lt;p&gt;{@code GET /usuarios/busca} responde uma pergunta de sim ou não sobre existência — &quot;este @
+   * está na minha tribo?&quot; — e é, por natureza, um oráculo. Nenhum código de status muda isso; o que
+   * limita o dano é a taxa. No balde geral de leitura seriam 300 por minuto, 18 mil por hora: o
+   * bastante para colher handles em massa e correlacionar contas.
+   *
+   * &lt;p&gt;Doze por minuto é folgado para gente: o fluxo legítimo é digitar um @, conferir o nome e
+   * transferir. Quem erra a digitação três vezes seguidas continua passando.
+   */
+  @Value(&quot;${app.rate-limit.busca-handle-por-minuto:12}&quot;)
+  private int buscaHandlePorMinuto;
+
+  /**
+   * Buckets por userId (autenticado) ou IP (anônimo), com DESPEJO por ociosidade.
+   *
+   * &lt;p&gt;Eram {@code ConcurrentHashMap} sem remoção nenhuma: toda chave já vista — cada IP anônimo,
+   * cada usuário — permanecia até o processo reiniciar. Como a chave de quem não está autenticado é
+   * o IP, e o IP sai de {@code X-Forwarded-For} quando presente (cabeçalho que o cliente controla),
+   * bastava variar esse cabeçalho para inflar os mapas indefinidamente.
+   *
+   * &lt;p&gt;{@code expireAfterAccess} de 10 minutos não afrouxa o limite: {@code refillGreedy} repõe a
+   * capacidade inteira a cada minuto, então um bucket parado há dez já está cheio e recriá-lo
+   * produz exatamente o mesmo estado. Descartar entrada ociosa é equivalente, não aproximado.
+   */
+<span class="fc" id="L82">  private final Cache&lt;String, Bucket&gt; bucketsEscrita =</span>
+<span class="fc" id="L83">      Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(10)).build();</span>
+
+<span class="fc" id="L85">  private final Cache&lt;String, Bucket&gt; bucketsLeitura =</span>
+<span class="fc" id="L86">      Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(10)).build();</span>
+
+<span class="fc" id="L88">  private final Cache&lt;String, Bucket&gt; bucketsBuscaHandle =</span>
+<span class="fc" id="L89">      Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(10)).build();</span>
+
+<span class="fc" id="L91">  public RateLimitFilter(JwtService jwtService) {</span>
+<span class="fc" id="L92">    this.jwtService = jwtService;</span>
+<span class="fc" id="L93">  }</span>
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+
+    // Isenção por rota EXATA, não por prefixo /api/v1/auth/. Só /login sai daqui, porque só ele tem
+    // controle próprio e mais fino no BloqueioLoginService (5/min por sha256(ip+email), com
+    // bloqueio
+    // progressivo).
+    //
+    // /refresh ERA isento pela mesma justificativa, e a justificativa era falsa: `refresh()` nunca
+    // chama bloqueioLoginService — os três call sites do serviço estão todos dentro de `login()`.
+    // O resultado é que /refresh era o ÚNICO endpoint público da API sem teto algum: sem
+    // autenticação, cada chamada custa um SHA-256 e um lookup indexado, e nada limitava a taxa.
+    // Adivinhar o token é inviável (256 bits), mas exaurir conexão e CPU não era.
+    //
+    // /registrar também não tinha nenhum: como cada chamada executa um hash Argon2id (19 MB de
+    // memória e ~100 ms de CPU, por ADR 0005), a rota era um amplificador de DoS não autenticado —
+    // o atacante gasta uma requisição, o servidor gasta 100 ms. Agora cai no bucket geral de
+    // escrita, por IP, já que ainda não há token nessa altura.
+    // /api/v1/webhooks/ é isento AQUI porque tem teto PRÓPRIO no HmacWebhookFilter, que roda antes
+    // e já recusou quem não tem assinatura válida. Deixar cair no balde geral aplicaria um segundo
+    // limite com a chave errada: sem JWT, a chave é o IP, e várias transportadoras atrás do mesmo
+    // gateway dividiriam uma cota pensada para usuário final.
+<span class="fc" id="L119">    String path = request.getRequestURI();</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (path.equals(&quot;/api/v1/auth/login&quot;)</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">        || path.startsWith(&quot;/v3/api-docs&quot;)</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">        || path.startsWith(&quot;/swagger-ui&quot;)</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        || path.startsWith(&quot;/api/v1/webhooks/&quot;)</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        || path.equals(&quot;/api/v1/ping&quot;)) {</span>
+<span class="fc" id="L125">      chain.doFilter(request, response);</span>
+<span class="fc" id="L126">      return;</span>
+    }
+
+<span class="fc" id="L129">    String chave = resolverChave(request);</span>
+
+    // Rota com teto PRÓPRIO, checada ANTES do balde geral e substituindo-o — não somando a ele.
+    // Somar os dois faria a busca consumir também a cota de leitura do usuário, e uma varredura
+    // barrada aqui deixaria a pessoa sem conseguir abrir a carteira pelo minuto seguinte.
+<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (BUSCA_HANDLE.equals(request.getRequestURI())) {</span>
+<span class="fc" id="L135">      Bucket balde = bucketsBuscaHandle.get(chave, k -&gt; criarBucket(buscaHandlePorMinuto));</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">      if (!balde.tryConsume(1)) {</span>
+<span class="fc" id="L137">        responder429(response, request, 60L, buscaHandlePorMinuto);</span>
+<span class="fc" id="L138">        return;</span>
+      }
+<span class="fc" id="L140">      chain.doFilter(request, response);</span>
+<span class="fc" id="L141">      return;</span>
+    }
+
+<span class="fc" id="L144">    boolean ehEscrita = ehMetodoEscrita(request.getMethod());</span>
+
+    Bucket bucket =
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        ehEscrita</span>
+<span class="fc" id="L148">            ? bucketsEscrita.get(chave, k -&gt; criarBucket(escritaPorMinuto))</span>
+<span class="fc" id="L149">            : bucketsLeitura.get(chave, k -&gt; criarBucket(leituraPorMinuto));</span>
+
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (!bucket.tryConsume(1)) {</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">      int limite = ehEscrita ? escritaPorMinuto : leituraPorMinuto;</span>
+<span class="fc" id="L153">      responder429(response, request, 60L, limite);</span>
+<span class="fc" id="L154">      return;</span>
+    }
+
+<span class="fc" id="L157">    chain.doFilter(request, response);</span>
+<span class="fc" id="L158">  }</span>
+
+  private String resolverChave(HttpServletRequest request) {
+    // Tenta extrair userId do JWT para rate limiting por usuário autenticado.
+    // Necessário porque este filtro executa ANTES do JwtAuthFilter popular o SecurityContext.
+<span class="fc" id="L163">    String header = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="pc bpc" id="L164" title="1 of 4 branches missed.">    if (header != null &amp;&amp; header.startsWith(&quot;Bearer &quot;)) {</span>
+      try {
+<span class="fc" id="L166">        var claims = jwtService.validar(header.substring(7));</span>
+<span class="fc" id="L167">        return &quot;user:&quot; + claims.getSubject();</span>
+<span class="fc" id="L168">      } catch (JwtService.JwtValidacaoException e) {</span>
+        // Token expirado ou malformado é o caso NORMAL — todo cliente passa por ele a cada 15 min.
+        // Em debug, e não em warn, senão o log vira ruído e ninguém lê mais nenhum dos dois.
+<span class="fc" id="L171">        log.debug(&quot;Token inválido no rate limit; caindo em bucket por IP: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L172">      } catch (RuntimeException e) {</span>
+        // Qualquer OUTRA falha aqui é defeito de configuração, não requisição ruim — chave RSA
+        // ilegível é o caso concreto. Antes isto era engolido junto com o caso normal, e o sintoma
+        // era TODO MUNDO compartilhar silenciosamente o bucket do IP, sem uma linha de log.
+<span class="nc" id="L176">        log.error(&quot;Falha inesperada ao resolver identidade no rate limit&quot;, e);</span>
+<span class="fc" id="L177">      }</span>
+    }
+<span class="fc" id="L179">    return &quot;ip:&quot; + EnderecoDoCliente.de(request);</span>
+  }
+
+  private Bucket criarBucket(int capacidade) {
+<span class="fc" id="L183">    return Bucket.builder()</span>
+<span class="fc" id="L184">        .addLimit(</span>
+<span class="fc" id="L185">            Bandwidth.builder()</span>
+<span class="fc" id="L186">                .capacity(capacidade)</span>
+<span class="fc" id="L187">                .refillGreedy(capacidade, Duration.ofMinutes(1))</span>
+<span class="fc" id="L188">                .build())</span>
+<span class="fc" id="L189">        .build();</span>
+  }
+
+  private boolean ehMetodoEscrita(String method) {
+<span class="fc bfc" id="L193" title="All 2 branches covered.">    return &quot;POST&quot;.equalsIgnoreCase(method)</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        || &quot;PUT&quot;.equalsIgnoreCase(method)</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        || &quot;PATCH&quot;.equalsIgnoreCase(method)</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">        || &quot;DELETE&quot;.equalsIgnoreCase(method);</span>
+  }
+
+  private void responder429(
+      HttpServletResponse response, HttpServletRequest request, long retryAfter, int limite)
+      throws IOException {
+    // Escreve ProblemDetail (RFC 9457) manualmente: filtros não têm acesso garantido ao
+    // ObjectMapper do contexto Spring (que é autoconfigured). Evita dependência de ciclo
+    // de inicialização e mantém o filtro autocontido.
+<span class="fc" id="L205">    String uri = request.getRequestURI().replace(&quot;\&quot;&quot;, &quot;&quot;);</span>
+<span class="fc" id="L206">    String detail =</span>
+        &quot;Limite de requisições atingido (&quot; + limite + &quot;/min). Aguarde antes de tentar novamente.&quot;;
+<span class="fc" id="L208">    response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());</span>
+<span class="fc" id="L209">    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);</span>
+    // Mesma razão do SecurityConfig: o detail tem &quot;requisições&quot;, e sem UTF-8 explícito o corpo
+    // sai em ISO-8859-1 dentro de um JSON.
+<span class="fc" id="L212">    response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
+    // Retry-After: informa ao cliente quanto tempo esperar (RFC 7231 §7.1.3).
+<span class="fc" id="L214">    response.setHeader(&quot;Retry-After&quot;, String.valueOf(retryAfter));</span>
+<span class="fc" id="L215">    response</span>
+<span class="fc" id="L216">        .getWriter()</span>
+<span class="fc" id="L217">        .write(</span>
+<span class="fc" id="L218">            String.format(</span>
+                &quot;{\&quot;type\&quot;:\&quot;%s\&quot;,\&quot;title\&quot;:\&quot;Too Many Requests\&quot;,\&quot;status\&quot;:429&quot;
+                    + &quot;,\&quot;detail\&quot;:\&quot;%s\&quot;,\&quot;instance\&quot;:\&quot;%s\&quot;,\&quot;retryAfter\&quot;:%d}&quot;,
+<span class="fc" id="L221">                TipoProblema.LIMITE_REQUISICOES, detail, uri, retryAfter));</span>
+<span class="fc" id="L222">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

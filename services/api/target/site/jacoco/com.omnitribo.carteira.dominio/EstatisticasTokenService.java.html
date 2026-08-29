@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EstatisticasTokenService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">EstatisticasTokenService.java</span></div><h1>EstatisticasTokenService.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import com.omnitribo.carteira.api.EstatisticasToken;
+import com.omnitribo.carteira.api.ResumoToken;
+import com.omnitribo.carteira.infra.LancamentoRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Implementação de {@link EstatisticasToken} (ADR 0029). */
+@Service
+public class EstatisticasTokenService implements EstatisticasToken {
+
+  private final LancamentoRepository lancamentoRepository;
+
+<span class="fc" id="L16">  public EstatisticasTokenService(LancamentoRepository lancamentoRepository) {</span>
+<span class="fc" id="L17">    this.lancamentoRepository = lancamentoRepository;</span>
+<span class="fc" id="L18">  }</span>
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
+  public ResumoToken resumo() {
+<span class="fc" id="L23">    LancamentoRepository.ResumoTokenProjecao r = lancamentoRepository.resumirTokens();</span>
+<span class="fc" id="L24">    return new ResumoToken(r.getAportados(), r.getResgatados(), r.getEmCarteiras());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

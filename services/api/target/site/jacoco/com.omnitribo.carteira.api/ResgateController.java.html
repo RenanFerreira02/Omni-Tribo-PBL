@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResgateController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.api</a> &gt; <span class="el_source">ResgateController.java</span></div><h1>ResgateController.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.api;
+
+import com.omnitribo.carteira.dominio.ResgateService;
+import com.omnitribo.identidade.api.AutenticadoPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Resgate de benefício — o SUMIDOURO do TOKEN.
+ *
+ * &lt;p&gt;É a única operação do sistema que QUEIMA moeda: o lançamento debita e não credita ninguém. Com
+ * ela a economia deixa de ser estoque e vira ciclo — entra por aporte de patrocinador (ADR 0024),
+ * circula por missões, sai aqui. Ver ADR 0027.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/resgates&quot;)
+@Tag(name = &quot;Benefícios&quot;, description = &quot;Catálogo de parceiros do bairro e resgate de tokens&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+@Validated
+public class ResgateController {
+
+  private final ResgateService resgateService;
+
+<span class="fc" id="L39">  public ResgateController(ResgateService resgateService) {</span>
+<span class="fc" id="L40">    this.resgateService = resgateService;</span>
+<span class="fc" id="L41">  }</span>
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  @Operation(
+      summary = &quot;Resgatar um benefício&quot;,
+      description =
+          &quot;QUEIMA tokens da carteira e devolve um código de retirada de 8 caracteres para &quot;
+              + &quot;apresentar no parceiro. O custo é lido do catálogo no servidor e congelado no &quot;
+              + &quot;resgate — não vem do corpo. Idempotente pelo header Idempotency-Key: repetir a &quot;
+              + &quot;mesma chave devolve o mesmo código sem queimar de novo.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Resgatado; tokens queimados&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;404&quot;, ref = &quot;#/components/responses/NaoEncontrado&quot;),
+    @ApiResponse(responseCode = &quot;422&quot;, ref = &quot;#/components/responses/RegraNegocioViolada&quot;),
+    @ApiResponse(responseCode = &quot;429&quot;, ref = &quot;#/components/responses/LimiteExcedido&quot;)
+  })
+  public ResgateResponse resgatar(
+      @Valid @RequestBody ResgatarRequest corpo,
+      // Obrigatório, como em toda escrita de valor do projeto. Num sumidouro isso protege o
+      // USUÁRIO: um retry sem chave queimaria duas vezes o saldo que ele gastou uma vez só.
+      @RequestHeader(&quot;Idempotency-Key&quot;) @NotBlank @Size(min = 8, max = 200) String chaveDoCliente,
+      @AuthenticationPrincipal AutenticadoPrincipal principal) {
+
+<span class="fc" id="L67">    return resgateService.resgatar(principal.id(), corpo.beneficioId(), chaveDoCliente);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

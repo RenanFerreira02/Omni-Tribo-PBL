@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HmacWebhookFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.infra</a> &gt; <span class="el_source">HmacWebhookFilter.java</span></div><h1>HmacWebhookFilter.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.infra;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.omnitribo.compartilhado.api.AtributosWebhook;
+import com.omnitribo.compartilhado.api.EnderecoDoCliente;
+import com.omnitribo.compartilhado.api.TipoProblema;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ReadListener;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HexFormat;
+import java.util.Optional;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Autentica o webhook de transportadora por HMAC-SHA256 sobre o CORPO BRUTO.
+ *
+ * &lt;p&gt;Este filtro é a única razão pela qual {@code /api/v1/webhooks/**} pode voltar ao {@code
+ * permitAll} do {@link SecurityConfig}. O comentário que guardava aquela lista era explícito: o
+ * webhook &quot;nasce autenticado e a isenção é reintroduzida JUNTO com o HMAC, não antes&quot;. Remover este
+ * filtro sem remover a isenção deixa a rota anônima e gravável por qualquer um.
+ *
+ * &lt;h2&gt;Por que o corpo BRUTO&lt;/h2&gt;
+ *
+ * &lt;p&gt;A assinatura cobre os bytes que chegaram no fio, não o objeto desserializado. Assinar o objeto
+ * reserializado compararia o resultado de uma normalização nossa — ordem de chaves, espaços,
+ * precisão de número, escapes Unicode — com uma assinatura que a transportadora calculou sobre o
+ * texto dela. Qualquer divergência de serialização vira 401 intermitente, e a &quot;correção&quot; natural é
+ * afrouxar a comparação, que é como uma verificação de integridade deixa de verificar.
+ *
+ * &lt;p&gt;Por isso a requisição é bufferizada aqui e repassada adiante por {@link CorpoBufferizado}: ler
+ * o {@code InputStream} e devolvê-lo intacto ao controller é a única forma de fazer os dois.
+ *
+ * &lt;h2&gt;O que é assinado&lt;/h2&gt;
+ *
+ * &lt;p&gt;{@code HMAC-SHA256(segredo, timestamp + &quot;.&quot; + corpo)}. O carimbo de tempo entra DENTRO do
+ * material assinado, não ao lado: fora dele o atacante trocaria o cabeçalho por um instante atual e
+ * reenviaria o corpo com a assinatura original, e a janela de 5 minutos não protegeria nada.
+ *
+ * &lt;p&gt;A comparação é {@link MessageDigest#isEqual}, em tempo constante. Comparar com {@code equals}
+ * de String sai no primeiro byte diferente, e a diferença de tempo é medível pela rede — dá para
+ * reconstruir a assinatura byte a byte sem nunca conhecer o segredo.
+ *
+ * &lt;h2&gt;Por que toda falha é o mesmo 401&lt;/h2&gt;
+ *
+ * &lt;p&gt;Segredo desconhecido, assinatura errada, carimbo fora da janela e cabeçalho ausente respondem
+ * exatamente igual, com {@link TipoProblema#NAO_AUTENTICADO}. É a mesma doutrina de {@code
+ * ConsultaSessao} e do 401 de login: distinguir as causas conta a quem não tem o segredo qual etapa
+ * ele já venceu. &quot;Timestamp velho&quot; avisaria que a assinatura estava certa.
+ */
+public class HmacWebhookFilter extends OncePerRequestFilter {
+
+<span class="fc" id="L71">  private static final Logger log = LoggerFactory.getLogger(HmacWebhookFilter.class);</span>
+
+  /** Prefixo protegido. Casa exatamente com o matcher isento no {@link SecurityConfig}. */
+  static final String PREFIXO = &quot;/api/v1/webhooks/&quot;;
+
+  static final String CABECALHO_TRANSPORTADORA = &quot;X-Transportadora&quot;;
+  static final String CABECALHO_ASSINATURA = &quot;X-Assinatura&quot;;
+  static final String CABECALHO_TIMESTAMP = &quot;X-Timestamp&quot;;
+
+  private static final String ALGORITMO = &quot;HmacSHA256&quot;;
+
+  private final ParametrosWebhook parametros;
+
+  /** Mesma política do {@link RateLimitFilter}: despejo por ociosidade, reposição gulosa. */
+<span class="fc" id="L85">  private final Cache&lt;String, Bucket&gt; buckets =</span>
+<span class="fc" id="L86">      Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(10)).build();</span>
+
+<span class="fc" id="L88">  public HmacWebhookFilter(ParametrosWebhook parametros) {</span>
+<span class="fc" id="L89">    this.parametros = parametros;</span>
+<span class="fc" id="L90">  }</span>
+
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    return !request.getRequestURI().startsWith(PREFIXO);</span>
+  }
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+
+<span class="fc" id="L102">    String slug = request.getHeader(CABECALHO_TRANSPORTADORA);</span>
+<span class="fc" id="L103">    Optional&lt;String&gt; segredo = parametros.segredoDe(slug);</span>
+
+    // Transportadora desconhecida sai ANTES de qualquer HMAC: sem isso, um slug inventado custaria
+    // um SHA-256 por requisição e a rota anônima viraria amplificador de CPU.
+<span class="fc bfc" id="L107" title="All 2 branches covered.">    if (segredo.isEmpty()) {</span>
+<span class="fc" id="L108">      recusar(request, response, &quot;transportadora não integrada&quot;);</span>
+<span class="fc" id="L109">      return;</span>
+    }
+
+    // Teto por transportadora. Quem passou daqui é identificado, então o balde é por slug e não por
+    // IP — uma transportadora com problema de retry não derruba a integração das outras.
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">    if (!balde(slug).tryConsume(1)) {</span>
+<span class="nc" id="L115">      responder429(request, response);</span>
+<span class="nc" id="L116">      return;</span>
+    }
+
+    // Corpo lido UMA vez e bufferizado. Tem de vir antes da verificação e antes do controller.
+<span class="fc" id="L120">    byte[] corpo = request.getInputStream().readAllBytes();</span>
+
+<span class="fc" id="L122">    String timestamp = request.getHeader(CABECALHO_TIMESTAMP);</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (!janelaValida(timestamp)) {</span>
+<span class="fc" id="L124">      recusar(request, response, &quot;carimbo de tempo ausente ou fora da janela&quot;);</span>
+<span class="fc" id="L125">      return;</span>
+    }
+
+<span class="fc bfc" id="L128" title="All 2 branches covered.">    if (!assinaturaConfere(</span>
+<span class="fc" id="L129">        segredo.get(), timestamp, corpo, request.getHeader(CABECALHO_ASSINATURA))) {</span>
+<span class="fc" id="L130">      recusar(request, response, &quot;assinatura inválida&quot;);</span>
+<span class="fc" id="L131">      return;</span>
+    }
+
+    // O slug VERIFICADO é publicado como atributo. O controller lê daqui e nunca de
+    // request.getHeader(...): o cabeçalho é a alegação, a assinatura é a prova, e ler a alegação
+    // sem a prova deixaria a transportadora A gravar encomendas em nome da B.
+<span class="fc" id="L137">    request.setAttribute(AtributosWebhook.TRANSPORTADORA, slug.toLowerCase(java.util.Locale.ROOT));</span>
+<span class="fc" id="L138">    chain.doFilter(new CorpoBufferizado(request, corpo), response);</span>
+<span class="fc" id="L139">  }</span>
+
+  private Bucket balde(String slug) {
+<span class="fc" id="L142">    return buckets.get(</span>
+<span class="fc" id="L143">        slug.toLowerCase(java.util.Locale.ROOT),</span>
+        k -&gt;
+<span class="fc" id="L145">            Bucket.builder()</span>
+<span class="fc" id="L146">                .addLimit(</span>
+<span class="fc" id="L147">                    Bandwidth.builder()</span>
+<span class="fc" id="L148">                        .capacity(parametros.requisicoesPorMinuto())</span>
+<span class="fc" id="L149">                        .refillGreedy(parametros.requisicoesPorMinuto(), Duration.ofMinutes(1))</span>
+<span class="fc" id="L150">                        .build())</span>
+<span class="fc" id="L151">                .build());</span>
+  }
+
+  /** Carimbo em segundos desde a época, tolerado para os DOIS lados (deriva de relógio). */
+  private boolean janelaValida(String timestamp) {
+<span class="pc bpc" id="L156" title="2 of 4 branches missed.">    if (timestamp == null || timestamp.isBlank()) {</span>
+<span class="nc" id="L157">      return false;</span>
+    }
+    try {
+<span class="fc" id="L160">      Instant enviado = Instant.ofEpochSecond(Long.parseLong(timestamp.trim()));</span>
+<span class="fc" id="L161">      Duration diferenca = Duration.between(enviado, Instant.now()).abs();</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">      return diferenca.compareTo(parametros.janelaTimestamp()) &lt;= 0;</span>
+<span class="nc" id="L163">    } catch (NumberFormatException | ArithmeticException e) {</span>
+<span class="nc" id="L164">      return false;</span>
+    }
+  }
+
+  private boolean assinaturaConfere(
+      String segredo, String timestamp, byte[] corpo, String assinaturaRecebida) {
+<span class="pc bpc" id="L170" title="1 of 4 branches missed.">    if (assinaturaRecebida == null || assinaturaRecebida.isBlank()) {</span>
+<span class="fc" id="L171">      return false;</span>
+    }
+<span class="fc" id="L173">    byte[] esperada = calcular(segredo, timestamp, corpo);</span>
+    byte[] recebida;
+    try {
+<span class="fc" id="L176">      recebida = HexFormat.of().parseHex(assinaturaRecebida.trim());</span>
+<span class="nc" id="L177">    } catch (IllegalArgumentException e) {</span>
+      // Hex malformado é recusa, não erro: um cliente mandando lixo não deve virar 500.
+<span class="nc" id="L179">      return false;</span>
+<span class="fc" id="L180">    }</span>
+    // isEqual trata tamanhos diferentes sem sair mais cedo em função do conteúdo.
+<span class="fc" id="L182">    return MessageDigest.isEqual(esperada, recebida);</span>
+  }
+
+  /**
+   * {@code HMAC-SHA256(segredo, timestamp + &quot;.&quot; + corpo)}. Público para o mock e para os testes.
+   */
+  public static byte[] calcular(String segredo, String timestamp, byte[] corpo) {
+    try {
+<span class="fc" id="L190">      Mac mac = Mac.getInstance(ALGORITMO);</span>
+<span class="fc" id="L191">      mac.init(new SecretKeySpec(segredo.getBytes(StandardCharsets.UTF_8), ALGORITMO));</span>
+<span class="fc" id="L192">      mac.update(timestamp.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L193">      mac.update((byte) '.');</span>
+<span class="fc" id="L194">      mac.update(corpo);</span>
+<span class="fc" id="L195">      return mac.doFinal();</span>
+<span class="nc" id="L196">    } catch (java.security.GeneralSecurityException e) {</span>
+      // HmacSHA256 é obrigatório em toda JVM (JCA standard names); chegar aqui é defeito de
+      // ambiente, não requisição ruim.
+<span class="nc" id="L199">      throw new IllegalStateException(&quot;HMAC-SHA256 indisponível na JVM&quot;, e);</span>
+    }
+  }
+
+  private void recusar(HttpServletRequest request, HttpServletResponse response, String motivo)
+      throws IOException {
+    // O motivo vai para o LOG, nunca para o corpo — é o que separa diagnosticar de dar oráculo.
+    // Sem payload e sem cabeçalho: a regra do CLAUDE.md proíbe logar corpo de requisição, e aqui o
+    // corpo é dado de terceiro sob custódia.
+<span class="fc" id="L208">    log.warn(</span>
+        &quot;Webhook recusado em {}: {} (origem {})&quot;,
+<span class="fc" id="L210">        request.getRequestURI(),</span>
+        motivo,
+<span class="fc" id="L212">        EnderecoDoCliente.de(request));</span>
+<span class="fc" id="L213">    escrever(</span>
+        response,
+        HttpStatus.UNAUTHORIZED,
+        TipoProblema.NAO_AUTENTICADO,
+        &quot;Assinatura do webhook inválida.&quot;,
+<span class="fc" id="L218">        request.getRequestURI(),</span>
+        null);
+<span class="fc" id="L220">  }</span>
+
+  private void responder429(HttpServletRequest request, HttpServletResponse response)
+      throws IOException {
+<span class="nc" id="L224">    response.setHeader(&quot;Retry-After&quot;, &quot;60&quot;);</span>
+<span class="nc" id="L225">    escrever(</span>
+        response,
+        HttpStatus.TOO_MANY_REQUESTS,
+        TipoProblema.LIMITE_REQUISICOES,
+        &quot;Limite de requisições do webhook atingido (&quot;
+<span class="nc" id="L230">            + parametros.requisicoesPorMinuto()</span>
+            + &quot;/min).&quot;,
+<span class="nc" id="L232">        request.getRequestURI(),</span>
+<span class="nc" id="L233">        60L);</span>
+<span class="nc" id="L234">  }</span>
+
+  /**
+   * ProblemDetail escrito à mão: este filtro roda antes do DispatcherServlet, então o {@code
+   * GlobalExceptionHandler} não o alcança. O {@code setCharacterEncoding} é obrigatório — sem ele o
+   * servlet cai em ISO-8859-1 e &quot;requisições&quot; sai em Latin-1 dentro de um JSON, que é UTF-8 por
+   * definição (RFC 8259 §8.1).
+   */
+  private void escrever(
+      HttpServletResponse response,
+      HttpStatus status,
+      java.net.URI tipo,
+      String detalhe,
+      String instancia,
+      Long retryAfter)
+      throws IOException {
+<span class="fc" id="L250">    response.setStatus(status.value());</span>
+<span class="fc" id="L251">    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);</span>
+<span class="fc" id="L252">    response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
+<span class="fc" id="L253">    String uri = instancia.replace(&quot;\&quot;&quot;, &quot;&quot;);</span>
+<span class="pc bpc" id="L254" title="1 of 2 branches missed.">    String extra = retryAfter == null ? &quot;&quot; : &quot;,\&quot;retryAfter\&quot;:&quot; + retryAfter;</span>
+<span class="fc" id="L255">    response</span>
+<span class="fc" id="L256">        .getWriter()</span>
+<span class="fc" id="L257">        .write(</span>
+<span class="fc" id="L258">            String.format(</span>
+                &quot;{\&quot;type\&quot;:\&quot;%s\&quot;,\&quot;title\&quot;:\&quot;%s\&quot;,\&quot;status\&quot;:%d&quot;
+                    + &quot;,\&quot;detail\&quot;:\&quot;%s\&quot;,\&quot;instance\&quot;:\&quot;%s\&quot;%s}&quot;,
+                tipo,
+<span class="fc" id="L262">                status.getReasonPhrase(),</span>
+<span class="fc" id="L263">                status.value(),</span>
+<span class="fc" id="L264">                detalhe.replace(&quot;\&quot;&quot;, &quot;'&quot;),</span>
+                uri,
+                extra));
+<span class="fc" id="L267">  }</span>
+
+  /**
+   * Devolve o corpo já lido, quantas vezes for preciso.
+   *
+   * &lt;p&gt;{@code ContentCachingRequestWrapper} não serve aqui: ele guarda o que foi lido para inspeção
+   * POSTERIOR, e quem consome o stream primeiro deixa o controller com EOF. Como a verificação
+   * precisa acontecer ANTES de qualquer desserialização, o corpo é bufferizado e reapresentado.
+   */
+  private static final class CorpoBufferizado extends HttpServletRequestWrapper {
+
+    private final byte[] corpo;
+
+    private CorpoBufferizado(HttpServletRequest request, byte[] corpo) {
+<span class="fc" id="L281">      super(request);</span>
+<span class="fc" id="L282">      this.corpo = corpo;</span>
+<span class="fc" id="L283">    }</span>
+
+    @Override
+    public ServletInputStream getInputStream() {
+<span class="fc" id="L287">      ByteArrayInputStream fonte = new ByteArrayInputStream(corpo);</span>
+<span class="fc" id="L288">      return new ServletInputStream() {</span>
+        @Override
+        public int read() {
+<span class="fc" id="L291">          return fonte.read();</span>
+        }
+
+        @Override
+        public boolean isFinished() {
+<span class="nc bnc" id="L296" title="All 2 branches missed.">          return fonte.available() == 0;</span>
+        }
+
+        @Override
+        public boolean isReady() {
+<span class="nc" id="L301">          return true;</span>
+        }
+
+        @Override
+        public void setReadListener(ReadListener listener) {
+<span class="nc" id="L306">          throw new UnsupportedOperationException(&quot;leitura assíncrona não suportada no webhook&quot;);</span>
+        }
+      };
+    }
+
+    @Override
+    public java.io.BufferedReader getReader() {
+<span class="nc" id="L313">      return new java.io.BufferedReader(</span>
+<span class="nc" id="L314">          new java.io.InputStreamReader(getInputStream(), StandardCharsets.UTF_8));</span>
+    }
+
+    @Override
+    public int getContentLength() {
+<span class="nc" id="L319">      return corpo.length;</span>
+    }
+
+    @Override
+    public long getContentLengthLong() {
+<span class="nc" id="L324">      return corpo.length;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

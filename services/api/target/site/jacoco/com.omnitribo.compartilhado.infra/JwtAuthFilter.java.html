@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtAuthFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.infra</a> &gt; <span class="el_source">JwtAuthFilter.java</span></div><h1>JwtAuthFilter.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.infra;
+
+import com.omnitribo.identidade.api.AutenticadoPrincipal;
+import com.omnitribo.identidade.api.ConsultaSessao;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Extrai e valida o JWT de cada requisição. Não é @Component: instanciado em SecurityConfig para
+ * evitar registro duplo pelo Spring Boot como filtro de servlet.
+ */
+public class JwtAuthFilter extends OncePerRequestFilter {
+
+  private final JwtService jwtService;
+  private final ConsultaSessao consultaSessao;
+
+<span class="fc" id="L28">  public JwtAuthFilter(JwtService jwtService, ConsultaSessao consultaSessao) {</span>
+<span class="fc" id="L29">    this.jwtService = jwtService;</span>
+<span class="fc" id="L30">    this.consultaSessao = consultaSessao;</span>
+<span class="fc" id="L31">  }</span>
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+
+<span class="fc" id="L38">    String header = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="pc bpc" id="L39" title="1 of 4 branches missed.">    if (header == null || !header.startsWith(&quot;Bearer &quot;)) {</span>
+      // Sem token: continua sem autenticar. O SecurityConfig decidirá se o endpoint é público.
+<span class="fc" id="L41">      chain.doFilter(request, response);</span>
+<span class="fc" id="L42">      return;</span>
+    }
+
+<span class="fc" id="L45">    String token = header.substring(7);</span>
+    try {
+<span class="fc" id="L47">      Claims claims = jwtService.validar(token);</span>
+
+<span class="fc" id="L49">      UUID usuarioId = UUID.fromString(claims.getSubject());</span>
+
+      // SEGUNDA metade da autenticação: a assinatura prova que o token foi emitido por nós; esta
+      // consulta prova que a conta ainda pode agir AGORA. Sem ela, uma conta anonimizada seguia
+      // escrevendo pelos 15 min de TTL do token (medido: POST /missoes respondia 201 com criadorId
+      // do usuário já apagado), e um ADMIN rebaixado no banco continuava ADMIN pelo mesmo prazo.
+      //
+      // O principal vem do BANCO, não dos claims — é o que faz `papel` e `email` serem
+      // reconferidos. Montá-lo de `claims` aqui devolveria a autoridade do momento da EMISSÃO e
+      // deixaria metade do defeito de pé. Custo: uma leitura por PK por usuário por minuto, servida
+      // do cache de ConsultaSessaoService.
+<span class="fc" id="L60">      Optional&lt;AutenticadoPrincipal&gt; sessao = consultaSessao.sessaoAtiva(usuarioId);</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">      if (sessao.isEmpty()) {</span>
+        // Conta inexistente, inativa ou anonimizada: mesmo desfecho de token inválido. Distinguir
+        // os casos contaria a quem porta um token roubado o que houve com a conta.
+<span class="fc" id="L64">        SecurityContextHolder.clearContext();</span>
+<span class="fc" id="L65">        chain.doFilter(request, response);</span>
+<span class="fc" id="L66">        return;</span>
+      }
+<span class="fc" id="L68">      AutenticadoPrincipal principal = sessao.get();</span>
+
+      // ROLE_ é convenção do Spring Security. A authority sai do principal (e portanto do banco),
+      // nunca do claim `papel`.
+<span class="fc" id="L72">      var auth =</span>
+          new UsernamePasswordAuthenticationToken(
+<span class="fc" id="L74">              principal, null, List.of(new SimpleGrantedAuthority(principal.autoridade())));</span>
+<span class="fc" id="L75">      auth.setDetails(request);</span>
+
+<span class="fc" id="L77">      SecurityContextHolder.getContext().setAuthentication(auth);</span>
+<span class="fc" id="L78">    } catch (JwtService.JwtValidacaoException e) {</span>
+      // Token inválido: limpa o contexto e deixa o AuthenticationEntryPoint retornar 401.
+<span class="fc" id="L80">      SecurityContextHolder.clearContext();</span>
+<span class="fc" id="L81">    }</span>
+
+<span class="fc" id="L83">    chain.doFilter(request, response);</span>
+<span class="fc" id="L84">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MissaoStateMachine.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">MissaoStateMachine.java</span></div><h1>MissaoStateMachine.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import com.omnitribo.compartilhado.dominio.AcessoNegadoException;
+import com.omnitribo.compartilhado.dominio.TransicaoInvalidaException;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Único ponto do sistema onde o status de uma Missao muda.
+ *
+ * &lt;p&gt;Classe utilitária sem estado e sem Spring: o teste que percorre as 99 combinações status ×
+ * evento roda sem contexto de aplicação e sem Testcontainers, em milissegundos.
+ *
+ * &lt;p&gt;O job de expiração usa exatamente esta máquina (com ator SISTEMA), de modo que não existe
+ * caminho paralelo capaz de divergir das regras de transição.
+ */
+public final class MissaoStateMachine {
+
+  private static final String MSG_TRANSICAO =
+      &quot;Esta operação não é permitida no estado atual da missão.&quot;;
+  private static final String MSG_ACESSO =
+      &quot;Você não tem permissão para esta operação nesta missão.&quot;;
+
+  private MissaoStateMachine() {}
+
+  /**
+   * Valida e aplica a transição, devolvendo o evento de trilha AINDA NÃO PERSISTIDO. Quem grava é o
+   * MissaoService, na mesma transação em que salva a missão — status e trilha nunca divergem.
+   */
+  public static MissaoEvento transicionar(
+      Missao missao, EventoMissao evento, AtorMissao ator, String payloadJson, Instant agora) {
+
+<span class="fc" id="L33">    validar(missao, evento, ator);</span>
+
+<span class="fc" id="L35">    StatusMissao origem = missao.getStatus();</span>
+<span class="fc" id="L36">    StatusMissao destino = origem.destinoDe(evento).orElseThrow(); // já validado acima</span>
+
+<span class="fc" id="L38">    aplicarEfeitos(missao, evento, ator, agora);</span>
+    // O carimbo de estadoDesde anda junto com o status, e é o que torna &quot;há quanto tempo esta
+    // missão está parada aqui&quot; respondível sem ler a trilha.
+<span class="fc" id="L41">    missao.setStatus(destino, agora);</span>
+
+<span class="fc" id="L43">    return new MissaoEvento(</span>
+<span class="fc" id="L44">        UUID.randomUUID(),</span>
+<span class="fc" id="L45">        missao.getId(),</span>
+<span class="fc" id="L46">        evento.tipoTrilha(),</span>
+<span class="fc" id="L47">        ator.usuarioId(),</span>
+        origem,
+        destino,
+        payloadJson,
+        agora);
+  }
+
+  /**
+   * Só valida, não muta. Existe para o check-in, que precisa recusar com 403 e 409 corretos ANTES
+   * de qualquer efeito — inclusive antes de sondar a idempotência, que é a única operação do
+   * projeto a inserir um passo no meio da ordem canônica de erros.
+   */
+  public static void validar(Missao missao, EventoMissao evento, AtorMissao ator) {
+    // Autorização (403) ANTES da transição (409). Na ordem inversa, um estranho descobriria o
+    // status de uma missão alheia pela diferença entre as duas respostas.
+<span class="fc" id="L62">    validarAutorizacao(missao, evento, ator);</span>
+
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (!missao.getStatus().permite(evento)) {</span>
+<span class="fc" id="L65">      throw new TransicaoInvalidaException(MSG_TRANSICAO);</span>
+    }
+<span class="fc" id="L67">  }</span>
+
+  /** PATCH não é transição: exige ser o criador e a missão estar em RASCUNHO ou ABERTA. */
+  public static void validarEdicao(Missao missao, AtorMissao ator) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (!ator.ehMesmo(missao.getCriadorId())) {</span>
+<span class="fc" id="L72">      throw new AcessoNegadoException(MSG_ACESSO);</span>
+    }
+<span class="fc" id="L74">    StatusMissao status = missao.getStatus();</span>
+<span class="fc bfc" id="L75" title="All 4 branches covered.">    if (status != StatusMissao.RASCUNHO &amp;&amp; status != StatusMissao.ABERTA) {</span>
+<span class="fc" id="L76">      throw new TransicaoInvalidaException(</span>
+          &quot;Missão só pode ser editada enquanto está em rascunho ou aberta.&quot;);
+    }
+<span class="fc" id="L79">  }</span>
+
+  /**
+   * Só a metade de autorização do {@link #validar}, sem a checagem de transição.
+   *
+   * &lt;p&gt;Pública para o check-in idempotente: entre o 403 e o 409 é preciso sondar a chave de
+   * idempotência, porque um replay legítimo chega com a missão já em AGUARDANDO_CONFIRMACAO e
+   * levaria 409 se a transição fosse checada antes. A autorização continua estritamente primeiro —
+   * sondar antes dela permitiria devolver dados da missão a quem não é mais o executor.
+   */
+  public static void validarAutorizacao(Missao missao, EventoMissao evento, AtorMissao ator) {
+<span class="fc" id="L90">    boolean autorizado =</span>
+<span class="fc bfc" id="L91" title="All 5 branches covered.">        switch (evento.atorEsperado()) {</span>
+<span class="fc" id="L92">          case CRIADOR -&gt; ator.ehMesmo(missao.getCriadorId());</span>
+          // executorId nulo nega por construção: ehMesmo(null) é sempre falso.
+<span class="fc" id="L94">          case EXECUTOR -&gt; ator.ehMesmo(missao.getExecutorId());</span>
+          // Aceitar a própria missão seria autonegócio: o criador confirmaria a si mesmo e
+          // liberaria o crédito sem contraparte.
+<span class="pc bpc" id="L97" title="1 of 4 branches missed.">          case CANDIDATO -&gt; !ator.ehSistema() &amp;&amp; !ator.ehMesmo(missao.getCriadorId());</span>
+<span class="fc" id="L98">          case ADMIN -&gt; ator.ehAdmin();</span>
+<span class="fc" id="L99">          case SISTEMA -&gt; ator.ehSistema();</span>
+        };
+
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (!autorizado) {</span>
+<span class="fc" id="L103">      throw new AcessoNegadoException(MSG_ACESSO);</span>
+    }
+<span class="fc" id="L105">  }</span>
+
+  private static void aplicarEfeitos(
+      Missao missao, EventoMissao evento, AtorMissao ator, Instant agora) {
+<span class="fc bfc" id="L109" title="All 4 branches covered.">    switch (evento) {</span>
+      case ACEITAR -&gt; {
+<span class="fc" id="L111">        missao.setExecutorId(ator.usuarioId());</span>
+<span class="fc" id="L112">        missao.setAceitaEm(agora);</span>
+<span class="fc" id="L113">      }</span>
+      case DESISTIR -&gt; {
+        // Quem desistiu continua registrado em missao_evento.ator_id — a trilha é a memória,
+        // a missão volta a ABERTA sem executor para ser aceita por outra pessoa.
+<span class="fc" id="L117">        missao.setExecutorId(null);</span>
+<span class="fc" id="L118">        missao.setAceitaEm(null);</span>
+<span class="fc" id="L119">      }</span>
+<span class="fc" id="L120">      case CONFIRMAR, RESOLVER_CONCLUIR -&gt; missao.setConcluidaEm(agora);</span>
+      default -&gt; {
+        // Demais eventos não têm efeito além da mudança de status.
+      }
+    }
+<span class="fc" id="L125">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

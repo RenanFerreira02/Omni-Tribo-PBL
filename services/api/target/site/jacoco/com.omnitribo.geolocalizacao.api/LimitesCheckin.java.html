@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LimitesCheckin.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.geolocalizacao.api</a> &gt; <span class="el_source">LimitesCheckin.java</span></div><h1>LimitesCheckin.java</h1><pre class="source lang-java linenums">package com.omnitribo.geolocalizacao.api;
+
+import java.math.BigDecimal;
+
+/**
+ * Limites do check-in que o CLIENTE precisa conhecer para explicar a recusa.
+ *
+ * &lt;p&gt;Vive em {@code api/} e não junto das regras em {@code dominio/AvaliacaoAntifraude} por uma
+ * razão de fronteira, não de organização: quem monta a resposta HTTP é {@code missoes}, e a regra
+ * do ArchUnit proíbe qualquer módulo de alcançar {@code geolocalizacao.dominio}. Sem esta classe, o
+ * controller só poderia informar o teto de acurácia repetindo o número — duas fontes de verdade que
+ * divergem no primeiro ajuste.
+ *
+ * &lt;p&gt;É constante pública de propósito, e não configuração: mudar o teto muda o que &quot;presença&quot;
+ * significa, e isso é decisão de produto que merece revisão de código, não troca de YAML.
+ */
+public final class LimitesCheckin {
+
+  /**
+   * Acima disto o fix não sustenta afirmação de presença: um raio de erro de 50 m sobre um alvo de
+   * 50 m torna &quot;dentro&quot; e &quot;fora&quot; indistinguíveis.
+   */
+<span class="fc" id="L23">  public static final BigDecimal ACURACIA_MAXIMA_M = new BigDecimal(&quot;50&quot;);</span>
+
+  private LimitesCheckin() {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

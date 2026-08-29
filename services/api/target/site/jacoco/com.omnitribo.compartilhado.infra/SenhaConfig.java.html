@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SenhaConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.infra</a> &gt; <span class="el_source">SenhaConfig.java</span></div><h1>SenhaConfig.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.infra;
+
+import java.util.Map;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+@Configuration
+<span class="fc" id="L12">public class SenhaConfig {</span>
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    // DelegatingPasswordEncoder: reconhece o algoritmo pelo prefixo {id} no hash armazenado.
+    // &quot;argon2&quot; é o default para NOVAS senhas; {bcrypt} cobre hashes legados (seeds anteriores
+    // a esta fase) e permite migração gradual sem forçar reset de senha.
+<span class="fc" id="L19">    Map&lt;String, PasswordEncoder&gt; encoders =</span>
+<span class="fc" id="L20">        Map.of(&quot;argon2&quot;, argon2Encoder(), &quot;bcrypt&quot;, new BCryptPasswordEncoder(12));</span>
+<span class="fc" id="L21">    return new DelegatingPasswordEncoder(&quot;argon2&quot;, encoders);</span>
+  }
+
+  private Argon2PasswordEncoder argon2Encoder() {
+    // Parâmetros Argon2id — MÍNIMO do OWASP Password Storage Cheat Sheet para Argon2id:
+    //   m = 19456 KiB (19 MB), t = 2, p = 1, salt 16 B, hash 32 B.
+    //
+    // Era 16384 KiB, logo ABAIXO do mínimo recomendado. Subir não invalida nada: o Argon2 carrega
+    // os próprios parâmetros dentro do hash, então senha antiga continua conferindo com m=16384 e
+    // só a próxima gravação usa o valor novo.
+    //
+    // O custo é maior do que parece e vale saber por quê: o login gasta um Argon2 SEMPRE, inclusive
+    // quando o e-mail não existe (o hashDummy de AutenticacaoService, que fecha o oráculo de
+    // tempo).
+    // Então ~20% a mais de latência aqui vale para todo login e todo registro — e é exatamente por
+    // isso que o bloqueio progressivo e o rate limit precisam estar íntegros: sem eles, este custo
+    // trabalha contra o defensor.
+    // Referência: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+<span class="fc" id="L39">    return new Argon2PasswordEncoder(16, 32, 1, 19456, 2);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.api</a> &gt; <span class="el_source">UsuarioController.java</span></div><h1>UsuarioController.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.api;
+
+import com.omnitribo.identidade.dominio.BuscaUsuarioService;
+import com.omnitribo.identidade.dominio.ConsentimentoService;
+import com.omnitribo.identidade.dominio.ExclusaoContaService;
+import com.omnitribo.identidade.dominio.ExportacaoDadosService;
+import com.omnitribo.identidade.dominio.PerfilService;
+import com.omnitribo.identidade.dominio.TipoConsentimento;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import java.util.List;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * O usuário autenticado, sobre si mesmo.
+ *
+ * &lt;p&gt;Não existe {@code GET /usuarios/{id}}, e a ausência é a regra: o único perfil que qualquer
+ * pessoa pode ler é o próprio. Um endpoint por id transformaria o identificador — que já circula em
+ * missões e lançamentos — na chave de um diretório de usuários.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/usuarios&quot;)
+@Tag(name = &quot;Usuário&quot;, description = &quot;Perfil, progressão e dados pessoais&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+@Validated
+public class UsuarioController {
+
+  private final PerfilService perfilService;
+  private final ConsentimentoService consentimentoService;
+  private final ExportacaoDadosService exportacaoDadosService;
+  private final ExclusaoContaService exclusaoContaService;
+  private final BuscaUsuarioService buscaUsuarioService;
+
+  public UsuarioController(
+      PerfilService perfilService,
+      ConsentimentoService consentimentoService,
+      ExportacaoDadosService exportacaoDadosService,
+      ExclusaoContaService exclusaoContaService,
+<span class="fc" id="L57">      BuscaUsuarioService buscaUsuarioService) {</span>
+<span class="fc" id="L58">    this.perfilService = perfilService;</span>
+<span class="fc" id="L59">    this.consentimentoService = consentimentoService;</span>
+<span class="fc" id="L60">    this.exportacaoDadosService = exportacaoDadosService;</span>
+<span class="fc" id="L61">    this.exclusaoContaService = exclusaoContaService;</span>
+<span class="fc" id="L62">    this.buscaUsuarioService = buscaUsuarioService;</span>
+<span class="fc" id="L63">  }</span>
+
+  @GetMapping(&quot;/busca&quot;)
+  @Operation(
+      summary = &quot;Encontrar um vizinho pelo @ exato, dentro da sua tribo&quot;,
+      description =
+          &quot;&quot;&quot;
+          Match EXATO e sem distinção de caixa. NÃO existe busca por prefixo, por parte do nome nem
+          por similaridade, e não existe listagem de membros: qualquer uma das três daria a quem
+          está autenticado um mapa social do bairro — e, como a transferência é restrita à mesma
+          tribo, esse mapa também seria uma lista de alvos.
+
+          Só encontra quem está na MESMA TRIBO de quem pergunta, e a identidade de quem pergunta
+          vem do JWT.
+
+          Handle inexistente, handle de outra tribo e conta inutilizável respondem o MESMO 404 —
+          são indistinguíveis de propósito. Tem teto de requisições próprio, bem abaixo do limite
+          geral de leitura, porque o endpoint responde uma pergunta de sim ou não sobre existência
+          e serviria para colher handles em massa. Ver ADR 0028.
+          &quot;&quot;&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Vizinho encontrado&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(
+        responseCode = &quot;404&quot;,
+        description =
+            &quot;Nenhum vizinho ATIVO com esse @ na sua tribo. As três causas são a mesma&quot;
+                + &quot; resposta.&quot;,
+        content = @io.swagger.v3.oas.annotations.media.Content),
+    @ApiResponse(responseCode = &quot;429&quot;, ref = &quot;#/components/responses/LimiteExcedido&quot;)
+  })
+  public UsuarioBuscaResponse buscar(
+      @RequestParam
+          @NotBlank(message = &quot;Informe o @ do vizinho&quot;)
+          @Size(max = 50, message = &quot;Handle tem no máximo 50 caracteres&quot;)
+          String handle,
+      @AuthenticationPrincipal AutenticadoPrincipal principal) {
+
+<span class="fc" id="L102">    return buscaUsuarioService.porHandle(principal.id(), handle);</span>
+  }
+
+  @GetMapping(&quot;/me&quot;)
+  @Operation(
+      summary = &quot;Perfil completo&quot;,
+      description =
+          &quot;Nome, handle, tribo, XP, nível e conquistas. Separado de GET /auth/me de propósito: &quot;
+              + &quot;aquele é a checagem barata de identidade do boot, resolvida só dos claims do JWT, &quot;
+              + &quot;sem tocar o banco. O nível vem DERIVADO do XP pela fórmula, não da coluna &quot;
+              + &quot;usuario.nivel, que é cache.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Perfil do usuário autenticado&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;404&quot;, ref = &quot;#/components/responses/NaoEncontrado&quot;)
+  })
+  public PerfilResponse perfil(@AuthenticationPrincipal AutenticadoPrincipal principal) {
+<span class="fc" id="L119">    return perfilService.perfil(principal.id());</span>
+  }
+
+  // ─── LGPD ────────────────────────────────────────────────────────────────────────────────────
+
+  @GetMapping(&quot;/me/dados&quot;)
+  @Operation(
+      summary = &quot;Exportar meus dados (LGPD art. 18, V)&quot;,
+      description =
+          &quot;Arquivo JSON com tudo o que a plataforma guarda sobre o titular: cadastro, &quot;
+              + &quot;consentimentos, missões, lançamentos e check-ins. NÃO inclui senha, tokens nem &quot;
+              + &quot;chaves de idempotência — o titular tem direito aos dados dele, não ao material &quot;
+              + &quot;criptográfico que protege a conta. Sem paginação: exercer um direito não pode &quot;
+              + &quot;exigir remontar o arquivo a partir de páginas.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Dados pessoais do titular&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;)
+  })
+  public Map&lt;String, Object&gt; exportarDados(
+      @AuthenticationPrincipal AutenticadoPrincipal principal) {
+<span class="fc" id="L139">    return exportacaoDadosService.exportar(principal.id());</span>
+  }
+
+  @GetMapping(&quot;/me/consentimentos&quot;)
+  @Operation(
+      summary = &quot;Meus consentimentos&quot;,
+      description =
+          &quot;Estado atual de TODOS os tipos, inclusive os que nunca foram decididos — a tela precisa &quot;
+              + &quot;desenhar o interruptor antes da primeira escolha, e 'ausente' e 'recusado' têm o &quot;
+              + &quot;mesmo efeito prático.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Consentimentos no estado atual&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;)
+  })
+  public List&lt;ConsentimentoResponse&gt; consentimentos(
+      @AuthenticationPrincipal AutenticadoPrincipal principal) {
+<span class="fc" id="L155">    return consentimentoService.listar(principal.id());</span>
+  }
+
+  @PutMapping(&quot;/me/consentimentos/{tipo}&quot;)
+  @Operation(
+      summary = &quot;Conceder ou revogar um consentimento&quot;,
+      description =
+          &quot;Grava uma LINHA NOVA; a tabela é append-only. Sobrescrever destruiria a evidência de &quot;
+              + &quot;que a pessoa consentiu em tal data sob tal versão do texto — que é exatamente o &quot;
+              + &quot;que se precisa demonstrar numa disputa.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Escolha registrada&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;)
+  })
+  public ConsentimentoResponse atualizarConsentimento(
+      @PathVariable TipoConsentimento tipo,
+      @Valid @RequestBody AtualizarConsentimentoRequest request,
+      @AuthenticationPrincipal AutenticadoPrincipal principal) {
+<span class="fc" id="L174">    return consentimentoService.registrar(principal.id(), tipo, request);</span>
+  }
+
+  @DeleteMapping(&quot;/me&quot;)
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  @Operation(
+      summary = &quot;Excluir minha conta (LGPD art. 18, VI)&quot;,
+      description =
+          &quot;IRREVERSÍVEL. Exige a senha atual no corpo: o access token vive 15 minutos, e um &quot;
+              + &quot;aparelho desbloqueado esquecido em cima da mesa não pode bastar para apagar a &quot;
+              + &quot;identidade de alguém. A conta é ANONIMIZADA, não deletada — o ledger é &quot;
+              + &quot;append-only e apagar a linha do usuário quebraria a conservação de TOKEN. Nome, &quot;
+              + &quot;e-mail e handle viram valores aleatórios, a sessão é revogada e nada mais liga os &quot;
+              + &quot;lançamentos a uma pessoa identificável. Repetir devolve 204 sem efeito.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Conta anonimizada e sessões revogadas&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Senha incorreta&quot;),
+    @ApiResponse(responseCode = &quot;404&quot;, ref = &quot;#/components/responses/NaoEncontrado&quot;)
+  })
+  public void excluirConta(
+      @Valid @RequestBody ExclusaoContaRequest request,
+      @AuthenticationPrincipal AutenticadoPrincipal principal) {
+<span class="fc" id="L198">    exclusaoContaService.excluir(principal.id(), request);</span>
+<span class="fc" id="L199">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

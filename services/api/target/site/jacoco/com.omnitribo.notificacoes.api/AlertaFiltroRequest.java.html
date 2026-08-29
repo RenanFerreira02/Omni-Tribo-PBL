@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlertaFiltroRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.notificacoes.api</a> &gt; <span class="el_source">AlertaFiltroRequest.java</span></div><h1>AlertaFiltroRequest.java</h1><pre class="source lang-java linenums">package com.omnitribo.notificacoes.api;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+
+/**
+ * Filtro e paginação da caixa de entrada.
+ *
+ * &lt;p&gt;Não há filtro por usuário, e a ausência é a regra: o dono vem do JWT. Ver {@code
+ * AlertaRepository}.
+ */
+public record AlertaFiltroRequest(
+    @Min(value = 0, message = &quot;Página não pode ser negativa&quot;) Integer pagina,
+    @Min(value = 1, message = &quot;Tamanho mínimo é 1&quot;)
+        @Max(value = 100, message = &quot;Tamanho máximo é 100&quot;)
+        Integer tamanho,
+    @Schema(description = &quot;Quando true, devolve só o que ainda não foi lido&quot;)
+        Boolean apenasNaoLidos) {
+
+  /**
+   * Defaults no construtor compacto, como em {@code MissaoFiltroRequest} e {@code
+   * LancamentoFiltroRequest}.
+   *
+   * &lt;p&gt;Antes os defaults viviam em acessores auxiliares e os componentes do record continuavam
+   * podendo devolver null — quem chamasse {@code pagina()}, que é o nome óbvio, levava NPE. Aqui os
+   * três nunca são nulos depois da construção, e não há dois jeitos de ler o mesmo campo.
+   *
+   * &lt;p&gt;{@code if} e não ternário: {@code x == null ? CONSTANTE_INT : x} desempacota o Integer e o
+   * reempacota em seguida, e o SpotBugs reprova o build com {@code
+   * BX_UNBOXING_IMMEDIATELY_REBOXED}.
+   */
+<span class="fc" id="L33">  public AlertaFiltroRequest {</span>
+<span class="pc bpc" id="L34" title="1 of 2 branches missed.">    if (pagina == null) {</span>
+<span class="fc" id="L35">      pagina = 0;</span>
+    }
+<span class="fc bfc" id="L37" title="All 2 branches covered.">    if (tamanho == null) {</span>
+<span class="fc" id="L38">      tamanho = 20;</span>
+    }
+<span class="fc bfc" id="L40" title="All 2 branches covered.">    if (apenasNaoLidos == null) {</span>
+<span class="fc" id="L41">      apenasNaoLidos = false;</span>
+    }
+<span class="fc" id="L43">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

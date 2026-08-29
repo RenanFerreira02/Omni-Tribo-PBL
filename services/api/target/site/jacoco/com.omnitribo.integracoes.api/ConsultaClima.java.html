@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConsultaClima.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.integracoes.api</a> &gt; <span class="el_source">ConsultaClima.java</span></div><h1>ConsultaClima.java</h1><pre class="source lang-java linenums">package com.omnitribo.integracoes.api;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+
+/**
+ * Porta pública do módulo integracoes para leitura de clima.
+ *
+ * &lt;p&gt;{@code logistica} depende DESTA interface, nunca da implementação: a regra do ArchUnit proíbe
+ * qualquer classe fora de {@code com.omnitribo.integracoes..} de acessar {@code
+ * integracoes.dominio..} ou {@code integracoes.infra..}. Como o Spring injeta pela interface, o
+ * bytecode do chamador nunca nomeia uma classe dos pacotes internos.
+ *
+ * &lt;p&gt;&lt;b&gt;Devolve {@code Optional}, e nunca lança por indisponibilidade.&lt;/b&gt; É a diferença central
+ * entre esta porta e {@code IntegracoesController}, que responde 503 e faz o app esconder o card de
+ * clima (ADR 0011). Aqui o consumidor é o webhook de transportadora: um provedor externo fora do ar
+ * não pode transformar em erro uma entrega falida que a transportadora está tentando registrar —
+ * ela reenviaria em laço, e o ponto de custódia continuaria com a encomenda sem missão. Ausência de
+ * clima degrada o modelo de risco (a característica é imputada), não a entrada do fato.
+ *
+ * &lt;p&gt;Três coisas produzem ausência, e nenhuma delas é excepcional: provedor fora do ar, tempo
+ * esgotado, e recusa do bulkhead de chamadas simultâneas ({@code
+ * app.integracoes.clima.chamadas-simultaneas}) sob rajada de webhooks.
+ */
+public interface ConsultaClima {
+
+  /**
+   * Condição no ponto, ou vazio se o provedor não respondeu.
+   *
+   * &lt;p&gt;Só tipos JDK na assinatura — exigência do ArchUnit para porta pública.
+   *
+   * @param chuvaMm precipitação na hora corrente, em milímetros
+   * @param temperaturaC temperatura, em graus Celsius
+   */
+<span class="fc" id="L35">  record CondicaoClimatica(BigDecimal chuvaMm, BigDecimal temperaturaC) {}</span>
+
+  Optional&lt;CondicaoClimatica&gt; consultarParaRisco(BigDecimal lat, BigDecimal lon);
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

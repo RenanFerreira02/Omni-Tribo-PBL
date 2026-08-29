@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeradorCodigoRetirada.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">GeradorCodigoRetirada.java</span></div><h1>GeradorCodigoRetirada.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import java.security.SecureRandom;
+
+/**
+ * Gera o código de 8 caracteres que a pessoa mostra no balcão do parceiro.
+ *
+ * &lt;h2&gt;Isto NÃO é um segredo criptográfico&lt;/h2&gt;
+ *
+ * &lt;p&gt;E o desenho não finge que é. Quem autoriza a baixa de um resgate é um ADMIN, pelo id — o
+ * código serve para o humano do balcão casar o papel na mão do cliente com a linha na tela. Não há
+ * HMAC nem assinatura aqui de propósito: inventar criptografia para um identificador de balcão
+ * daria a ele aparência de credencial, e alguém acabaria confiando nisso para autorizar alguma
+ * coisa.
+ *
+ * &lt;p&gt;{@link SecureRandom} mesmo assim, por higiene: um {@code Random} comum é previsível a partir
+ * de poucas saídas, e um código adivinhável convidaria alguém a tentar a sorte no balcão. É defesa
+ * em profundidade sobre um identificador, não a segurança do resgate.
+ *
+ * &lt;h2&gt;O alfabeto&lt;/h2&gt;
+ *
+ * &lt;p&gt;Sem {@code 0/O} e sem {@code 1/I/L}. O código é lido em voz alta e digitado por gente cansada,
+ * num balcão de padaria — os pares visualmente ambíguos são a maior fonte de erro nesse cenário, e
+ * eliminá-los custa dois caracteres de espaço amostral. Sobram 31 símbolos em 8 posições, ~2,5×10¹²
+ * combinações: espaço de sobra para um catálogo de bairro.
+ */
+public final class GeradorCodigoRetirada {
+
+  private static final String ALFABETO = &quot;23456789ABCDEFGHJKMNPQRSTUVWXYZ&quot;;
+  private static final int TAMANHO = 8;
+<span class="fc" id="L31">  private static final SecureRandom ALEATORIO = new SecureRandom();</span>
+
+  private GeradorCodigoRetirada() {}
+
+  public static String gerar() {
+<span class="fc" id="L36">    StringBuilder codigo = new StringBuilder(TAMANHO);</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">    for (int i = 0; i &lt; TAMANHO; i++) {</span>
+<span class="fc" id="L38">      codigo.append(ALFABETO.charAt(ALEATORIO.nextInt(ALFABETO.length())));</span>
+    }
+<span class="fc" id="L40">    return codigo.toString();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

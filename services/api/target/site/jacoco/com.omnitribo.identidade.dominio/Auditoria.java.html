@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Auditoria.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">Auditoria.java</span></div><h1>Auditoria.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+import org.hibernate.annotations.Immutable;
+
+// APPEND-ONLY — @Immutable impede que o Hibernate gere UPDATE silencioso.
+// A proteção definitiva está no banco: REVOKE UPDATE, DELETE FROM omnitribo_app (V2).
+@Immutable
+@Entity
+@Table(name = &quot;auditoria&quot;)
+public class Auditoria {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  // null para ações anônimas (tentativas de login, acesso sem autenticação)
+  @Column(name = &quot;ator_id&quot;, updatable = false)
+  private UUID atorId;
+
+  @Column(nullable = false, updatable = false, length = 100)
+  private String acao;
+
+  @Column(nullable = false, updatable = false, length = 100)
+  private String entidade;
+
+  @Column(name = &quot;entidade_id&quot;, updatable = false, length = 255)
+  private String entidadeId;
+
+  @Column(updatable = false, length = 45)
+  private String ip;
+
+  @Column(name = &quot;user_agent&quot;, updatable = false, length = 500)
+  private String userAgent;
+
+  // 64 desde a V20: um `traceparent` do W3C tem 55 caracteres, e truncá-lo em 36 cortava o trace-id
+  // ao meio — destruindo exatamente a correlação que é a única razão desta coluna existir.
+  @Column(name = &quot;correlation_id&quot;, updatable = false, length = 64)
+  private String correlationId;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+<span class="fc" id="L49">  protected Auditoria() {}</span>
+
+  /**
+   * Trunca os campos de origem do cliente, e faz isso AQUI de propósito.
+   *
+   * &lt;p&gt;Três lugares gravam auditoria ({@code AuditoriaAspecto}, {@code AutenticacaoService} e
+   * {@code BloqueioLoginService}) e todos passam por este construtor — é o único ponto que cobre os
+   * três, e o quarto gravador que aparecer. Truncar em cada chamador deixaria o próximo
+   * desprotegido.
+   *
+   * &lt;p&gt;Sem isso, um {@code X-Forwarded-For} ou {@code User-Agent} longo demais estourava a coluna
+   * com SQLState 22001 durante o flush. E como {@code auditoriaService.gravar} roda DENTRO da
+   * transação de login, o efeito era o login inteiro responder &lt;b&gt;500&lt;/b&gt;, sem autenticação
+   * nenhuma, para qualquer um que mandasse um header comprido. Nos endpoints autenticados era pior:
+   * o aspecto grava depois do commit, então uma transferência movia o dinheiro E devolvia 500.
+   *
+   * &lt;p&gt;{@code ddl-auto: validate} não protege disso — ele confere que a coluna existe com o tipo
+   * declarado, não impõe o limite em runtime.
+   */
+  public Auditoria(
+      UUID id,
+      UUID atorId,
+      String acao,
+      String entidade,
+      String entidadeId,
+      String ip,
+      String userAgent,
+      String correlationId,
+<span class="fc" id="L77">      Instant criadoEm) {</span>
+<span class="fc" id="L78">    this.id = id;</span>
+<span class="fc" id="L79">    this.atorId = atorId;</span>
+<span class="fc" id="L80">    this.acao = acao;</span>
+<span class="fc" id="L81">    this.entidade = entidade;</span>
+<span class="fc" id="L82">    this.entidadeId = limitar(entidadeId, 255);</span>
+<span class="fc" id="L83">    this.ip = limitar(ip, 45);</span>
+<span class="fc" id="L84">    this.userAgent = limitar(userAgent, 500);</span>
+<span class="fc" id="L85">    this.correlationId = limitar(correlationId, 64);</span>
+<span class="fc" id="L86">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L87">  }</span>
+
+  /** {@code acao} e {@code entidade} ficam de fora: são constantes do código, não entrada. */
+  private static String limitar(String valor, int maximo) {
+<span class="pc bpc" id="L91" title="1 of 4 branches missed.">    if (valor == null || valor.length() &lt;= maximo) {</span>
+<span class="fc" id="L92">      return valor;</span>
+    }
+<span class="nc" id="L94">    return valor.substring(0, maximo);</span>
+  }
+
+  public UUID getId() {
+<span class="nc" id="L98">    return id;</span>
+  }
+
+  public UUID getAtorId() {
+<span class="fc" id="L102">    return atorId;</span>
+  }
+
+  public String getAcao() {
+<span class="fc" id="L106">    return acao;</span>
+  }
+
+  public String getEntidade() {
+<span class="fc" id="L110">    return entidade;</span>
+  }
+
+  public String getEntidadeId() {
+<span class="fc" id="L114">    return entidadeId;</span>
+  }
+
+  public String getIp() {
+<span class="fc" id="L118">    return ip;</span>
+  }
+
+  public String getUserAgent() {
+<span class="fc" id="L122">    return userAgent;</span>
+  }
+
+  public String getCorrelationId() {
+<span class="fc" id="L126">    return correlationId;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="nc" id="L130">    return criadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

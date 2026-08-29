@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MissaoFiltroRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.api</a> &gt; <span class="el_source">MissaoFiltroRequest.java</span></div><h1>MissaoFiltroRequest.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.api;
+
+import com.omnitribo.missoes.dominio.CategoriaMissao;
+import com.omnitribo.missoes.dominio.StatusMissao;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
+import org.springframework.data.domain.Sort;
+
+/**
+ * Filtros e paginação da listagem.
+ *
+ * &lt;p&gt;Não usamos o argument resolver de Pageable do Spring Data: ele aceita {@code
+ * sort=qualquerPropriedade}, o que expõe o modelo interno e permite ordenar por coluna sem índice —
+ * DoS barato. Aqui a ordenação é uma whitelist de enum.
+ */
+@Schema(description = &quot;Filtros de listagem de missões&quot;)
+public record MissaoFiltroRequest(
+    StatusMissao status,
+    CategoriaMissao categoria,
+    @Size(max = 100) String cidade,
+    @Size(max = 100) String bairro,
+    @Schema(description = &quot;CRIADAS = criei; EXECUTANDO = aceitei. Nulo traz todas as visíveis.&quot;)
+        Escopo minhas,
+    // Integer, não int: parâmetro de query ausente chega como null, e o binder do Spring não
+    // consegue converter null para primitivo — toda listagem sem ?pagina= viraria 400.
+    @Min(value = 0, message = &quot;Página não pode ser negativa&quot;) Integer pagina,
+    @Min(value = 1, message = &quot;Tamanho mínimo de página é 1&quot;)
+        @Max(value = 100, message = &quot;Tamanho máximo de página é 100&quot;)
+        Integer tamanho,
+    CampoOrdenacao ordenarPor,
+    Sort.Direction direcao) {
+
+<span class="fc" id="L35">  public enum Escopo {</span>
+<span class="fc" id="L36">    CRIADAS,</span>
+<span class="fc" id="L37">    EXECUTANDO</span>
+  }
+
+  /** Whitelist de ordenação — evita ORDER BY por propriedade arbitrária vinda do cliente. */
+<span class="fc" id="L41">  public enum CampoOrdenacao {</span>
+<span class="fc" id="L42">    CRIADA_EM(&quot;criadaEm&quot;),</span>
+<span class="fc" id="L43">    JANELA_FIM(&quot;janelaFim&quot;),</span>
+    // VALOR_BRL saiu: ordenar por uma coluna que a ck_missao_economia (V15) obriga a ser ZERO em
+    // toda linha é ordenação por constante — devolve a mesma ordem arbitrária sempre e sugere ao
+    // cliente um critério que não existe.
+<span class="fc" id="L47">    TOKENS_RECOMPENSA(&quot;tokensRecompensa&quot;),</span>
+<span class="fc" id="L48">    XP_RECOMPENSA(&quot;xpRecompensa&quot;);</span>
+
+    private final String propriedade;
+
+<span class="fc" id="L52">    CampoOrdenacao(String propriedade) {</span>
+<span class="fc" id="L53">      this.propriedade = propriedade;</span>
+<span class="fc" id="L54">    }</span>
+
+    public String propriedade() {
+<span class="fc" id="L57">      return propriedade;</span>
+    }
+  }
+
+  /** Defaults aplicados antes da validação, que roda sobre o objeto já construído. */
+<span class="fc" id="L62">  public MissaoFiltroRequest {</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">    if (pagina == null) {</span>
+<span class="fc" id="L64">      pagina = 0;</span>
+    }
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    if (tamanho == null) {</span>
+<span class="fc" id="L67">      tamanho = 20;</span>
+    }
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">    if (ordenarPor == null) {</span>
+<span class="fc" id="L70">      ordenarPor = CampoOrdenacao.CRIADA_EM;</span>
+    }
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">    if (direcao == null) {</span>
+<span class="fc" id="L73">      direcao = Sort.Direction.DESC;</span>
+    }
+<span class="fc" id="L75">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

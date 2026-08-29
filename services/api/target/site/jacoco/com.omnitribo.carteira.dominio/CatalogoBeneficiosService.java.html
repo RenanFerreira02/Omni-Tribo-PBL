@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CatalogoBeneficiosService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">CatalogoBeneficiosService.java</span></div><h1>CatalogoBeneficiosService.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import com.omnitribo.carteira.api.BeneficioResponse;
+import com.omnitribo.carteira.infra.BeneficioRepository;
+import com.omnitribo.carteira.infra.ParceiroRepository;
+import com.omnitribo.compartilhado.api.ConsultasGeoespaciais;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * O catálogo do sumidouro: benefícios ativos de parceiros ativos.
+ *
+ * &lt;p&gt;Dois recortes mutuamente exclusivos — proximidade ou tribo. Não são combináveis de propósito:
+ * &quot;perto de mim E da minha tribo&quot; descreveria dois critérios de pertencimento sobre o mesmo
+ * conjunto, e o resultado seria indistinguível do mais restritivo dos dois.
+ */
+@Service
+public class CatalogoBeneficiosService {
+
+  /**
+   * Teto de parceiros que a busca por raio considera antes de paginar.
+   *
+   * &lt;p&gt;A ordenação por distância vem do PostGIS, então a página precisa ser recortada de uma lista
+   * JÁ ordenada — e materializar essa lista tem custo. Cinquenta parceiros num raio de bairro é
+   * folga larga: a V906 semeia quatro. O teto existe para que um raio absurdo (`raioMetros=999999`)
+   * não vire uma varredura da tabela inteira ordenada em memória.
+   */
+  private static final int TETO_PARCEIROS = 50;
+
+  private final ConsultasGeoespaciais consultasGeoespaciais;
+  private final ParceiroRepository parceiroRepository;
+  private final BeneficioRepository beneficioRepository;
+
+  public CatalogoBeneficiosService(
+      // Injetado pela INTERFACE: é o tipo declarado no campo que o ArchUnit inspeciona, e
+      // `compartilhado/infra` é adaptador privado.
+      ConsultasGeoespaciais consultasGeoespaciais,
+      ParceiroRepository parceiroRepository,
+<span class="fc" id="L51">      BeneficioRepository beneficioRepository) {</span>
+<span class="fc" id="L52">    this.consultasGeoespaciais = consultasGeoespaciais;</span>
+<span class="fc" id="L53">    this.parceiroRepository = parceiroRepository;</span>
+<span class="fc" id="L54">    this.beneficioRepository = beneficioRepository;</span>
+<span class="fc" id="L55">  }</span>
+
+  /**
+   * Catálogo por PROXIMIDADE, do mais perto para o mais longe.
+   *
+   * &lt;p&gt;A distância vem do PostGIS a cada chamada, por {@code ConsultasGeoespaciais} — nenhum {@code
+   * ST_*} mora neste módulo, e nenhuma distância é armazenada. O que volta de lá é {@code
+   * AlvoProximo} (id + metros), e é aqui que os benefícios são reidratados.
+   */
+  @Transactional(readOnly = true)
+  public Page&lt;BeneficioResponse&gt; porProximidade(
+      BigDecimal lat, BigDecimal lon, int raioMetros, Pageable pagina) {
+
+<span class="fc" id="L68">    List&lt;ConsultasGeoespaciais.AlvoProximo&gt; proximos =</span>
+<span class="fc" id="L69">        consultasGeoespaciais.parceirosNoRaio(lat, lon, raioMetros, TETO_PARCEIROS);</span>
+
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">    if (proximos.isEmpty()) {</span>
+<span class="nc" id="L72">      return new PageImpl&lt;&gt;(List.of(), pagina, 0);</span>
+    }
+
+    // LinkedHashMap preserva a ordem que o PostGIS devolveu — é ela que define a ordenação final.
+<span class="fc" id="L76">    Map&lt;UUID, Double&gt; distanciaPorParceiro = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L77">    proximos.forEach(alvo -&gt; distanciaPorParceiro.put(alvo.id(), alvo.distanciaM()));</span>
+
+<span class="fc" id="L79">    Map&lt;UUID, Parceiro&gt; parceiros = indexar(distanciaPorParceiro.keySet().stream().toList());</span>
+
+<span class="fc" id="L81">    List&lt;BeneficioResponse&gt; ordenados =</span>
+<span class="fc" id="L82">        beneficioRepository.findByParceiroIdInAndAtivoTrue(parceiros.keySet()).stream()</span>
+<span class="fc" id="L83">            .map(</span>
+                b -&gt;
+<span class="fc" id="L85">                    BeneficioResponse.de(</span>
+                        b,
+<span class="fc" id="L87">                        parceiros.get(b.getParceiroId()),</span>
+<span class="fc" id="L88">                        distanciaPorParceiro.get(b.getParceiroId())))</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">            .sorted(Comparator.comparingDouble(r -&gt; r.distanciaM() == null ? 0 : r.distanciaM()))</span>
+<span class="fc" id="L90">            .toList();</span>
+
+<span class="fc" id="L92">    return recortar(ordenados, pagina);</span>
+  }
+
+  /** Catálogo por TRIBO. Sem distância: o recorte aqui é de pertencimento, não de geografia. */
+  @Transactional(readOnly = true)
+  public Page&lt;BeneficioResponse&gt; porTribo(UUID triboId, Pageable pagina) {
+<span class="fc" id="L98">    Map&lt;UUID, Parceiro&gt; parceiros =</span>
+<span class="fc" id="L99">        parceiroRepository.findByTriboIdAndAtivoTrue(triboId).stream()</span>
+<span class="fc" id="L100">            .collect(Collectors.toMap(Parceiro::getId, Function.identity()));</span>
+
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">    if (parceiros.isEmpty()) {</span>
+<span class="nc" id="L103">      return new PageImpl&lt;&gt;(List.of(), pagina, 0);</span>
+    }
+
+<span class="fc" id="L106">    List&lt;BeneficioResponse&gt; beneficios =</span>
+<span class="fc" id="L107">        beneficioRepository.findByParceiroIdInAndAtivoTrue(parceiros.keySet()).stream()</span>
+<span class="fc" id="L108">            .map(b -&gt; BeneficioResponse.de(b, parceiros.get(b.getParceiroId()), null))</span>
+<span class="fc" id="L109">            .sorted(Comparator.comparingLong(BeneficioResponse::custoTokens))</span>
+<span class="fc" id="L110">            .toList();</span>
+
+<span class="fc" id="L112">    return recortar(beneficios, pagina);</span>
+  }
+
+  /**
+   * Recorta a página de uma lista já ordenada.
+   *
+   * &lt;p&gt;Paginar em memória, e não no banco, é consequência de a ordenação vir do PostGIS num caso e
+   * do preço no outro: uma consulta paginada por SQL teria de reproduzir a ordenação por distância
+   * dentro do próprio SQL, e aí a regra &quot;todo {@code ST_*} numa classe só&quot; cairia. O teto de {@link
+   * #TETO_PARCEIROS} é o que mantém essa lista pequena por construção.
+   */
+  private static Page&lt;BeneficioResponse&gt; recortar(List&lt;BeneficioResponse&gt; todos, Pageable pagina) {
+<span class="fc" id="L124">    int inicio = (int) Math.min(pagina.getOffset(), todos.size());</span>
+<span class="fc" id="L125">    int fim = Math.min(inicio + pagina.getPageSize(), todos.size());</span>
+<span class="fc" id="L126">    return new PageImpl&lt;&gt;(todos.subList(inicio, fim), pagina, todos.size());</span>
+  }
+
+  private Map&lt;UUID, Parceiro&gt; indexar(List&lt;UUID&gt; ids) {
+<span class="fc" id="L130">    return parceiroRepository.findByIdInAndAtivoTrue(ids).stream()</span>
+<span class="fc" id="L131">        .collect(Collectors.toMap(Parceiro::getId, Function.identity()));</span>
+  }
+
+  /**
+   * O benefício que pode ser resgatado AGORA: ativo, de parceiro ativo.
+   *
+   * &lt;p&gt;As duas condições, e não só a primeira: a V906 semeia um benefício ativo num parceiro
+   * desligado exatamente porque essa combinação é a que passa despercebida.
+   */
+  @Transactional(readOnly = true)
+  public Beneficio resgatavel(UUID beneficioId) {
+<span class="fc" id="L142">    Beneficio beneficio =</span>
+        beneficioRepository
+<span class="fc" id="L144">            .findById(beneficioId)</span>
+<span class="fc" id="L145">            .orElseThrow(</span>
+                () -&gt;
+<span class="nc" id="L147">                    new com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException(</span>
+                        &quot;Benefício não encontrado.&quot;));
+
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    if (!beneficio.isAtivo()) {</span>
+<span class="fc" id="L151">      throw new RegraNegocioVioladaException(&quot;Este benefício não está mais disponível.&quot;);</span>
+    }
+
+<span class="fc" id="L154">    Parceiro parceiro =</span>
+        parceiroRepository
+<span class="fc" id="L156">            .findById(beneficio.getParceiroId())</span>
+<span class="fc" id="L157">            .orElseThrow(</span>
+                () -&gt;
+<span class="nc" id="L159">                    new com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException(</span>
+                        &quot;Parceiro não encontrado.&quot;));
+
+<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (!parceiro.isAtivo()) {</span>
+<span class="fc" id="L163">      throw new RegraNegocioVioladaException(</span>
+<span class="fc" id="L164">          &quot;O parceiro &quot; + parceiro.getNome() + &quot; não está mais no programa.&quot;);</span>
+    }
+
+<span class="fc" id="L167">    return beneficio;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

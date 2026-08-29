@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TipoProblema.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.api</a> &gt; <span class="el_source">TipoProblema.java</span></div><h1>TipoProblema.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.api;
+
+import java.net.URI;
+import org.springframework.http.HttpStatus;
+
+/**
+ * Catálogo dos valores do campo {@code type} do RFC 9457. É contrato público: o app mobile decide o
+ * que fazer olhando para ele.
+ *
+ * &lt;p&gt;&lt;b&gt;Por que não deixar {@code about:blank}.&lt;/b&gt; {@code about:blank} é legal no RFC e significa
+ * &quot;sem tipo específico&quot;: o cliente fica só com o número do status, e status HTTP é ambíguo por
+ * natureza — dois 409 daqui querem dizer coisas diferentes (transição inválida pede &quot;recarregue a
+ * tela&quot;; colisão de versão pede &quot;tente de novo&quot;). A alternativa que o app tomaria sem isto é
+ * discriminar pelo {@code detail}, que é texto em português voltado a humano: muda sem aviso e
+ * quebraria o cliente na primeira revisão de copy.
+ *
+ * &lt;p&gt;&lt;b&gt;Granularidade: uma URI por REAÇÃO DE UI, não por classe de erro nem por causa.&lt;/b&gt; O
+ * critério está no ADR 0010. {@link #REGRA_NEGOCIO_VIOLADA} continua sendo o 422 padrão — saldo
+ * insuficiente, pote insuficiente, janela vencida —, porque nesses casos a tela faz a mesma coisa:
+ * exibe o {@code detail}. Ganham URI própria as causas em que a tela age DIFERENTE: as três
+ * rejeições de check-in (desligar o mock, aproximar-se, procurar céu aberto) e o saque desligado
+ * por configuração. Precisa de uma nova? O caminho é uma subclasse de {@code DominioException}
+ * sobrescrevendo {@code getTipo()}; nunca parsear {@code detail}.
+ *
+ * &lt;p&gt;As URIs &lt;b&gt;não precisam ser dereferenciáveis&lt;/b&gt; (RFC 9457 §3.1.1) — são identificadores
+ * estáveis, não endereços. O domínio é fictício de propósito, para deixar claro que ninguém deve
+ * tentar buscá-las na rede.
+ *
+ * &lt;p&gt;&lt;b&gt;Estabilidade:&lt;/b&gt; uma vez publicada, uma URI daqui não muda. Renomear uma constante é
+ * refactor; mudar o texto da URI é quebra de contrato com todo app já instalado.
+ */
+public final class TipoProblema {
+
+  private static final String BASE = &quot;https://omnitribo.dev/problemas/&quot;;
+
+  /** Corpo, parâmetro ou header malformado — falha de Bean Validation. */
+<span class="fc" id="L37">  public static final URI REQUISICAO_INVALIDA = URI.create(BASE + &quot;requisicao-invalida&quot;);</span>
+
+  /** Ausência de credencial válida: token faltando, malformado ou expirado. */
+<span class="fc" id="L40">  public static final URI NAO_AUTENTICADO = URI.create(BASE + &quot;nao-autenticado&quot;);</span>
+
+  /** Autenticado, mas sem permissão sobre este recurso. */
+<span class="fc" id="L43">  public static final URI ACESSO_NEGADO = URI.create(BASE + &quot;acesso-negado&quot;);</span>
+
+  /** Recurso inexistente — ou existente e invisível para quem perguntou. */
+<span class="fc" id="L46">  public static final URI NAO_ENCONTRADO = URI.create(BASE + &quot;nao-encontrado&quot;);</span>
+
+  /**
+   * 409: a operação não cabe no estado ATUAL, mas caberia em outro. Distinto de {@link
+   * #REGRA_NEGOCIO_VIOLADA}, que é 422 — ver o javadoc de {@code RegraNegocioVioladaException}.
+   */
+<span class="fc" id="L52">  public static final URI TRANSICAO_INVALIDA = URI.create(BASE + &quot;transicao-invalida&quot;);</span>
+
+  /** 422: cabe no estado, mas os dados não satisfazem a regra (saldo, pote, raio, janela). */
+<span class="fc" id="L55">  public static final URI REGRA_NEGOCIO_VIOLADA = URI.create(BASE + &quot;regra-negocio-violada&quot;);</span>
+
+  /**
+   * 422: saque desligado por configuração ({@code app.carteira.saque-habilitado}).
+   *
+   * &lt;p&gt;Separado do 422 genérico porque não é falha do pedido do usuário nem algo que ele possa
+   * corrigir tentando de outro jeito — é um recurso fechado. A tela precisa de estado próprio, e
+   * não de um alerta de erro. Ver ADR 0009 e ADR 0010.
+   */
+<span class="fc" id="L64">  public static final URI SAQUE_DESABILITADO = URI.create(BASE + &quot;saque-desabilitado&quot;);</span>
+
+  /** 422: check-in recusado porque o dispositivo reportou localização simulada. */
+<span class="fc" id="L67">  public static final URI CHECKIN_LOCALIZACAO_SIMULADA =</span>
+<span class="fc" id="L68">      URI.create(BASE + &quot;checkin-localizacao-simulada&quot;);</span>
+
+  /** 422: check-in recusado porque o raio de erro do GPS não sustenta afirmação de presença. */
+<span class="fc" id="L71">  public static final URI CHECKIN_ACURACIA_INSUFICIENTE =</span>
+<span class="fc" id="L72">      URI.create(BASE + &quot;checkin-acuracia-insuficiente&quot;);</span>
+
+  /** 422: check-in recusado porque a distância medida excede o raio da missão. */
+<span class="fc" id="L75">  public static final URI CHECKIN_FORA_DO_RAIO = URI.create(BASE + &quot;checkin-fora-do-raio&quot;);</span>
+
+  /**
+   * 422: a missão exige nível maior do que o de quem tentou aceitar.
+   *
+   * &lt;p&gt;URI própria porque a reação de UI não é a dos outros 422. Nos demais, a tela pede para
+   * corrigir o pedido e tentar de novo; aqui não há o que corrigir — a mesma requisição volta a
+   * funcionar sozinha quando o usuário acumular XP. A tela mostra quanto falta e leva ao perfil.
+   *
+   * &lt;p&gt;Acompanha as extensões {@code nivelExigido} e {@code nivelAtual}, como o check-in fora do
+   * raio acompanha {@code distanciaM} e {@code raioM}: ler número de dentro do {@code detail}
+   * acoplaria a UI à revisão de copy do servidor.
+   */
+<span class="fc" id="L88">  public static final URI NIVEL_INSUFICIENTE = URI.create(BASE + &quot;nivel-insuficiente&quot;);</span>
+
+  /** 409 de colisão de {@code @Version}: alguém alterou o recurso no meio do caminho. */
+<span class="fc" id="L91">  public static final URI CONFLITO_CONCORRENCIA = URI.create(BASE + &quot;conflito-concorrencia&quot;);</span>
+
+  /** 429 de rate limit ou de bloqueio progressivo. Acompanha {@code Retry-After}. */
+<span class="fc" id="L94">  public static final URI LIMITE_REQUISICOES = URI.create(BASE + &quot;limite-requisicoes&quot;);</span>
+
+  /** 500. Sem detalhe acionável de propósito — o traceId é o que liga a resposta ao log. */
+<span class="fc" id="L97">  public static final URI ERRO_INTERNO = URI.create(BASE + &quot;erro-interno&quot;);</span>
+
+  /**
+   * 503: um provedor EXTERNO (clima, CEP) não respondeu a tempo ou respondeu errado.
+   *
+   * &lt;p&gt;URI própria, e não {@link #ERRO_INTERNO}, porque a reação de UI é outra e específica: o card
+   * de clima simplesmente some, e o campo de endereço continua editável à mão. Tratar isso como 500
+   * faria a tela mostrar &quot;erro inesperado&quot; para uma degradação prevista e inofensiva. Ver ADR 0010,
+   * que define a granularidade como uma URI por REAÇÃO DE UI, e ADR 0011.
+   */
+<span class="fc" id="L107">  public static final URI SERVICO_EXTERNO_INDISPONIVEL =</span>
+<span class="fc" id="L108">      URI.create(BASE + &quot;servico-externo-indisponivel&quot;);</span>
+
+  /**
+   * Fallback para {@code DominioException} lançada sem subclasse (hoje, o fluxo de autenticação).
+   *
+   * &lt;p&gt;Deriva do status para que uma exceção nova nunca chegue ao cliente como {@code about:blank}:
+   * o pior caso vira um tipo genérico porém estável, e não a ausência de tipo.
+   */
+  public static URI deStatus(HttpStatus status) {
+<span class="pc bpc" id="L117" title="1 of 8 branches missed.">    return switch (status) {</span>
+<span class="fc" id="L118">      case BAD_REQUEST -&gt; REQUISICAO_INVALIDA;</span>
+<span class="fc" id="L119">      case UNAUTHORIZED -&gt; NAO_AUTENTICADO;</span>
+<span class="fc" id="L120">      case FORBIDDEN -&gt; ACESSO_NEGADO;</span>
+<span class="fc" id="L121">      case NOT_FOUND -&gt; NAO_ENCONTRADO;</span>
+<span class="fc" id="L122">      case CONFLICT -&gt; TRANSICAO_INVALIDA;</span>
+<span class="fc" id="L123">      case UNPROCESSABLE_ENTITY -&gt; REGRA_NEGOCIO_VIOLADA;</span>
+<span class="nc" id="L124">      case TOO_MANY_REQUESTS -&gt; LIMITE_REQUISICOES;</span>
+<span class="fc" id="L125">      default -&gt; ERRO_INTERNO;</span>
+    };
+  }
+
+  private TipoProblema() {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

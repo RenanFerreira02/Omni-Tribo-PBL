@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResgateResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.api</a> &gt; <span class="el_source">ResgateResponse.java</span></div><h1>ResgateResponse.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.api;
+
+import com.omnitribo.carteira.dominio.Resgate;
+import com.omnitribo.carteira.dominio.StatusResgate;
+import com.omnitribo.compartilhado.api.RecursoAuditavel;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * O comprovante do resgate.
+ *
+ * @param codigoRetirada os 8 caracteres que a pessoa mostra no balcão. &lt;b&gt;Não é credencial&lt;/b&gt;:
+ *     quem autoriza a baixa é um ADMIN, pelo id. Ver {@code GeradorCodigoRetirada}
+ * @param saldoTokensRestante saldo DEPOIS da queima, lido sob o lock que acabou de escrevê-lo
+ * @param replay verdadeiro quando a chave de idempotência já existia e NADA foi queimado nesta
+ *     chamada
+ */
+<span class="fc" id="L18">public record ResgateResponse(</span>
+    UUID id,
+    UUID beneficioId,
+    long custoTokens,
+    String codigoRetirada,
+    StatusResgate status,
+    Instant criadoEm,
+    Instant utilizadoEm,
+    long saldoTokensRestante,
+    boolean replay)
+    implements RecursoAuditavel {
+
+  public static ResgateResponse de(Resgate r, long saldoRestante, boolean replay) {
+<span class="fc" id="L31">    return new ResgateResponse(</span>
+<span class="fc" id="L32">        r.getId(),</span>
+<span class="fc" id="L33">        r.getBeneficioId(),</span>
+<span class="fc" id="L34">        r.getCustoTokens(),</span>
+<span class="fc" id="L35">        r.getCodigoRetirada(),</span>
+<span class="fc" id="L36">        r.getStatus(),</span>
+<span class="fc" id="L37">        r.getCriadoEm(),</span>
+<span class="fc" id="L38">        r.getUtilizadoEm(),</span>
+        saldoRestante,
+        replay);
+  }
+
+  @Override
+  public UUID idAuditoria() {
+<span class="fc" id="L45">    return id;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

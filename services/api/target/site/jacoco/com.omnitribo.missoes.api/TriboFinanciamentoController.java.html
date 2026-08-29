@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TriboFinanciamentoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.api</a> &gt; <span class="el_source">TriboFinanciamentoController.java</span></div><h1>TriboFinanciamentoController.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.api;
+
+import com.omnitribo.identidade.api.AutenticadoPrincipal;
+import com.omnitribo.missoes.dominio.FinanciamentoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Financiamento de missões comunitárias, no escopo de uma tribo.
+ *
+ * &lt;p&gt;Tensão de modelagem, deliberada e vale registrar: o recurso MUTADO é {@code
+ * missao.pote_tokens} e a carteira do financiador, não a tribo. A rota é tribo-escopada porque
+ * financiar é um ato de pertencimento — quem financia o faz COMO membro daquela tribo, e o {@code
+ * triboId} do path é conferido contra a tribo real do usuário no serviço. Por isso o controller
+ * vive em {@code missoes} apesar do prefixo {@code /tribos}: é onde mora o agregado que ele altera.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/tribos&quot;)
+// Tag PRÓPRIA, e não &quot;Tribos&quot;: duas @Tag com o mesmo nome e descrições diferentes fazem o
+// documento OpenAPI final ficar com uma delas de forma não determinística. `TriboController` é
+// sobre a comunidade; este é sobre o pote de uma missão.
+@Tag(name = &quot;Financiamento&quot;, description = &quot;Financiamento comunitário do pote de missões&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+@Validated
+public class TriboFinanciamentoController {
+
+  private final FinanciamentoService financiamentoService;
+
+<span class="fc" id="L46">  public TriboFinanciamentoController(FinanciamentoService financiamentoService) {</span>
+<span class="fc" id="L47">    this.financiamentoService = financiamentoService;</span>
+<span class="fc" id="L48">  }</span>
+
+  @PostMapping(&quot;/{triboId}/financiamentos&quot;)
+  @ResponseStatus(HttpStatus.CREATED)
+  @Operation(
+      summary = &quot;Financiar uma missão da tribo&quot;,
+      description =
+          &quot;Debita tokens da carteira do financiador e credita o pote da missão. É o sumidouro da &quot;
+              + &quot;moeda: a conclusão paga o executor A PARTIR do pote, sem cunhar token novo. &quot;
+              + &quot;Idempotente pelo header Idempotency-Key — repetir a mesma chave devolve o estado &quot;
+              + &quot;atual sem debitar de novo.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Pote atualizado&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;404&quot;, ref = &quot;#/components/responses/NaoEncontrado&quot;),
+    @ApiResponse(responseCode = &quot;422&quot;, ref = &quot;#/components/responses/RegraNegocioViolada&quot;),
+    @ApiResponse(responseCode = &quot;429&quot;, ref = &quot;#/components/responses/LimiteExcedido&quot;)
+  })
+  public FinanciamentoResponse financiar(
+      @PathVariable UUID triboId,
+      @Valid @RequestBody FinanciarMissaoRequest corpo,
+      // required=true faz a ausência virar 400 pelo próprio framework. O @Size não protege o banco
+      // — a coluna guarda um sha256 de tamanho fixo — e sim o cliente de si mesmo: uma chave vazia
+      // ou constante o prenderia para sempre no replay da primeira operação que ele fez.
+      @RequestHeader(&quot;Idempotency-Key&quot;) @NotBlank @Size(min = 8, max = 200) String chaveDoCliente,
+      @AuthenticationPrincipal AutenticadoPrincipal principal) {
+
+<span class="fc" id="L76">    return financiamentoService.financiar(</span>
+<span class="fc" id="L77">        triboId, corpo.missaoId(), corpo.tokens(), principal.id(), chaveDoCliente);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

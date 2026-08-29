@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Lancamento.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">Lancamento.java</span></div><h1>Lancamento.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+import org.hibernate.annotations.Immutable;
+
+// APPEND-ONLY — ledger financeiro imutável após INSERT.
+// @Immutable previne UPDATE acidental; REVOKE no banco é a proteção definitiva (V5).
+// Correções são feitas por ESTORNO (nova linha com sinal oposto), nunca UPDATE.
+@Immutable
+@Entity
+@Table(name = &quot;lancamento&quot;)
+public class Lancamento {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  // carteiraId: FK dentro do mesmo módulo — permitida
+  @Column(name = &quot;carteira_id&quot;, nullable = false, updatable = false)
+  private UUID carteiraId;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, updatable = false, length = 7)
+  private SinalLancamento sinal;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, updatable = false, length = 30)
+  private MotivoLancamento motivo;
+
+  // numeric(12,2) → BigDecimal; nunca double
+  @Column(name = &quot;valor_brl&quot;, nullable = false, updatable = false, precision = 12, scale = 2)
+  private BigDecimal valorBrl;
+
+  @Column(name = &quot;valor_tokens&quot;, nullable = false, updatable = false)
+  private long valorTokens;
+
+  // UUID puro, SEM FK e SEM @ManyToOne — fronteira crítica carteira→missoes.
+  // Deliberado: viabiliza extração do módulo carteira em microsserviço futuro
+  // sem dependência física de schema. Ver V5__carteira.sql e ADR 0001.
+  @Column(name = &quot;missao_id&quot;, updatable = false)
+  private UUID missaoId;
+
+  // contraparte dentro do mesmo módulo; FK permitida
+  @Column(name = &quot;contraparte_carteira_id&quot;, updatable = false)
+  private UUID contraparteCarteiraId;
+
+  @Column(
+      name = &quot;chave_idempotencia&quot;,
+      nullable = false,
+      updatable = false,
+      unique = true,
+      length = 100)
+  private String chaveIdempotencia;
+
+  @Column(name = &quot;saldo_apos_brl&quot;, nullable = false, updatable = false, precision = 12, scale = 2)
+  private BigDecimal saldoAposBrl;
+
+  @Column(name = &quot;saldo_apos_tokens&quot;, nullable = false, updatable = false)
+  private long saldoAposTokens;
+
+  // Mensagem opcional da transferência P2P. Imutável como o resto da linha: é o que
+  // o remetente escreveu no momento da transferência, não um campo editável depois.
+  @Column(updatable = false, length = 200)
+  private String mensagem;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+<span class="fc" id="L77">  protected Lancamento() {}</span>
+
+  public Lancamento(
+      UUID id,
+      UUID carteiraId,
+      SinalLancamento sinal,
+      MotivoLancamento motivo,
+      BigDecimal valorBrl,
+      long valorTokens,
+      UUID missaoId,
+      UUID contraparteCarteiraId,
+      String chaveIdempotencia,
+      BigDecimal saldoAposBrl,
+      long saldoAposTokens,
+      String mensagem,
+<span class="fc" id="L92">      Instant criadoEm) {</span>
+<span class="fc" id="L93">    this.id = id;</span>
+<span class="fc" id="L94">    this.carteiraId = carteiraId;</span>
+<span class="fc" id="L95">    this.sinal = sinal;</span>
+<span class="fc" id="L96">    this.motivo = motivo;</span>
+<span class="fc" id="L97">    this.valorBrl = valorBrl;</span>
+<span class="fc" id="L98">    this.valorTokens = valorTokens;</span>
+<span class="fc" id="L99">    this.missaoId = missaoId;</span>
+<span class="fc" id="L100">    this.contraparteCarteiraId = contraparteCarteiraId;</span>
+<span class="fc" id="L101">    this.chaveIdempotencia = chaveIdempotencia;</span>
+<span class="fc" id="L102">    this.saldoAposBrl = saldoAposBrl;</span>
+<span class="fc" id="L103">    this.saldoAposTokens = saldoAposTokens;</span>
+<span class="fc" id="L104">    this.mensagem = mensagem;</span>
+<span class="fc" id="L105">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L106">  }</span>
+
+  public UUID getId() {
+<span class="fc" id="L109">    return id;</span>
+  }
+
+  public UUID getCarteiraId() {
+<span class="fc" id="L113">    return carteiraId;</span>
+  }
+
+  public SinalLancamento getSinal() {
+<span class="fc" id="L117">    return sinal;</span>
+  }
+
+  public MotivoLancamento getMotivo() {
+<span class="fc" id="L121">    return motivo;</span>
+  }
+
+  public BigDecimal getValorBrl() {
+<span class="fc" id="L125">    return valorBrl;</span>
+  }
+
+  public long getValorTokens() {
+<span class="fc" id="L129">    return valorTokens;</span>
+  }
+
+  public UUID getMissaoId() {
+<span class="fc" id="L133">    return missaoId;</span>
+  }
+
+  public UUID getContraparteCarteiraId() {
+<span class="fc" id="L137">    return contraparteCarteiraId;</span>
+  }
+
+  public String getChaveIdempotencia() {
+<span class="nc" id="L141">    return chaveIdempotencia;</span>
+  }
+
+  public BigDecimal getSaldoAposBrl() {
+<span class="fc" id="L145">    return saldoAposBrl;</span>
+  }
+
+  public long getSaldoAposTokens() {
+<span class="fc" id="L149">    return saldoAposTokens;</span>
+  }
+
+  public String getMensagem() {
+<span class="fc" id="L153">    return mensagem;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="fc" id="L157">    return criadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

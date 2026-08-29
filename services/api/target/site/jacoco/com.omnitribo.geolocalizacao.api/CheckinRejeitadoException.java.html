@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CheckinRejeitadoException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.geolocalizacao.api</a> &gt; <span class="el_source">CheckinRejeitadoException.java</span></div><h1>CheckinRejeitadoException.java</h1><pre class="source lang-java linenums">package com.omnitribo.geolocalizacao.api;
+
+import com.omnitribo.compartilhado.api.TipoProblema;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * Check-in recusado por uma regra antifraude. 422, como qualquer regra de negócio violada — o que
+ * muda é o {@code type}.
+ *
+ * &lt;p&gt;Herda de {@link RegraNegocioVioladaException} de propósito: o status HTTP continua sendo 422,
+ * e a ordem de checagem 403 → sondagem de idempotência → 409 → 422 do check-in fica intacta. Esta
+ * classe não muda o QUE aconteceu, só torna a causa legível por máquina. Ver ADR 0010.
+ *
+ * &lt;p&gt;Uma classe com {@code switch}, e não três classes irmãs, porque as três compartilham status,
+ * construtor e semântica; o que as distingue é exatamente um valor. Três classes só multiplicariam
+ * a superfície a manter quando o enum crescer.
+ *
+ * &lt;p&gt;É lançada pelo controller DEPOIS do commit, nunca de dentro do serviço — a linha da rejeição
+ * em {@code checkin} é a trilha antifraude e precisa sobreviver justamente às tentativas recusadas.
+ * Ver {@code ResultadoRegistroCheckin}.
+ *
+ * &lt;h2&gt;Por que a exceção carrega números&lt;/h2&gt;
+ *
+ * &lt;p&gt;O {@code type} diz ao app QUE regra falhou, e isso basta para escolher a reação. Não basta
+ * para escrever a frase: &quot;você está a 180 m do ponto; aproxime-se para até 50 m&quot; precisa de 180 e
+ * de 50. Os dois caminhos alternativos são piores — parsear o {@code detail} é proibido (é copy,
+ * muda a cada revisão) e repetir os limites no cliente cria uma segunda fonte de verdade que
+ * diverge no primeiro ajuste do servidor. Então os números saem como campos de extensão do RFC
+ * 9457, via {@link #getPropriedades()}.
+ */
+public class CheckinRejeitadoException extends RegraNegocioVioladaException {
+
+  private final MotivoRejeicaoCheckin motivo;
+  private final transient Map&lt;String, Object&gt; propriedades;
+
+  // Construção só pela fábrica `de`: era público um construtor sem propriedades que ninguém usava,
+  // e usá-lo produziria um 422 sem os números que a tela precisa para orientar o usuário — o
+  // problema que esta classe inteira existe para resolver.
+  private CheckinRejeitadoException(
+      MotivoRejeicaoCheckin motivo, String mensagem, Map&lt;String, Object&gt; propriedades) {
+<span class="fc" id="L45">    super(mensagem);</span>
+<span class="fc" id="L46">    this.motivo = motivo;</span>
+<span class="fc" id="L47">    this.propriedades = Map.copyOf(propriedades);</span>
+<span class="fc" id="L48">  }</span>
+
+  /**
+   * Monta a exceção já com os números que a tela precisa para orientar o usuário.
+   *
+   * &lt;p&gt;Cada motivo leva só o que é acionável para ELE. Localização simulada não ganha número nenhum
+   * porque não há distância a percorrer nem precisão a melhorar — a ação é desligar o mock, e um
+   * &quot;você está a 3 m&quot; ao lado disso só confundiria.
+   *
+   * &lt;p&gt;Argumentos nulos são tolerados e simplesmente não viram campo: no replay de uma rejeição
+   * antiga, nem toda medida foi persistida.
+   */
+  public static CheckinRejeitadoException de(
+      MotivoRejeicaoCheckin motivo,
+      String mensagem,
+      BigDecimal distanciaM,
+      Integer raioM,
+      BigDecimal acuraciaM) {
+
+<span class="fc" id="L67">    Map&lt;String, Object&gt; props = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L68" title="All 3 branches covered.">    switch (motivo) {</span>
+      case FORA_DO_RAIO -&gt; {
+<span class="fc" id="L70">        poe(props, &quot;distanciaM&quot;, distanciaM);</span>
+<span class="fc" id="L71">        poe(props, &quot;raioM&quot;, raioM);</span>
+<span class="fc" id="L72">      }</span>
+      case ACURACIA_INSUFICIENTE -&gt; {
+<span class="fc" id="L74">        poe(props, &quot;acuraciaM&quot;, acuraciaM);</span>
+<span class="fc" id="L75">        poe(props, &quot;acuraciaMaximaM&quot;, LimitesCheckin.ACURACIA_MAXIMA_M);</span>
+<span class="fc" id="L76">      }</span>
+      case LOCALIZACAO_SIMULADA -&gt; {
+        /* Nenhum número é acionável aqui. */
+      }
+    }
+<span class="fc" id="L81">    return new CheckinRejeitadoException(motivo, mensagem, props);</span>
+  }
+
+  private static void poe(Map&lt;String, Object&gt; destino, String chave, Object valor) {
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">    if (valor != null) {</span>
+<span class="fc" id="L86">      destino.put(chave, valor);</span>
+    }
+<span class="fc" id="L88">  }</span>
+
+  @Override
+  public Map&lt;String, Object&gt; getPropriedades() {
+<span class="fc" id="L92">    return propriedades;</span>
+  }
+
+  @Override
+  public URI getTipo() {
+<span class="fc bfc" id="L97" title="All 3 branches covered.">    return switch (motivo) {</span>
+<span class="fc" id="L98">      case LOCALIZACAO_SIMULADA -&gt; TipoProblema.CHECKIN_LOCALIZACAO_SIMULADA;</span>
+<span class="fc" id="L99">      case ACURACIA_INSUFICIENTE -&gt; TipoProblema.CHECKIN_ACURACIA_INSUFICIENTE;</span>
+<span class="fc" id="L100">      case FORA_DO_RAIO -&gt; TipoProblema.CHECKIN_FORA_DO_RAIO;</span>
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

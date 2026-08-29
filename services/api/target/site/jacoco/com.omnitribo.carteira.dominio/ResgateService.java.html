@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResgateService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">ResgateService.java</span></div><h1>ResgateService.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import com.omnitribo.carteira.api.ResgateResponse;
+import com.omnitribo.carteira.infra.CarteiraRepository;
+import com.omnitribo.carteira.infra.ResgateRepository;
+import com.omnitribo.compartilhado.dominio.Auditavel;
+import com.omnitribo.compartilhado.dominio.ChaveIdempotencia;
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Resgate de benefício: o SUMIDOURO do TOKEN.
+ *
+ * &lt;p&gt;É a operação que fecha a economia como CICLO em vez de estoque. Até aqui o token entrava
+ * (aporte do patrocinador, ADR 0024) e circulava (missões), mas nunca saía — a oferta só podia
+ * crescer. O resgate QUEIMA: o lançamento debita a carteira e &lt;b&gt;não credita ninguém&lt;/b&gt;, sem
+ * contraparte e sem missão. Ver ADR 0027.
+ *
+ * &lt;p&gt;&lt;b&gt;Consequência de enunciado, e é o ponto desta fase:&lt;/b&gt; {@code SUM(carteiras) + SUM(potes)}
+ * deixa de ser constante no SISTEMA e passa a ser constante no CICLO DE MISSÕES. A reconciliação
+ * (ledger × projeção) continua valendo intocada — a queima escreve os dois lados —, o que é mais
+ * uma demonstração de que ela nunca provou conservação.
+ */
+@Service
+public class ResgateService {
+
+  private static final String CARTEIRA_AUSENTE = &quot;Carteira não encontrada.&quot;;
+
+  /**
+   * Tentativas de gerar um código não colidente.
+   *
+   * &lt;p&gt;Com 31 símbolos em 8 posições são ~2,5×10¹² combinações; a chance de colisão num catálogo de
+   * bairro é desprezível, e três tentativas cobrem o azar. Não é laço infinito de propósito: se o
+   * espaço amostral algum dia encolher a ponto de três sorteios colidirem, isso é defeito de
+   * calibração e deve falhar alto, não girar para sempre.
+   */
+  private static final int TENTATIVAS_CODIGO = 3;
+
+  private final CarteiraRepository carteiraRepository;
+  private final ResgateRepository resgateRepository;
+  private final LivroRazaoService livroRazaoService;
+  private final CatalogoBeneficiosService catalogoBeneficiosService;
+
+  public ResgateService(
+      CarteiraRepository carteiraRepository,
+      ResgateRepository resgateRepository,
+      LivroRazaoService livroRazaoService,
+<span class="fc" id="L53">      CatalogoBeneficiosService catalogoBeneficiosService) {</span>
+<span class="fc" id="L54">    this.carteiraRepository = carteiraRepository;</span>
+<span class="fc" id="L55">    this.resgateRepository = resgateRepository;</span>
+<span class="fc" id="L56">    this.livroRazaoService = livroRazaoService;</span>
+<span class="fc" id="L57">    this.catalogoBeneficiosService = catalogoBeneficiosService;</span>
+<span class="fc" id="L58">  }</span>
+
+  /**
+   * Queima tokens em troca de um benefício.
+   *
+   * &lt;p&gt;Ordem canônica do projeto, sem desvio: &lt;b&gt;trava a carteira → sonda a chave → valida →
+   * escreve&lt;/b&gt;. É o lock que fecha a corrida entre sondar e inserir, não a sondagem.
+   */
+  @Auditavel(acao = &quot;BENEFICIO_RESGATADO&quot;, entidade = &quot;resgate&quot;)
+  @Transactional
+  public ResgateResponse resgatar(UUID usuarioId, UUID beneficioId, String chaveDoCliente) {
+<span class="fc" id="L69">    Instant agora = Instant.now();</span>
+
+    // Fora do lock de propósito: é leitura de catálogo, não de saldo, e prender a carteira durante
+    // ela não protegeria nada. Um benefício desativado entre esta linha e o débito produziria um
+    // resgate a mais de um item que acabou de sair do ar — desfecho aceitável, e o preço cobrado é
+    // o congelado abaixo.
+<span class="fc" id="L75">    Beneficio beneficio = catalogoBeneficiosService.resgatavel(beneficioId);</span>
+
+    // Resolve usuário → carteira SEM materializar a entidade: findByUsuarioId poria uma Carteira
+    // gerenciada no persistence context, e o buscarParaAtualizar seguinte devolveria a instância em
+    // cache sem emitir o SELECT ... FOR UPDATE — o lock sumiria em silêncio.
+<span class="fc" id="L80">    UUID carteiraId =</span>
+        carteiraRepository
+<span class="fc" id="L82">            .buscarIdPorUsuario(usuarioId)</span>
+<span class="pc" id="L83">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+
+    // 1. LOCK.
+<span class="fc" id="L86">    Carteira carteira =</span>
+        carteiraRepository
+<span class="fc" id="L88">            .buscarParaAtualizar(carteiraId)</span>
+<span class="pc" id="L89">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+
+    // 2. SONDA, sob o lock. Num sumidouro isso importa tanto quanto num emissor: um retry de rede
+    // que queimasse duas vezes tiraria da pessoa um saldo que ela gastou uma vez só, e a
+    // reconciliação continuaria verde, porque os dois lançamentos são legítimos vistos de perto.
+<span class="fc" id="L94">    String chave = ChaveIdempotencia.resgate(usuarioId, chaveDoCliente);</span>
+<span class="fc" id="L95">    Optional&lt;Lancamento&gt; jaFeito = livroRazaoService.consultar(chave);</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (jaFeito.isPresent()) {</span>
+<span class="fc" id="L97">      Resgate anterior =</span>
+          resgateRepository
+<span class="fc" id="L99">              .findById(jaFeito.get().getId())</span>
+<span class="fc" id="L100">              .orElseThrow(</span>
+                  () -&gt;
+<span class="nc" id="L102">                      new IllegalStateException(</span>
+                          &quot;Lançamento de resgate &quot;
+<span class="nc" id="L104">                              + jaFeito.get().getId()</span>
+                              + &quot; sem resgate correspondente — os dois são gravados na mesma&quot;
+                              + &quot; transação, então isto é corrupção, não corrida.&quot;));
+<span class="fc" id="L107">      return ResgateResponse.de(anterior, carteira.getSaldoTokens(), true);</span>
+    }
+
+    // 3. VALIDA. Recusa ANTES de qualquer escrita: 422 tem de sair sem efeito colateral nenhum.
+<span class="fc" id="L111">    long custo = beneficio.getCustoTokens();</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (carteira.getSaldoTokens() &lt; custo) {</span>
+<span class="fc" id="L113">      throw new RegraNegocioVioladaException(</span>
+          &quot;Saldo de &quot;
+<span class="fc" id="L115">              + carteira.getSaldoTokens()</span>
+              + &quot; tokens é insuficiente para resgatar este benefício, que custa &quot;
+              + custo
+              + &quot;.&quot;);
+    }
+
+    // 4. ESCREVE.
+<span class="fc" id="L122">    Lancamento lancamento =</span>
+<span class="fc" id="L123">        livroRazaoService.registrar(</span>
+            carteira,
+<span class="fc" id="L125">            Movimento.deTokens(</span>
+                SinalLancamento.DEBITO,
+                MotivoLancamento.RESGATE,
+                custo,
+                // missaoId e contraparteCarteiraId NULOS: é isto que faz do resgate um sumidouro e
+                // não uma transferência. Nenhuma linha credita ninguém.
+                null,
+                null,
+                chave,
+                null,
+                agora));
+
+    // O id do RESGATE é o do LANÇAMENTO, e isso não é economia de UUID: liga a queima ao seu
+    // registro sem uma coluna a mais, e é o que permite à sondagem de replay acima reencontrar o
+    // resgate original a partir da chave de idempotência.
+<span class="fc" id="L140">    Resgate resgate =</span>
+<span class="fc" id="L141">        new Resgate(lancamento.getId(), usuarioId, beneficioId, custo, codigoUnico(), agora);</span>
+<span class="fc" id="L142">    resgateRepository.save(resgate);</span>
+
+<span class="fc" id="L144">    return ResgateResponse.de(resgate, carteira.getSaldoTokens(), false);</span>
+  }
+
+  /**
+   * Baixa manual do parceiro, via ADMIN.
+   *
+   * &lt;p&gt;Idempotente: dar baixa num resgate já utilizado devolve o mesmo estado em vez de erro — é o
+   * retry de quem não recebeu a resposta, e recusá-lo entregaria um erro para algo que deu certo.
+   *
+   * &lt;p&gt;&lt;b&gt;Não existe caminho de volta.&lt;/b&gt; Reverter um resgate significaria ressuscitar token já
+   * queimado, isto é, emitir moeda fora do aporte do patrocinador — exatamente o que o ADR 0024
+   * concentrou num ponto único e auditado.
+   */
+  @Auditavel(acao = &quot;RESGATE_UTILIZADO&quot;, entidade = &quot;resgate&quot;)
+  @Transactional
+  public ResgateResponse darBaixa(UUID resgateId) {
+<span class="fc" id="L160">    Resgate resgate =</span>
+        resgateRepository
+<span class="fc" id="L162">            .findById(resgateId)</span>
+<span class="pc" id="L163">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Resgate não encontrado.&quot;));</span>
+
+<span class="fc" id="L165">    resgate.darBaixa(Instant.now());</span>
+<span class="fc" id="L166">    resgateRepository.save(resgate);</span>
+
+<span class="fc" id="L168">    long saldo =</span>
+        carteiraRepository
+<span class="fc" id="L170">            .buscarIdPorUsuario(resgate.getUsuarioId())</span>
+<span class="fc" id="L171">            .flatMap(carteiraRepository::findById)</span>
+<span class="fc" id="L172">            .map(Carteira::getSaldoTokens)</span>
+<span class="fc" id="L173">            .orElse(0L);</span>
+
+<span class="fc" id="L175">    return ResgateResponse.de(resgate, saldo, false);</span>
+  }
+
+  private String codigoUnico() {
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">    for (int tentativa = 0; tentativa &lt; TENTATIVAS_CODIGO; tentativa++) {</span>
+<span class="fc" id="L180">      String candidato = GeradorCodigoRetirada.gerar();</span>
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">      if (!resgateRepository.existsByCodigoRetirada(candidato)) {</span>
+<span class="fc" id="L182">        return candidato;</span>
+      }
+    }
+<span class="nc" id="L185">    throw new IllegalStateException(</span>
+        &quot;Não foi possível gerar código de retirada único em &quot;
+            + TENTATIVAS_CODIGO
+            + &quot; tentativas — o espaço amostral está esgotado ou o gerador quebrou.&quot;);
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

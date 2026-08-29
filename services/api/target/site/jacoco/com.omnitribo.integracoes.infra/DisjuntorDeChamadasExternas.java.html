@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DisjuntorDeChamadasExternas.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.integracoes.infra</a> &gt; <span class="el_source">DisjuntorDeChamadasExternas.java</span></div><h1>DisjuntorDeChamadasExternas.java</h1><pre class="source lang-java linenums">package com.omnitribo.integracoes.infra;
+
+import com.omnitribo.integracoes.api.ServicoExternoIndisponivelException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Circuit breaker: para de chamar um provedor que está comprovadamente fora do ar.
+ *
+ * &lt;p&gt;&lt;b&gt;O que ele acrescenta ao bulkhead que já existe.&lt;/b&gt; {@link LimiteDeChamadasExternas} limita
+ * QUANTAS threads esperam por um provedor ao mesmo tempo; ele protege a aplicação e diz, no próprio
+ * javadoc, que não é circuit breaker — durante uma queda o provedor continua sendo consultado, só
+ * que por no máximo N threads. Este aqui fecha a outra metade: depois de N falhas seguidas, ninguém
+ * mais é consultado, e a resposta sai sem tocar a rede. Protege o provedor, e devolve ao usuário um
+ * 503 imediato em vez de 2 s de espera para o mesmo 503.
+ *
+ * &lt;p&gt;&lt;b&gt;Falhas CONSECUTIVAS, não janela deslizante.&lt;/b&gt; Uma janela por tempo degenera exatamente no
+ * cenário que mais importa aqui: três falhas espalhadas por dez minutos de madrugada, sem nenhum
+ * sucesso no meio, não abririam o circuito. E uma janela por razão (&quot;50% das últimas 20&quot;) exige um
+ * segundo parâmetro — volume mínimo — sem o qual a primeira falha do dia abre o disjuntor com
+ * amostra de 1. Os dois modos de falha reais destes provedores (fora do ar, e estourando o timeout)
+ * são SUSTENTADOS, e um contador de inteiro é o detector exato disso. O preço, aceito
+ * conscientemente: um provedor oscilante (falha, ok, falha, ok) nunca abre — e está certo que não
+ * abra, porque metade das requisições está sendo atendida.
+ *
+ * &lt;p&gt;&lt;b&gt;{@link AtomicReference} sobre record imutável, e não {@code synchronized}.&lt;/b&gt; O caminho
+ * quente é FECHADO + sucesso, que aqui é uma leitura volátil e um CAS que só dispara se havia falha
+ * anterior. Um monitor no método serializaria TODAS as chamadas ao provedor numa thread só,
+ * destruindo o bulkhead de 8 permissões logo abaixo. Não há risco de ABA: todo estado é uma
+ * instância nova de record, comparada por identidade de referência.
+ *
+ * &lt;p&gt;&lt;b&gt;UMA sonda em meia-abertura.&lt;/b&gt; É a menor quantidade de informação que responde à única
+ * pergunta (&quot;voltou?&quot;), custa uma requisição a um provedor que acreditamos morto e produz resultado
+ * inequívoco. Com N sondas seria preciso decidir quórum — parâmetro novo, sem ganho. O campo {@code
+ * sondaEmVoo} existe porque, sem ele, mil threads chegando em meia-abertura viram mil sondas e a
+ * &quot;meia-abertura&quot; vira abertura total.
+ *
+ * &lt;p&gt;&lt;b&gt;O desfecho NEUTRO não é um detalhe.&lt;/b&gt; Se a sonda for recusada pelo bulkhead — ou falhar
+ * com um 4xx, que não conta —, o token {@code sondaEmVoo} precisa VOLTAR. Sem isso o disjuntor fica
+ * preso em meia-abertura para sempre: nunca fecha, nunca reabre, e o sintoma é o pior possível — o
+ * provedor volta e o recurso continua sumido da tela, sem uma linha de erro no log.
+ *
+ * &lt;p&gt;A recusa reusa {@link ServicoExternoIndisponivelException} de propósito. O catálogo de tipos
+ * de problema tem uma URI por REAÇÃO DE UI (ADR 0010), e &quot;circuito aberto&quot; e &quot;provedor fora do ar&quot;
+ * pedem a mesma reação: esconder o recurso. Um tipo novo obrigaria o app a aprender uma distinção
+ * que não muda nada do lado dele.
+ */
+final class DisjuntorDeChamadasExternas {
+
+<span class="fc" id="L55">  private static final Logger log = LoggerFactory.getLogger(DisjuntorDeChamadasExternas.class);</span>
+
+<span class="fc" id="L57">  enum Situacao {</span>
+<span class="fc" id="L58">    FECHADO,</span>
+<span class="fc" id="L59">    ABERTO,</span>
+<span class="fc" id="L60">    MEIO_ABERTO</span>
+  }
+
+<span class="fc" id="L63">  private record Estado(</span>
+      Situacao situacao, int falhasSeguidas, Instant abertoDesde, boolean sondaEmVoo) {
+
+<span class="fc" id="L66">    static final Estado INICIAL = new Estado(Situacao.FECHADO, 0, null, false);</span>
+  }
+
+  private final String provedor;
+  private final int falhasParaAbrir;
+  private final Duration esperaAberto;
+  private final Clock relogio;
+<span class="fc" id="L73">  private final AtomicReference&lt;Estado&gt; estado = new AtomicReference&lt;&gt;(Estado.INICIAL);</span>
+
+  DisjuntorDeChamadasExternas(
+<span class="fc" id="L76">      String provedor, int falhasParaAbrir, Duration esperaAberto, Clock relogio) {</span>
+<span class="fc" id="L77">    this.provedor = provedor;</span>
+<span class="fc" id="L78">    this.falhasParaAbrir = falhasParaAbrir;</span>
+<span class="fc" id="L79">    this.esperaAberto = esperaAberto;</span>
+<span class="fc" id="L80">    this.relogio = relogio;</span>
+<span class="fc" id="L81">  }</span>
+
+  &lt;T&gt; T executar(Supplier&lt;T&gt; chamada) {
+<span class="fc" id="L84">    admitir();</span>
+    try {
+<span class="fc" id="L86">      T resultado = chamada.get();</span>
+<span class="fc" id="L87">      registrarSucesso();</span>
+<span class="fc" id="L88">      return resultado;</span>
+<span class="fc" id="L89">    } catch (RuntimeException e) {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">      if (ClassificacaoDeFalhaExterna.indicaProvedorDoente(e)) {</span>
+<span class="fc" id="L91">        registrarFalha();</span>
+      } else {
+        // 4xx, erro de desserialização, recusa do bulkhead: não é sintoma do provedor. Só devolve a
+        // sonda, se havia uma em voo, e deixa o contador onde estava.
+<span class="fc" id="L95">        registrarNeutro();</span>
+      }
+<span class="fc" id="L97">      throw e;</span>
+    }
+  }
+
+  /** Situação atual — existe para o teste afirmar sobre o estado, não para o código de produção. */
+  Situacao situacao() {
+<span class="fc" id="L103">    return estado.get().situacao();</span>
+  }
+
+  /**
+   * Deixa passar, ou recusa sem tocar a rede.
+   *
+   * &lt;p&gt;A transição ABERTO → MEIO_ABERTO acontece AQUI, preguiçosamente, comparando o relógio
+   * injetado. Não há job agendado: além de ser infraestrutura a mais, um {@code @Scheduled}
+   * tornaria impossível o teste que avança o tempo em vez de dormir 30 s.
+   */
+  private void admitir() {
+    while (true) {
+<span class="fc" id="L115">      Estado antes = estado.get();</span>
+<span class="pc bpc" id="L116" title="1 of 4 branches missed.">      switch (antes.situacao()) {</span>
+        case FECHADO -&gt; {
+<span class="fc" id="L118">          return;</span>
+        }
+        case ABERTO -&gt; {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">          if (!esperaCumprida(antes)) {</span>
+<span class="fc" id="L122">            throw recusa();</span>
+          }
+<span class="fc" id="L124">          Estado depois = new Estado(Situacao.MEIO_ABERTO, antes.falhasSeguidas(), null, true);</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">          if (estado.compareAndSet(antes, depois)) {</span>
+<span class="fc" id="L126">            log.info(&quot;Disjuntor de {} em meia-abertura; enviando uma sonda&quot;, provedor);</span>
+<span class="fc" id="L127">            return;</span>
+          }
+<span class="nc" id="L129">        }</span>
+        case MEIO_ABERTO -&gt; {
+<span class="fc bfc" id="L131" title="All 2 branches covered.">          if (antes.sondaEmVoo()) {</span>
+<span class="fc" id="L132">            throw recusa();</span>
+          }
+<span class="fc" id="L134">          Estado depois = new Estado(Situacao.MEIO_ABERTO, antes.falhasSeguidas(), null, true);</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">          if (estado.compareAndSet(antes, depois)) {</span>
+<span class="fc" id="L136">            return;</span>
+          }
+        }
+      }
+<span class="nc" id="L140">    }</span>
+  }
+
+  private boolean esperaCumprida(Estado aberto) {
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">    return aberto.abertoDesde() == null</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        || !relogio.instant().isBefore(aberto.abertoDesde().plus(esperaAberto));</span>
+  }
+
+  private void registrarSucesso() {
+    while (true) {
+<span class="fc" id="L150">      Estado antes = estado.get();</span>
+<span class="fc bfc" id="L151" title="All 4 branches covered.">      if (antes.situacao() == Situacao.FECHADO &amp;&amp; antes.falhasSeguidas() == 0) {</span>
+<span class="fc" id="L152">        return; // Caminho quente: nada a escrever.</span>
+      }
+<span class="fc bfc" id="L154" title="All 2 branches covered.">      boolean fechando = antes.situacao() == Situacao.MEIO_ABERTO;</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">      if (estado.compareAndSet(antes, Estado.INICIAL)) {</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        if (fechando) {</span>
+<span class="fc" id="L157">          log.info(&quot;Disjuntor de {} FECHADO: a sonda passou&quot;, provedor);</span>
+        }
+<span class="fc" id="L159">        return;</span>
+      }
+<span class="nc" id="L161">    }</span>
+  }
+
+  private void registrarFalha() {
+    while (true) {
+<span class="fc" id="L166">      Estado antes = estado.get();</span>
+      Estado depois;
+<span class="fc bfc" id="L168" title="All 2 branches covered.">      if (antes.situacao() == Situacao.MEIO_ABERTO) {</span>
+        // A sonda falhou: reabre e recomeça a espera do zero. Sem escalada exponencial — previsível
+        // vale mais que ótimo para uma espera que já é de dezenas de segundos.
+<span class="fc" id="L171">        depois = new Estado(Situacao.ABERTO, antes.falhasSeguidas(), relogio.instant(), false);</span>
+      } else {
+<span class="fc" id="L173">        int falhas = antes.falhasSeguidas() + 1;</span>
+        depois =
+<span class="fc bfc" id="L175" title="All 2 branches covered.">            falhas &gt;= falhasParaAbrir</span>
+<span class="fc" id="L176">                ? new Estado(Situacao.ABERTO, falhas, relogio.instant(), false)</span>
+<span class="fc" id="L177">                : new Estado(Situacao.FECHADO, falhas, null, false);</span>
+      }
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">      if (estado.compareAndSet(antes, depois)) {</span>
+<span class="pc bpc" id="L180" title="1 of 4 branches missed.">        if (depois.situacao() == Situacao.ABERTO &amp;&amp; antes.situacao() != Situacao.ABERTO) {</span>
+<span class="fc" id="L181">          log.warn(</span>
+              &quot;Disjuntor de {} ABERTO após {} falhas seguidas; parando de chamar por {}&quot;,
+              provedor,
+<span class="fc" id="L184">              depois.falhasSeguidas(),</span>
+              esperaAberto);
+        }
+<span class="fc" id="L187">        return;</span>
+      }
+<span class="nc" id="L189">    }</span>
+  }
+
+  /** Devolve a sonda sem julgar o provedor. Ver o parágrafo sobre o desfecho NEUTRO no javadoc. */
+  private void registrarNeutro() {
+    while (true) {
+<span class="fc" id="L195">      Estado antes = estado.get();</span>
+<span class="pc bpc" id="L196" title="1 of 4 branches missed.">      if (antes.situacao() != Situacao.MEIO_ABERTO || !antes.sondaEmVoo()) {</span>
+<span class="fc" id="L197">        return;</span>
+      }
+<span class="fc" id="L199">      Estado depois = new Estado(Situacao.MEIO_ABERTO, antes.falhasSeguidas(), null, false);</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">      if (estado.compareAndSet(antes, depois)) {</span>
+<span class="fc" id="L201">        return;</span>
+      }
+<span class="nc" id="L203">    }</span>
+  }
+
+  private ServicoExternoIndisponivelException recusa() {
+    // debug, e não warn: em queda prolongada esta linha sairia a cada requisição. O warn que
+    // importa
+    // é o da ABERTURA, que sai uma vez por queda e é o que se procura no log.
+<span class="fc" id="L210">    log.debug(&quot;Disjuntor de {} aberto; recusando sem chamar&quot;, provedor);</span>
+<span class="fc" id="L211">    return new ServicoExternoIndisponivelException(</span>
+        &quot;O serviço externo está indisponível. Tente novamente em instantes.&quot;);
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CaracteristicaRisco.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.dominio</a> &gt; <span class="el_source">CaracteristicaRisco.java</span></div><h1>CaracteristicaRisco.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.dominio;
+
+/**
+ * Registro das características que alimentam o modelo de risco, e o CONTRATO DA ORDEM DO VETOR.
+ *
+ * &lt;p&gt;&lt;b&gt;O índice de cada característica é o {@code ordinal()}, e a ordem de declaração abaixo é o
+ * contrato.&lt;/b&gt; Reordenar, inserir no meio ou remover uma constante invalida TODOS os coeficientes
+ * publicados em {@code app.logistica.risco.coeficientes} — o modelo passaria a somar o coeficiente
+ * de uma característica sobre o valor de outra, silenciosamente, produzindo probabilidades erradas
+ * sem nenhum erro de compilação. Quem mexer aqui precisa re-treinar e republicar; {@code
+ * ModeloRiscoTreinoTest} falha de propósito para forçar essa decisão, no mesmo espírito de {@code
+ * CalculadoraDeRecompensaTest.douradoV1}.
+ *
+ * &lt;p&gt;&lt;b&gt;Este enum vive em {@code src/main} de propósito, mesmo sendo usado pelo treinador que mora
+ * em {@code src/test}.&lt;/b&gt; O classpath de teste enxerga o principal, o contrário não — então uma
+ * única definição serve aos dois lados e é impossível o codificador do treino divergir do
+ * codificador de produção. Duplicá-lo seria o modo de falha real desta feature: nenhum teste
+ * acusaria a divergência.
+ *
+ * &lt;p&gt;&lt;b&gt;Por que categórica vira indicador com referência DESCARTADA.&lt;/b&gt; {@code MANHA} (06–11h) e
+ * {@code RESIDENCIAL} não têm constante aqui: são as categorias de referência. Com todas as dummies
+ * presentes a soma delas seria sempre 1, o intercepto viraria combinação linear delas, o sistema
+ * ficaria indeterminado e a regularização escolheria arbitrariamente uma solução entre infinitas —
+ * o coeficiente perderia interpretação. Descartando a referência, {@code β(ENDERECO_RURAL) = +0,70}
+ * lê-se exatamente como &quot;endereço rural soma 0,70 ao log-odds EM RELAÇÃO a um residencial
+ * equivalente&quot;, que é a frase que se defende oralmente.
+ *
+ * &lt;p&gt;&lt;b&gt;Indicador não é padronizado; numérica é.&lt;/b&gt; Padronizar um indicador produziria &quot;log-odds
+ * por desvio-padrão de um indicador&quot;, que não significa nada em português, e faria a AUSÊNCIA da
+ * característica contribuir com um valor negativo diferente de zero — destruindo a propriedade
+ * limpa de que a categoria de referência contribui exatamente 0 e some do ranking de fatores.
+ */
+<span class="fc" id="L33">public enum CaracteristicaRisco {</span>
+
+  /** Janela 22h–05h. Referência: MANHA (06h–11h). */
+<span class="fc" id="L36">  JANELA_MADRUGADA(&quot;Janela madrugada (22h–05h)&quot;, false),</span>
+  /** Janela 12h–17h. */
+<span class="fc" id="L38">  JANELA_TARDE(&quot;Janela tarde (12h–17h)&quot;, false),</span>
+  /** Janela 18h–21h. */
+<span class="fc" id="L40">  JANELA_NOITE(&quot;Janela noturna (18h–21h)&quot;, false),</span>
+
+  /** Referência: RESIDENCIAL. */
+<span class="fc" id="L43">  ENDERECO_COMERCIAL(&quot;Endereço comercial&quot;, false),</span>
+<span class="fc" id="L44">  ENDERECO_CONDOMINIO(&quot;Endereço em condomínio&quot;, false),</span>
+<span class="fc" id="L45">  ENDERECO_RURAL(&quot;Endereço rural&quot;, false),</span>
+
+<span class="fc" id="L47">  FIM_DE_SEMANA(&quot;Fim de semana&quot;, false),</span>
+
+  /**
+   * Termo de INTERAÇÃO: produto de {@code ENDERECO_COMERCIAL} por {@code FIM_DE_SEMANA}.
+   *
+   * &lt;p&gt;Existe porque regressão logística é aditiva no log-odds e &lt;b&gt;não descobre interação
+   * sozinha&lt;/b&gt;. O efeito &quot;comércio fechado no fim de semana&quot; só é aprendível se o termo for
+   * oferecido explicitamente. Isso é uma limitação medida do modelo linear — uma árvore encontraria
+   * a interação por conta própria — e está registrada no ADR 0022 em vez de escondida.
+   */
+<span class="fc" id="L57">  COMERCIAL_EM_FIM_DE_SEMANA(&quot;Comércio em fim de semana&quot;, false),</span>
+
+<span class="fc" id="L59">  TAXA_HISTORICA_CEP(&quot;Taxa histórica de falha da faixa de CEP&quot;, true),</span>
+<span class="fc" id="L60">  PESO_KG(&quot;Peso do volume&quot;, true),</span>
+<span class="fc" id="L61">  VOLUME_L(&quot;Volume da encomenda&quot;, true),</span>
+<span class="fc" id="L62">  CHUVA_MM(&quot;Chuva na janela de entrega&quot;, true),</span>
+<span class="fc" id="L63">  TEMPERATURA_C(&quot;Temperatura&quot;, true),</span>
+<span class="fc" id="L64">  TENTATIVAS_ANTERIORES(&quot;Tentativas anteriores de entrega&quot;, true);</span>
+
+  /** Quantidade de características. É a dimensão do vetor de entrada do modelo. */
+<span class="fc" id="L67">  public static final int TOTAL = values().length;</span>
+
+  private final String rotulo;
+  private final boolean numerica;
+
+<span class="fc" id="L72">  CaracteristicaRisco(String rotulo, boolean numerica) {</span>
+<span class="fc" id="L73">    this.rotulo = rotulo;</span>
+<span class="fc" id="L74">    this.numerica = numerica;</span>
+<span class="fc" id="L75">  }</span>
+
+  /**
+   * Índice desta característica no vetor de features.
+   *
+   * &lt;p&gt;Método nomeado em vez de {@code ordinal()} solto no código de chamada: deixa explícito, na
+   * leitura, que a posição no vetor é intencional e não um acidente da ordem de declaração.
+   */
+  public int indice() {
+<span class="fc" id="L84">    return ordinal();</span>
+  }
+
+  /** Se recebe padronização z-score. Indicadores (0/1) não recebem — ver javadoc da classe. */
+  public boolean numerica() {
+<span class="fc" id="L89">    return numerica;</span>
+  }
+
+  /** Texto legível, exibido em {@code fatoresPrincipais}. */
+  public String rotulo() {
+<span class="fc" id="L94">    return rotulo;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

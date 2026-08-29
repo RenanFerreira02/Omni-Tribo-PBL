@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Outbox.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.dominio</a> &gt; <span class="el_source">Outbox.java</span></div><h1>Outbox.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+// Transactional Outbox Pattern: eventos gravados na mesma transação da mutação de estado.
+// Um processo separado (a implementar em fases futuras) lê e publica para consumidores.
+@Entity
+@Table(name = &quot;outbox&quot;)
+public class Outbox {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  @Column(name = &quot;tipo_evento&quot;, nullable = false, length = 100)
+  private String tipoEvento;
+
+  @Column(name = &quot;agregado_id&quot;, nullable = false)
+  private UUID agregadoId;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(nullable = false, columnDefinition = &quot;jsonb&quot;)
+  private String payload;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+  @Column(name = &quot;publicado_em&quot;)
+  private Instant publicadoEm;
+
+  @Column(nullable = false)
+  private int tentativas;
+
+  // Instante a partir do qual o drenador pode tentar de novo. NOT NULL com default
+  // NOW() no banco: evento nunca tentado é elegível já. Ver V14__outbox_backoff.sql.
+  @Column(name = &quot;proxima_tentativa_em&quot;, nullable = false)
+  private Instant proximaTentativaEm;
+
+  // Diagnóstico do último despacho falho. Sem isto, um evento parado em tentativas=5
+  // não diz por quê e o operador só descobre reproduzindo.
+  @Column(name = &quot;ultimo_erro&quot;, columnDefinition = &quot;TEXT&quot;)
+  private String ultimoErro;
+
+  /**
+   * Corte da mensagem de erro. Um stack trace inteiro por linha inflaria a tabela sem acrescentar
+   * diagnóstico: a causa está sempre nos primeiros caracteres.
+   */
+  private static final int LIMITE_ERRO = 1000;
+
+<span class="fc" id="L57">  protected Outbox() {}</span>
+
+<span class="fc" id="L59">  public Outbox(UUID id, String tipoEvento, UUID agregadoId, String payload, Instant criadoEm) {</span>
+<span class="fc" id="L60">    this.id = id;</span>
+<span class="fc" id="L61">    this.tipoEvento = tipoEvento;</span>
+<span class="fc" id="L62">    this.agregadoId = agregadoId;</span>
+<span class="fc" id="L63">    this.payload = payload;</span>
+<span class="fc" id="L64">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L65">    this.tentativas = 0;</span>
+    // Elegível desde já — o drenador decide quando varrer, não esta linha.
+<span class="fc" id="L67">    this.proximaTentativaEm = criadoEm;</span>
+<span class="fc" id="L68">  }</span>
+
+  /**
+   * Instante recebido, e não {@code Instant.now()} interno, pelo mesmo motivo de {@code criadoEm}:
+   * o chamador já tem o relógio da operação, e duas leituras de relógio na mesma unidade de
+   * trabalho produzem instantes diferentes sem nenhum ganho.
+   */
+  public void marcarPublicado(Instant agora) {
+<span class="fc" id="L76">    this.publicadoEm = agora;</span>
+<span class="fc" id="L77">    this.ultimoErro = null;</span>
+<span class="fc" id="L78">  }</span>
+
+  /**
+   * Conta a falha e adia a próxima tentativa. Contar sem adiar faria o evento voltar no lote
+   * seguinte imediatamente, e o drenador giraria em falso contra a mesma linha a cada varredura.
+   */
+  public void registrarFalha(String erro, Instant proximaTentativaEm) {
+<span class="fc" id="L85">    this.tentativas++;</span>
+<span class="fc" id="L86">    this.proximaTentativaEm = proximaTentativaEm;</span>
+<span class="fc" id="L87">    this.ultimoErro =</span>
+<span class="pc bpc" id="L88" title="2 of 4 branches missed.">        erro == null || erro.length() &lt;= LIMITE_ERRO ? erro : erro.substring(0, LIMITE_ERRO);</span>
+<span class="fc" id="L89">  }</span>
+
+  public UUID getId() {
+<span class="fc" id="L92">    return id;</span>
+  }
+
+  public String getTipoEvento() {
+<span class="fc" id="L96">    return tipoEvento;</span>
+  }
+
+  public UUID getAgregadoId() {
+<span class="fc" id="L100">    return agregadoId;</span>
+  }
+
+  public String getPayload() {
+<span class="fc" id="L104">    return payload;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="nc" id="L108">    return criadoEm;</span>
+  }
+
+  public int getTentativas() {
+<span class="fc" id="L112">    return tentativas;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

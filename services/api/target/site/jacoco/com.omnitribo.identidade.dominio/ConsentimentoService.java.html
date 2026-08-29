@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConsentimentoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">ConsentimentoService.java</span></div><h1>ConsentimentoService.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import com.omnitribo.identidade.api.AtualizarConsentimentoRequest;
+import com.omnitribo.identidade.api.ConsentimentoResponse;
+import com.omnitribo.identidade.infra.ConsentimentoRepository;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Consentimentos do titular. Tabela APPEND-ONLY: cada mudança é linha nova.
+ *
+ * &lt;p&gt;Sobrescrever a linha existente seria mais simples e destruiria a única evidência que importa
+ * numa disputa — a de que a pessoa consentiu em tal data, sob tal versão do texto. Um histórico de
+ * escolhas também é o que permite mostrar &quot;você revogou notificações em março&quot;, em vez de um estado
+ * sem passado.
+ */
+@Service
+public class ConsentimentoService {
+
+  private final ConsentimentoRepository consentimentoRepository;
+
+<span class="fc" id="L30">  public ConsentimentoService(ConsentimentoRepository consentimentoRepository) {</span>
+<span class="fc" id="L31">    this.consentimentoRepository = consentimentoRepository;</span>
+<span class="fc" id="L32">  }</span>
+
+  /**
+   * Estado atual de TODOS os tipos, inclusive os que a pessoa nunca decidiu.
+   *
+   * &lt;p&gt;Tipo sem nenhuma linha volta como {@code concedido = false}, e não sumido da lista: a tela
+   * precisa desenhar o interruptor mesmo antes da primeira escolha, e &quot;ausente&quot; e &quot;recusado&quot; têm o
+   * mesmo efeito prático — não há consentimento.
+   */
+  @Transactional(readOnly = true)
+  public List&lt;ConsentimentoResponse&gt; listar(UUID usuarioId) {
+<span class="fc" id="L43">    Map&lt;TipoConsentimento, Consentimento&gt; maisRecentePorTipo =</span>
+<span class="fc" id="L44">        consentimentoRepository.findByUsuarioIdOrderByCriadoEmDesc(usuarioId).stream()</span>
+            // A lista já vem do mais recente para o mais antigo; em empate de instante, o primeiro
+            // encontrado vence e o merge descarta o resto.
+<span class="fc" id="L47">            .collect(</span>
+<span class="fc" id="L48">                Collectors.toMap(</span>
+                    Consentimento::getTipo,
+<span class="fc" id="L50">                    Function.identity(),</span>
+<span class="fc" id="L51">                    (maisNovo, maisAntigo) -&gt; maisNovo));</span>
+
+<span class="fc" id="L53">    return Arrays.stream(TipoConsentimento.values())</span>
+<span class="fc" id="L54">        .map(</span>
+            tipo -&gt;
+<span class="fc" id="L56">                Optional.ofNullable(maisRecentePorTipo.get(tipo))</span>
+<span class="fc" id="L57">                    .map(</span>
+                        c -&gt;
+<span class="fc" id="L59">                            new ConsentimentoResponse(</span>
+<span class="fc" id="L60">                                tipo.name(), c.isConcedido(), c.getVersaoTexto(), c.getCriadoEm()))</span>
+<span class="fc" id="L61">                    .orElseGet(() -&gt; new ConsentimentoResponse(tipo.name(), false, null, null)))</span>
+<span class="fc" id="L62">        .toList();</span>
+  }
+
+  /**
+   * Registra uma escolha. Sempre INSERT, nunca UPDATE.
+   *
+   * &lt;p&gt;O IP fica nulo aqui de propósito. A coluna existe e seria fácil preenchê-la com o {@code
+   * X-Forwarded-For}, mas esse header é escolhido pelo cliente atrás de um proxy que ainda não
+   * temos — gravar um valor forjável como evidência é pior do que não gravar nada, porque parece
+   * prova.
+   */
+  @Transactional
+  public ConsentimentoResponse registrar(
+      UUID usuarioId, TipoConsentimento tipo, AtualizarConsentimentoRequest request) {
+
+<span class="fc" id="L77">    Consentimento registro =</span>
+<span class="fc" id="L78">        consentimentoRepository.save(</span>
+            new Consentimento(
+<span class="fc" id="L80">                UUID.randomUUID(),</span>
+                usuarioId,
+                tipo,
+<span class="fc" id="L83">                Boolean.TRUE.equals(request.concedido()),</span>
+<span class="fc" id="L84">                request.versaoTexto(),</span>
+                null,
+<span class="fc" id="L86">                Instant.now()));</span>
+
+<span class="fc" id="L88">    return new ConsentimentoResponse(</span>
+<span class="fc" id="L89">        tipo.name(), registro.isConcedido(), registro.getVersaoTexto(), registro.getCriadoEm());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

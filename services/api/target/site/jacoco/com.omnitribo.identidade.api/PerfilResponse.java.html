@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PerfilResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.api</a> &gt; <span class="el_source">PerfilResponse.java</span></div><h1>PerfilResponse.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.api;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Perfil completo do usuário autenticado.
+ *
+ * &lt;p&gt;&lt;b&gt;Endpoint separado de {@code GET /auth/me}, e não uma ampliação dele.&lt;/b&gt; O {@code /auth/me}
+ * é chamado no boot do app e se resolve só dos claims do JWT, sem tocar o banco; enriquecê-lo
+ * trocaria uma checagem barata de identidade por uma consulta com joins em toda abertura do
+ * aplicativo. São duas perguntas diferentes, com custos e frequências diferentes.
+ *
+ * &lt;p&gt;{@code nivel} vem DERIVADO do XP por {@code RegraNivel} na hora da leitura, e não da coluna
+ * {@code usuario.nivel} — que é cache recalculado a cada concessão. Se os dois divergirem, quem
+ * está certo é a fórmula, e é ela que o perfil mostra.
+ *
+ * &lt;p&gt;Nenhum campo sensível: sem hash de senha, sem e-mail de terceiros, sem coordenada.
+ */
+@Schema(description = &quot;Perfil do usuário autenticado, com progressão e conquistas&quot;)
+public record PerfilResponse(
+    UUID id,
+    String nome,
+    String email,
+    String handle,
+    String papel,
+    @Schema(description = &quot;Tribo do usuário; nula enquanto ele não escolheu uma&quot;)
+        TriboResponse tribo,
+    long xp,
+    int nivel,
+    @Schema(description = &quot;XP que marcou a entrada no nível atual&quot;) long xpNivelAtual,
+    @Schema(
+            description =
+                &quot;XP necessário para o próximo nível — com o atual, dá a barra de progresso&quot;)
+        long xpProximoNivel,
+    int streak,
+    List&lt;ConquistaResponse&gt; conquistas) {
+
+  /** List.copyOf: a lista guardada é imutável e o acessor não tem o que expor. */
+<span class="fc" id="L41">  public PerfilResponse {</span>
+<span class="fc" id="L42">    conquistas = List.copyOf(conquistas);</span>
+<span class="fc" id="L43">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

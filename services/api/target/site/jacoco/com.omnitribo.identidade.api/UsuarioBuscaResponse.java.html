@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioBuscaResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.api</a> &gt; <span class="el_source">UsuarioBuscaResponse.java</span></div><h1>UsuarioBuscaResponse.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.api;
+
+import java.util.UUID;
+
+/**
+ * O vizinho encontrado pela busca por handle.
+ *
+ * &lt;p&gt;&lt;b&gt;Quatro campos, e a lista curta é a decisão.&lt;/b&gt; Não há XP, nível, e-mail, saldo nem
+ * conquistas: o propósito desta resposta é deixar quem vai transferir CONFERIR que acertou a
+ * pessoa, e nome mais tribo bastam para isso. Cada campo a mais seria dado pessoal entregue a quem
+ * só digitou um {@code @} — e o endpoint é alcançável por qualquer membro da tribo.
+ *
+ * &lt;p&gt;A tribo vem junto porque é o que o usuário reconhece (&quot;Marlene, da Cidade Líder&quot;), e porque
+ * confirmar o destinatário pelo NOME é a diferença entre um erro de digitação e um estorno manual
+ * num ledger append-only.
+ */
+<span class="fc" id="L17">public record UsuarioBuscaResponse(UUID id, String handle, String nome, String tribo) {}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

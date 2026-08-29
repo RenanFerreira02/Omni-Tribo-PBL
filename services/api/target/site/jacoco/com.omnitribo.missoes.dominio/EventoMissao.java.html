@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventoMissao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">EventoMissao.java</span></div><h1>EventoMissao.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+/**
+ * Eventos que disparam transições na máquina de estados de Missao.
+ *
+ * &lt;p&gt;Cada evento carrega o ator autorizado a dispará-lo e o tipo gravado na trilha append-only.
+ * Este enum nunca referencia {@link StatusMissao} — o destino de cada transição mora na tabela
+ * dentro de StatusMissao — o que evita ciclo de inicialização estática entre os dois enums.
+ */
+<span class="fc" id="L10">public enum EventoMissao {</span>
+<span class="fc" id="L11">  PUBLICAR(AtorEsperado.CRIADOR, TipoMissaoEvento.PUBLICADA),</span>
+<span class="fc" id="L12">  ACEITAR(AtorEsperado.CANDIDATO, TipoMissaoEvento.ACEITA),</span>
+<span class="fc" id="L13">  INICIAR(AtorEsperado.EXECUTOR, TipoMissaoEvento.INICIADA),</span>
+<span class="fc" id="L14">  DESISTIR(AtorEsperado.EXECUTOR, TipoMissaoEvento.DESISTIDA),</span>
+<span class="fc" id="L15">  CANCELAR(AtorEsperado.CRIADOR, TipoMissaoEvento.CANCELADA),</span>
+<span class="fc" id="L16">  CHECKIN(AtorEsperado.EXECUTOR, TipoMissaoEvento.CHECK_IN_REGISTRADO),</span>
+<span class="fc" id="L17">  CONFIRMAR(AtorEsperado.CRIADOR, TipoMissaoEvento.CONFIRMADA),</span>
+<span class="fc" id="L18">  CONTESTAR(AtorEsperado.CRIADOR, TipoMissaoEvento.CONTESTADA),</span>
+<span class="fc" id="L19">  RESOLVER_CONCLUIR(AtorEsperado.ADMIN, TipoMissaoEvento.DISPUTA_RESOLVIDA),</span>
+<span class="fc" id="L20">  RESOLVER_CANCELAR(AtorEsperado.ADMIN, TipoMissaoEvento.DISPUTA_RESOLVIDA),</span>
+
+  /** Janela de oferta venceu sem ninguém aceitar: ABERTA → EXPIRADA, com estorno do pote. */
+<span class="fc" id="L23">  EXPIRAR(AtorEsperado.SISTEMA, TipoMissaoEvento.EXPIRADA),</span>
+
+  /**
+   * Executor abandonou depois de iniciar: EM_ANDAMENTO → EXPIRADA, com estorno.
+   *
+   * &lt;p&gt;Estorna e não paga porque NÃO HOUVE CHECK-IN — não existe nenhuma evidência de que o
+   * trabalho foi feito. É a diferença que separa este evento de {@link #EXPIRAR_CONFIRMACAO}.
+   */
+<span class="fc" id="L31">  EXPIRAR_EXECUCAO(AtorEsperado.SISTEMA, TipoMissaoEvento.EXECUCAO_EXPIRADA),</span>
+
+  /**
+   * Criador sumiu depois do check-in: AGUARDANDO_CONFIRMACAO → CONCLUIDA, &lt;b&gt;pagando o
+   * executor&lt;/b&gt;.
+   *
+   * &lt;p&gt;A decisão de pagar é do produto, e a alternativa foi descartada com motivo: expirar
+   * estornando puniria quem executou por uma omissão do criador, e o check-in geolocalizado
+   * validado no servidor já é a evidência de presença que o sistema aceita como prova em qualquer
+   * outro caminho. Uma plataforma de cuidado que deixa o executor sem receber quando o outro lado
+   * some destrói exatamente a confiança que é a tese do produto.
+   *
+   * &lt;p&gt;O risco reconhecido é conluio ou check-in sem execução — que a documentação de antifraude já
+   * registra como não detectável, e que um criador distraído confirmaria do mesmo jeito. A porta de
+   * escape é {@link #DESTRAVAR}, do ADMIN.
+   *
+   * &lt;p&gt;Passa por CONCLUIDA, então a regra &quot;só CONCLUIDA credita&quot; fica intacta e o pagamento reusa o
+   * caminho de crédito que já existe.
+   */
+<span class="fc" id="L50">  EXPIRAR_CONFIRMACAO(AtorEsperado.SISTEMA, TipoMissaoEvento.CONFIRMACAO_EXPIRADA),</span>
+
+  /**
+   * Saída manual de ADMIN para missão parada: cancela e estorna o pote.
+   *
+   * &lt;p&gt;Existe porque a varredura automática resolve o caso comum, não o excepcional — missão
+   * legítima em disputa silenciosa, ou parada por um motivo que a regra de prazo não previu. Sem
+   * uma porta humana, o único desfecho possível seria esperar o prazo e aceitar o que ele decidir.
+   */
+<span class="fc" id="L59">  DESTRAVAR(AtorEsperado.ADMIN, TipoMissaoEvento.DESTRAVADA_POR_ADMIN);</span>
+
+  private final AtorEsperado atorEsperado;
+  private final TipoMissaoEvento tipoTrilha;
+
+<span class="fc" id="L64">  EventoMissao(AtorEsperado atorEsperado, TipoMissaoEvento tipoTrilha) {</span>
+<span class="fc" id="L65">    this.atorEsperado = atorEsperado;</span>
+<span class="fc" id="L66">    this.tipoTrilha = tipoTrilha;</span>
+<span class="fc" id="L67">  }</span>
+
+  public AtorEsperado atorEsperado() {
+<span class="fc" id="L70">    return atorEsperado;</span>
+  }
+
+  public TipoMissaoEvento tipoTrilha() {
+<span class="fc" id="L74">    return tipoTrilha;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

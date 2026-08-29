@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>Movimento.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package com.omnitribo.carteira.dominio;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.math.BigDecimal;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.time.Instant;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.UUID;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Uma muta&#231;&#227;o de saldo a ser registrada no ledger por {@link LivroRazaoService}.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;Carrega o valor em VALOR ABSOLUTO; a dire&#231;&#227;o mora em {@code sinal}. Nunca passe valor negativo</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * para representar d&#233;bito &#8212; {@code ck_lancamento_valores_nao_negativos} (V13) rejeita, e por um bom</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * motivo: a soma do ledger &#233; {@code SUM(CASE sinal WHEN &#39;CREDITO&#39; THEN v ELSE -v END)}, ent&#227;o um</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * valor negativo numa linha DEBITO contaria como cr&#233;dito e a reconcilia&#231;&#227;o passaria a mentir sem</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * produzir erro nenhum.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * @param valorBrl dinheiro movido, sempre {@code &#62;= 0}; use {@link BigDecimal#ZERO} se a opera&#231;&#227;o &#233;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *     s&#243; de tokens</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * @param valorTokens tokens movidos, sempre {@code &#62;= 0}; zero se a opera&#231;&#227;o &#233; s&#243; de BRL</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * @param missaoId miss&#227;o relacionada, ou {@code null}. UUID puro, sem FK &#8212; fronteira</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *     carteira&#8594;missoes</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * @param contraparteCarteiraId a outra ponta numa transfer&#234;ncia, ou {@code null}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * @param chaveIdempotencia j&#225; derivada por {@code ChaveIdempotencia}; nunca a chave crua do cliente</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * @param mensagem texto opcional da transfer&#234;ncia P2P</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * @param agora instante da opera&#231;&#227;o, recebido e n&#227;o lido aqui &#8212; a unidade de trabalho inteira</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *     compartilha um rel&#243;gio s&#243;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>public record Movimento(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    SinalLancamento sinal,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    MotivoLancamento motivo,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    BigDecimal valorBrl,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    long valorTokens,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    UUID missaoId,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    UUID contraparteCarteiraId,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    String chaveIdempotencia,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    String mensagem,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    Instant agora) {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  public Movimento {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_39'/>
+39
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_39'>3</a>
+<span>
+1. &#60;init&#62; : negated conditional &rarr; KILLED<br/>
+2. &#60;init&#62; : negated conditional &rarr; KILLED<br/>
+3. &#60;init&#62; : changed conditional boundary &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (valorBrl == null || valorBrl.signum() &#60; 0) {</span></pre></td></tr>
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>      throw new IllegalArgumentException(&#34;valorBrl n&#227;o pode ser nulo nem negativo.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_42'/>
+42
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_42'>2</a>
+<span>
+1. &#60;init&#62; : negated conditional &rarr; KILLED<br/>
+2. &#60;init&#62; : changed conditional boundary &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (valorTokens &#60; 0) {</span></pre></td></tr>
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>      throw new IllegalArgumentException(&#34;valorTokens n&#227;o pode ser negativo.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // Espelha ck_lancamento_valor_nao_nulo: um lan&#231;amento de zero em ambas as moedas consumiria</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // uma chave de idempot&#234;ncia sem mover nada, e o cliente leria isso como sucesso.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_47'/>
+47
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_47'>2</a>
+<span>
+1. &#60;init&#62; : negated conditional &rarr; KILLED<br/>
+2. &#60;init&#62; : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (valorBrl.signum() == 0 &#38;&#38; valorTokens == 0) {</span></pre></td></tr>
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>      throw new IllegalArgumentException(&#34;Movimento precisa mover BRL ou tokens.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /** Movimento s&#243; de tokens &#8212; transfer&#234;ncia, financiamento, recompensa de miss&#227;o TRIBO/COLETA. */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public static Movimento deTokens(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      SinalLancamento sinal,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      MotivoLancamento motivo,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      long tokens,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      UUID missaoId,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      UUID contraparteCarteiraId,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_59'/>
+59
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_59'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      String chaveIdempotencia,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_60'/>
+60
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_60'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      String mensagem,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      Instant agora) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_62'/>
+62
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_62'>1</a>
+<span>
+1. deTokens : replaced return value with null for com/omnitribo/carteira/dominio/Movimento::deTokens &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return new Movimento(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        sinal,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_64'/>
+64
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_64'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        motivo,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        BigDecimal.ZERO,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        tokens,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        missaoId,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_68'/>
+68
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_68'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        contraparteCarteiraId,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        chaveIdempotencia,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_70'/>
+70
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_70'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        mensagem,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_71'/>
+71
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_71'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        agora);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@45ac973_73'/>
+73
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_73'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@45ac973_39'>39</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_39'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.carteira.api.CarteiraLeituraESaqueTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraLeituraESaqueTest]/[method:saqueRepetidoComMesmaChaveNaoDebitaDuasVezes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.carteira.api.CarteiraLeituraESaqueTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraLeituraESaqueTest]/[method:saqueRepetidoComMesmaChaveNaoDebitaDuasVezes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.carteira.api.ResgateBeneficioTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ResgateBeneficioTest]/[method:resgateQueimaToken()]</span></span> changed conditional boundary &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@45ac973_42'>42</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_42'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.carteira.api.CarteiraLeituraESaqueTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraLeituraESaqueTest]/[method:saqueRepetidoComMesmaChaveNaoDebitaDuasVezes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.carteira.api.CarteiraLeituraESaqueTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraLeituraESaqueTest]/[method:saqueRepetidoComMesmaChaveNaoDebitaDuasVezes()]</span></span> changed conditional boundary &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@45ac973_47'>47</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_47'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.carteira.api.CarteiraLeituraESaqueTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraLeituraESaqueTest]/[method:saqueRepetidoComMesmaChaveNaoDebitaDuasVezes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.carteira.api.ResgateBeneficioTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ResgateBeneficioTest]/[method:resgateQueimaToken()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@45ac973_62'>62</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@45ac973_62'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>deTokens<br/><b>Killed by : </b>com.omnitribo.carteira.api.ResgateBeneficioTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ResgateBeneficioTest]/[method:resgateQueimaToken()]</span></span> replaced return value with null for com/omnitribo/carteira/dominio/Movimento::deTokens &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>com.omnitribo.carteira.api.CarteiraLeituraESaqueTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraLeituraESaqueTest]/[method:saqueRepetidoComMesmaChaveNaoDebitaDuasVezes()] (31 ms)</li><li>com.omnitribo.carteira.api.ResgateBeneficioTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ResgateBeneficioTest]/[method:resgateQueimaToken()] (32 ms)</li><li>com.omnitribo.carteira.api.ResgateBeneficioTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ResgateBeneficioTest]/[method:replayNaoQueimaDuasVezes()] (33 ms)</li><li>com.omnitribo.carteira.api.SaqueConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.SaqueConcorrenteTest]/[method:saquesSimultaneosDoSaldoInteiroDebitamUmaVezSo()] (40 ms)</li><li>com.omnitribo.identidade.api.PatrocinadorAdminTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.PatrocinadorAdminTest]/[method:aporteCredita()] (41 ms)</li><li>com.omnitribo.identidade.api.PatrocinadorAdminTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.PatrocinadorAdminTest]/[method:aporteEhIdempotente()] (40 ms)</li><li>com.omnitribo.carteira.api.CarteiraLeituraESaqueTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraLeituraESaqueTest]/[method:saqueValidoDebitaEDevolveProtocolo()] (45 ms)</li><li>com.omnitribo.carteira.api.ResgateBeneficioTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ResgateBeneficioTest]/[method:baixaEhIdempotente()] (41 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:previsaoEhGravadaNaEntregaFalida()] (21 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()] (47 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:corpoAntigoSemContextoDeRiscoContinuaAceito()] (24 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:replayNaoCriaSegundaMissao()] (25 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:naoExigeJwt()] (26 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:caminhoFeliz()] (26 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:missaoEmEstadoInvalidoEh409()] (26 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:aceiteAbaixoDoNivelEh422()] (27 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:valorOfertadoNaoViraReais()] (31 ms)</li><li>com.omnitribo.identidade.api.PatrocinadorAdminTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.PatrocinadorAdminTest]/[method:aporteConcorrenteEmiteUmaVez()] (61 ms)</li><li>com.omnitribo.logistica.api.WebhookEntregaFalidaTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookEntregaFalidaTest]/[method:riscoAltoCongelaMultiplicadorEPagaMais()] (35 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:tetoPorHoraCortaOExcesso()] (36 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:transferenciaEntreMembrosDaMesmaTriboFunciona()] (64 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:retryDaMesmaChaveComValorDiferenteNaoCriaSegundaTransferencia()] (63 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:aceiteComNivelSuficientePassa()] (32 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:notificaSomenteQuemPodeEQuer()] (40 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:membroDaTriboPodeCoFinanciarRascunhoAlheio()] (47 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:resolverComAdminEmDisputaConcluiECredita()] (36 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:financiamentoRepetidoComMesmaChaveNaoDebitaNemCreditaDuasVezes()] (53 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:doisFinanciamentosSimultaneosNaoEstouramOTetoDoPote()] (57 ms)</li><li>com.omnitribo.carteira.api.ResgateBeneficioTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ResgateBeneficioTest]/[method:resgateConcorrenteQueimaUmaVez()] (76 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:assinaturaInvalidaEh401()] (42 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:transportadoraAlheiaNaoConfirma()] (43 ms)</li><li>com.omnitribo.missoes.api.MissaoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissaoControllerTest]/[method:confirmarValidaAutorizacaoDepoisTransicaoDepoisCredita()] (49 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorJanelaDa422DepoisDeVariasTransferenciasValidas()] (89 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:expiracaoEstornaAoPatrocinador()] (55 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:mesmoFinanciadorEmDuasParcelasRecebeUmEstornoAgregado()] (64 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:poteParcialAindaBloqueiaAPublicacao()] (78 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:caminhoFeliz()] (49 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:destravarExigeAdmin()] (74 ms)</li><li>com.omnitribo.logistica.api.WebhookConfirmacaoTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.WebhookConfirmacaoTest]/[method:replayNaoCreditaDeNovo()] (57 ms)</li><li>com.omnitribo.carteira.api.ConclusaoRollbackTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoRollbackTest]/[method:depoisDaFalhaAOperacaoContinuaRetentavel()] (75 ms)</li><li>com.omnitribo.carteira.api.ConservacaoTokensTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConservacaoTokensTest]/[test-template:conservacaoDaOfertaDeTokenDependeDaCategoria(com.omnitribo.missoes.dominio.CategoriaMissao)]/[test-template-invocation:#1] (82 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:expirarMissaoFinanciadaEstornaOPoteAoFinanciador()] (82 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:conclusaoDaBaixaNaCustodia()] (71 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:retryDeFinanciamentoQueCompletouOPoteDevolveReplayENao422()] (104 ms)</li><li>com.omnitribo.carteira.api.ConservacaoTokensTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConservacaoTokensTest]/[test-template:conservacaoDaOfertaDeTokenDependeDaCategoria(com.omnitribo.missoes.dominio.CategoriaMissao)]/[test-template-invocation:#3] (82 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:adminDestravaMissaoParadaEEstornaOPote()] (95 ms)</li><li>com.omnitribo.carteira.api.ConservacaoTokensTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConservacaoTokensTest]/[test-template:conservacaoDaOfertaDeTokenDependeDaCategoria(com.omnitribo.missoes.dominio.CategoriaMissao)]/[test-template-invocation:#2] (91 ms)</li><li>com.omnitribo.carteira.api.ConservacaoTokensTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConservacaoTokensTest]/[test-template:conservacaoDaOfertaDeTokenDependeDaCategoria(com.omnitribo.missoes.dominio.CategoriaMissao)]/[test-template-invocation:#4] (94 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cancelarRascunhoFinanciadoEstornaOPote()] (103 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:disputaPelaUltimaVaga()] (114 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cancelarAjudaEstorna()] (113 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:confirmacaoOmitidaConcluiEPagaOExecutor()] (104 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:estornoComDoisFinanciadoresDevolveAParteDeCadaUm()] (122 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cancelarMissaoFinanciadaEstornaOPoteAoFinanciador()] (128 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:execucaoAbandonadaExpiraEEstornaOPote()] (133 ms)</li><li>com.omnitribo.carteira.api.ConclusaoRollbackTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoRollbackTest]/[method:falhaAntesDoCommitNaoDeixaResiduoEmTabelaNenhuma()] (129 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:expirarAjudaEstorna()] (157 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cicloAjudaFinanciadaConserva()] (181 ms)</li><li>com.omnitribo.missoes.api.FinanciamentoControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.FinanciamentoControllerTest]/[method:cicloCompleto_financiarPublicarConcluir_conservaOsTokens()] (188 ms)</li><li>com.omnitribo.carteira.api.ConclusaoConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoConcorrenteTest]/[method:cemThreadsConfirmandoMesmaMissao_creditamExatamenteUmaVez()] (985 ms)</li><li>com.omnitribo.logistica.api.EntregaFalidaCicloTest.[engine:junit-jupiter]/[class:com.omnitribo.logistica.api.EntregaFalidaCicloTest]/[method:redespachoNaoDuplica()] (1262 ms)</li><li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()] (1549 ms)</li><li>com.omnitribo.carteira.api.TransferenciaDeadlockTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaDeadlockTest]/[method:transferenciasCruzadasSimultaneas_semDeadlockESaldosCorretos()] (1642 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.25.9 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

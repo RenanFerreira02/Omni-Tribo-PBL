@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DrenadorOutboxService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.dominio</a> &gt; <span class="el_source">DrenadorOutboxService.java</span></div><h1>DrenadorOutboxService.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.dominio;
+
+import com.omnitribo.compartilhado.infra.OutboxRepository;
+import com.omnitribo.notificacoes.api.DespachoAlerta;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Drena a outbox: lê eventos pendentes e os entrega, com tentativas e backoff exponencial.
+ *
+ * &lt;p&gt;É a metade de leitura do padrão descrito em {@code PublicadorEventos}. A metade de escrita
+ * garante que a intenção de notificar é durável junto com o fato; esta garante que a intenção vira
+ * entrega, mesmo que o destino esteja fora do ar por um tempo.
+ */
+@Service
+public class DrenadorOutboxService {
+
+<span class="fc" id="L25">  private static final Logger log = LoggerFactory.getLogger(DrenadorOutboxService.class);</span>
+
+  private final OutboxRepository outboxRepository;
+
+  /**
+   * Injetado pela INTERFACE, e essa é a parte que o compilador não cobra. {@code compartilhado} é
+   * isento da regra do ArchUnit como ALVO, mas continua sendo ORIGEM: nomear {@code
+   * DespachanteAlertaService} aqui faria este arquivo alcançar {@code notificacoes.dominio} e
+   * reprovar {@code RegrasArquiteturaTest}. Trocar o tipo do campo pela implementação compilaria
+   * perfeitamente e quebraria o teste de arquitetura.
+   */
+  private final DespachoAlerta despachoAlerta;
+
+  private final int maximoTentativas;
+  private final Duration backoffBase;
+
+  public DrenadorOutboxService(
+      OutboxRepository outboxRepository,
+      DespachoAlerta despachoAlerta,
+      @Value(&quot;${app.outbox.maximo-tentativas:5}&quot;) int maximoTentativas,
+<span class="fc" id="L45">      @Value(&quot;${app.outbox.backoff-base:PT30S}&quot;) Duration backoffBase) {</span>
+<span class="fc" id="L46">    this.outboxRepository = outboxRepository;</span>
+<span class="fc" id="L47">    this.despachoAlerta = despachoAlerta;</span>
+<span class="fc" id="L48">    this.maximoTentativas = maximoTentativas;</span>
+<span class="fc" id="L49">    this.backoffBase = backoffBase;</span>
+<span class="fc" id="L50">  }</span>
+
+  /**
+   * Processa um lote e devolve quantos eventos foram tratados (entregues ou adiados).
+   *
+   * &lt;p&gt;Transação ÚNICA por lote, e o isolamento entre eventos vem do try/catch: uma falha de
+   * despacho é capturada e vira {@code registrarFalha}, não uma exceção que derrubaria o lote
+   * inteiro. Se um evento envenenado pudesse abortar a transação, um único payload malformado
+   * pararia a fila para todos os outros — o modo de falha mais caro que uma outbox pode ter.
+   *
+   * &lt;p&gt;O SKIP LOCKED de {@code buscarPendentesParaPublicar} garante que dois drenadores
+   * concorrentes peguem lotes disjuntos em vez de disputarem as mesmas linhas.
+   */
+  @Transactional
+  public int drenarLote(int limite) {
+<span class="fc" id="L65">    Instant agora = Instant.now();</span>
+<span class="fc" id="L66">    List&lt;Outbox&gt; pendentes =</span>
+<span class="fc" id="L67">        outboxRepository.buscarPendentesParaPublicar(</span>
+<span class="fc" id="L68">            agora, maximoTentativas, PageRequest.of(0, limite));</span>
+
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (pendentes.isEmpty()) {</span>
+<span class="fc" id="L71">      return 0;</span>
+    }
+
+<span class="fc bfc" id="L74" title="All 2 branches covered.">    for (Outbox evento : pendentes) {</span>
+      try {
+<span class="fc" id="L76">        despachoAlerta.despachar(</span>
+<span class="fc" id="L77">            evento.getTipoEvento(), evento.getAgregadoId(), evento.getPayload());</span>
+<span class="fc" id="L78">        evento.marcarPublicado(agora);</span>
+<span class="fc" id="L79">      } catch (RuntimeException e) {</span>
+        // Backoff exponencial: 30s, 1min, 2min, 4min… Sem crescimento, um destino fora do ar
+        // receberia a mesma rajada a cada varredura e o retry viraria ataque contra ele.
+<span class="fc" id="L82">        Duration espera = backoffBase.multipliedBy(1L &lt;&lt; evento.getTentativas());</span>
+<span class="fc" id="L83">        evento.registrarFalha(e.toString(), agora.plus(espera));</span>
+
+<span class="fc" id="L85">        log.warn(</span>
+            &quot;Falha ao despachar evento {} da outbox (tentativa {} de {}): {}&quot;,
+<span class="fc" id="L87">            evento.getId(),</span>
+<span class="fc" id="L88">            evento.getTentativas(),</span>
+<span class="fc" id="L89">            maximoTentativas,</span>
+<span class="fc" id="L90">            e.toString());</span>
+<span class="fc" id="L91">      }</span>
+<span class="fc" id="L92">    }</span>
+
+<span class="fc" id="L94">    outboxRepository.saveAll(pendentes);</span>
+<span class="fc" id="L95">    return pendentes.size();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

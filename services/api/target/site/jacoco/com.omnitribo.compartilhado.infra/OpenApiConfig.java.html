@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenApiConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.infra</a> &gt; <span class="el_source">OpenApiConfig.java</span></div><h1>OpenApiConfig.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.infra;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Documentação da API.
+ *
+ * &lt;p&gt;As respostas de erro são declaradas uma única vez aqui e referenciadas nos controllers por
+ * {@code @ApiResponse(responseCode = &quot;409&quot;, ref = &quot;#/components/responses/Conflito&quot;)}. Sem isso,
+ * cada endpoint repetiria seis blocos idênticos de erro e a documentação sairia de sincronia com o
+ * GlobalExceptionHandler na primeira mudança.
+ */
+@Configuration
+<span class="fc" id="L23">public class OpenApiConfig {</span>
+
+  private static final String ESQUEMA_BEARER = &quot;bearerAuth&quot;;
+  private static final String TIPO_PROBLEM_JSON = &quot;application/problem+json&quot;;
+
+  @Bean
+  public OpenAPI omniTriboOpenApi() {
+<span class="fc" id="L30">    return new OpenAPI()</span>
+<span class="fc" id="L31">        .info(</span>
+            new Info()
+<span class="fc" id="L33">                .title(&quot;Omni-Tribo API&quot;)</span>
+<span class="fc" id="L34">                .version(&quot;v1&quot;)</span>
+<span class="fc" id="L35">                .description(</span>
+                    &quot;Missões sociais hiperlocais gamificadas. Erros seguem RFC 9457 &quot;
+                        + &quot;(application/problem+json).&quot;))
+<span class="fc" id="L38">        .components(</span>
+            new Components()
+<span class="fc" id="L40">                .addSecuritySchemes(</span>
+                    ESQUEMA_BEARER,
+                    new SecurityScheme()
+<span class="fc" id="L43">                        .type(SecurityScheme.Type.HTTP)</span>
+<span class="fc" id="L44">                        .scheme(&quot;bearer&quot;)</span>
+<span class="fc" id="L45">                        .bearerFormat(&quot;JWT&quot;)</span>
+<span class="fc" id="L46">                        .description(&quot;Access token JWT RS256 obtido em POST /api/v1/auth/login&quot;))</span>
+<span class="fc" id="L47">                .addResponses(</span>
+                    &quot;RequisicaoInvalida&quot;,
+<span class="fc" id="L49">                    problema(</span>
+                        &quot;Payload inválido. A propriedade 'errors' lista campo e mensagem de cada&quot;
+                            + &quot; violação.&quot;))
+<span class="fc" id="L52">                .addResponses(&quot;NaoAutenticado&quot;, problema(&quot;Token ausente, expirado ou inválido.&quot;))</span>
+                // Estas respostas são COMPARTILHADAS por todos os controllers, não só por missões:
+                // a descrição tem de ser genérica, ou o Swagger de carteira e de alertas fala de
+                // &quot;missão&quot; sem que exista nenhuma envolvida.
+<span class="fc" id="L56">                .addResponses(</span>
+<span class="fc" id="L57">                    &quot;AcessoNegado&quot;, problema(&quot;Autenticado, mas sem autoridade sobre este recurso.&quot;))</span>
+<span class="fc" id="L58">                .addResponses(</span>
+                    &quot;NaoEncontrado&quot;,
+<span class="fc" id="L60">                    problema(</span>
+                        &quot;Recurso inexistente — ou invisível para este usuário, deliberadamente&quot;
+                            + &quot; indistinguível de inexistente (é o caso do rascunho alheio).&quot;))
+<span class="fc" id="L63">                .addResponses(</span>
+<span class="fc" id="L64">                    &quot;Conflito&quot;, problema(&quot;Operação incompatível com o estado atual do recurso.&quot;))</span>
+<span class="fc" id="L65">                .addResponses(</span>
+                    &quot;RegraNegocioViolada&quot;,
+<span class="fc" id="L67">                    problema(</span>
+                        &quot;Corpo bem formado, mas recusado pela validação de negócio no servidor&quot;
+                            + &quot; (ex.: check-in fora do raio). A tentativa fica registrada.&quot;))
+<span class="fc" id="L70">                .addResponses(</span>
+                    &quot;LimiteExcedido&quot;,
+<span class="fc" id="L72">                    problema(&quot;Limite de requisições excedido. Veja o header Retry-After.&quot;)));</span>
+  }
+
+  private static ApiResponse problema(String descricao) {
+<span class="fc" id="L76">    return new ApiResponse()</span>
+<span class="fc" id="L77">        .description(descricao)</span>
+<span class="fc" id="L78">        .content(</span>
+            new Content()
+<span class="fc" id="L80">                .addMediaType(</span>
+                    TIPO_PROBLEM_JSON,
+                    new MediaType()
+<span class="fc" id="L83">                        .schema(new Schema&lt;&gt;().$ref(&quot;#/components/schemas/ProblemDetail&quot;))));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

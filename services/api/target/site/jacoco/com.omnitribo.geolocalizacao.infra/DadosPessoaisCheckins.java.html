@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DadosPessoaisCheckins.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.geolocalizacao.infra</a> &gt; <span class="el_source">DadosPessoaisCheckins.java</span></div><h1>DadosPessoaisCheckins.java</h1><pre class="source lang-java linenums">package com.omnitribo.geolocalizacao.infra;
+
+import com.omnitribo.compartilhado.api.DadosPessoaisDoUsuario;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
+
+/**
+ * Seção &quot;checkins&quot; da exportação LGPD: o histórico de presença do titular.
+ *
+ * &lt;p&gt;É a seção mais sensível do arquivo — um histórico de localização é o que ele parece ser — e é
+ * por isso mesmo que ela precisa estar aqui: dado sensível que a plataforma guarda é exatamente o
+ * que o direito de acesso existe para revelar.
+ *
+ * &lt;p&gt;A COORDENADA não sai, e a distância medida sai. Duas razões: a regra do projeto mantém toda
+ * função PostGIS numa única classe (ADR 0007), e {@code ponto} exigiria {@code ST_Y}/{@code ST_X}
+ * aqui; e &quot;você estava a 12 m da origem da missão X, nesta data&quot; responde à pergunta do titular sem
+ * materializar um rastro de coordenadas num arquivo que ele vai baixar e guardar.
+ *
+ * &lt;p&gt;{@code chave_idempotencia} não sai — é hash de controle, não dado pessoal.
+ */
+@Component
+public class DadosPessoaisCheckins implements DadosPessoaisDoUsuario {
+
+  private final JdbcClient jdbc;
+
+<span class="fc" id="L29">  public DadosPessoaisCheckins(JdbcClient jdbc) {</span>
+<span class="fc" id="L30">    this.jdbc = jdbc;</span>
+<span class="fc" id="L31">  }</span>
+
+  @Override
+  public String secao() {
+<span class="fc" id="L35">    return &quot;checkins&quot;;</span>
+  }
+
+  @Override
+  public List&lt;Map&lt;String, Object&gt;&gt; exportar(UUID usuarioId) {
+<span class="fc" id="L40">    return jdbc.sql(</span>
+            &quot;&quot;&quot;
+            SELECT missao_id, acuracia_m, distancia_alvo_m, metodo, mock_detectado,
+                   valido, motivo_rejeicao, criado_em
+              FROM checkin
+             WHERE usuario_id = :usuario
+             ORDER BY criado_em DESC
+            &quot;&quot;&quot;)
+<span class="fc" id="L48">        .param(&quot;usuario&quot;, usuarioId)</span>
+<span class="fc" id="L49">        .query()</span>
+<span class="fc" id="L50">        .listOfRows();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

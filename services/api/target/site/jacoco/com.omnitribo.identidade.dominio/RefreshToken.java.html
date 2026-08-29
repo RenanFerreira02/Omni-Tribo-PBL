@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RefreshToken.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">RefreshToken.java</span></div><h1>RefreshToken.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;refresh_token&quot;)
+public class RefreshToken {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  @Column(name = &quot;usuario_id&quot;, nullable = false, updatable = false)
+  private UUID usuarioId;
+
+  @Column(name = &quot;token_hash&quot;, nullable = false, length = 255)
+  private String tokenHash;
+
+  // familiaId agrupa tokens de uma mesma sessão para detecção de reuso (token rotation)
+  @Column(name = &quot;familia_id&quot;, nullable = false)
+  private UUID familiaId;
+
+  @Column(name = &quot;expira_em&quot;, nullable = false)
+  private Instant expiraEm;
+
+  @Column(name = &quot;revogado_em&quot;)
+  private Instant revogadoEm;
+
+  // UUID puro sem FK: evita constraint circular na rotação; ver V2__identidade.sql
+  @Column(name = &quot;substituido_por&quot;)
+  private UUID substituidoPor;
+
+<span class="fc" id="L38">  protected RefreshToken() {}</span>
+
+<span class="fc" id="L40">  public RefreshToken(UUID id, UUID usuarioId, String tokenHash, UUID familiaId, Instant expiraEm) {</span>
+<span class="fc" id="L41">    this.id = id;</span>
+<span class="fc" id="L42">    this.usuarioId = usuarioId;</span>
+<span class="fc" id="L43">    this.tokenHash = tokenHash;</span>
+<span class="fc" id="L44">    this.familiaId = familiaId;</span>
+<span class="fc" id="L45">    this.expiraEm = expiraEm;</span>
+<span class="fc" id="L46">  }</span>
+
+  public boolean estaValido() {
+<span class="pc bpc" id="L49" title="2 of 4 branches missed.">    return revogadoEm == null &amp;&amp; Instant.now().isBefore(expiraEm);</span>
+  }
+
+  public void revogar(UUID substituidoPorId) {
+<span class="fc" id="L53">    this.revogadoEm = Instant.now();</span>
+<span class="fc" id="L54">    this.substituidoPor = substituidoPorId;</span>
+<span class="fc" id="L55">  }</span>
+
+  public UUID getId() {
+<span class="nc" id="L58">    return id;</span>
+  }
+
+  public UUID getUsuarioId() {
+<span class="fc" id="L62">    return usuarioId;</span>
+  }
+
+  public UUID getFamiliaId() {
+<span class="fc" id="L66">    return familiaId;</span>
+  }
+
+  public Instant getRevogadoEm() {
+<span class="fc" id="L70">    return revogadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

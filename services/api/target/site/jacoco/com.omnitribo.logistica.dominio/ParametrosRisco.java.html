@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParametrosRisco.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.dominio</a> &gt; <span class="el_source">ParametrosRisco.java</span></div><h1>ParametrosRisco.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.dominio;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.EnumMap;
+import java.util.Map;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * O ARTEFATO TREINADO do modelo de risco: coeficientes, padronização e limiares.
+ *
+ * &lt;p&gt;Mesma divisão de {@code ParametrosRecompensa}: o MODELO é código ({@link PrevisorDeRisco},
+ * {@link CodificadorEntrega}, {@link CaracteristicaRisco}), estes NÚMEROS são configuração. A
+ * diferença é que aqui os números não foram escolhidos por calibração humana — saíram de {@code
+ * TreinadorRegressaoLogistica} sobre o dataset sintético de semente fixa, e {@code
+ * ModeloRiscoTreinoTest} re-treina no {@code verify} e confere cada um contra o que está publicado.
+ * &lt;b&gt;Editar um coeficiente à mão quebra o build&lt;/b&gt;, de propósito.
+ *
+ * &lt;p&gt;&lt;b&gt;{@code versao} é obrigatória porque o score é CONGELADO.&lt;/b&gt; O multiplicador derivado daqui
+ * é gravado em {@code missao.multiplicador_risco} e a probabilidade em {@code
+ * entrega_falida.risco_probabilidade}. Sem a versão, some a resposta para &quot;este multiplicador
+ * estava certo quando foi aplicado?&quot; — exatamente o papel de {@code versao_formula} na recompensa.
+ * Mudou qualquer número abaixo? Suba a versão junto.
+ *
+ * &lt;p&gt;Chave de enum nos mapas, e não {@code String}, é decisão de segurança de configuração: um nome
+ * de característica digitado errado no YAML &lt;b&gt;derruba o boot&lt;/b&gt;, em vez de ser lido como
+ * coeficiente ausente e virar zero silencioso — que produziria previsões erradas para sempre sem
+ * ninguém notar.
+ */
+@SuppressFBWarnings(
+    value = &quot;EI_EXPOSE_REP&quot;,
+    justification =
+        &quot;Os acessores devolvem mapas JÁ imutáveis: o construtor compacto copia para EnumMap e&quot;
+            + &quot; embrulha em Collections.unmodifiableMap, então não há representação interna a&quot;
+            + &quot; expor. O SpotBugs não reconhece esse par como imutável — reconhece Map.copyOf —, e&quot;
+            + &quot; trocar por Map.copyOf silenciaria o aviso ao custo de perder a ordem de iteração&quot;
+            + &quot; determinística do EnumMap. Map.of/copyOf randomizam a ordem A CADA EXECUÇÃO DA JVM&quot;
+            + &quot; (ImmutableCollections.SALT), e embora este módulo leia os mapas só por chave, a&quot;
+            + &quot; ordem estável é a rede de proteção para quem iterar no futuro sem saber disso.&quot;)
+@ConfigurationProperties(prefix = &quot;app.logistica.risco&quot;)
+public record ParametrosRisco(
+    int versao,
+    double intercepto,
+    Map&lt;CaracteristicaRisco, Double&gt; coeficientes,
+    Map&lt;CaracteristicaRisco, Padronizacao&gt; padronizacao,
+    double limiarAlto,
+    double limiarMedio,
+    Map&lt;String, Double&gt; taxaPorFaixaCep,
+    double taxaCepPadrao,
+    double multiplicadorMinimo,
+    double multiplicadorMaximo) {
+
+  /**
+   * Média e desvio-padrão de uma característica numérica, medidos &lt;b&gt;só na partição de treino&lt;/b&gt;.
+   *
+   * &lt;p&gt;Calcular sobre o dataset inteiro seria vazamento do conjunto de teste para dentro do modelo,
+   * e inflaria as métricas reportadas. A média também é o valor de IMPUTAÇÃO: uma característica
+   * ausente entra com z-score exatamente 0, ou seja, contribuição zero — o modelo passa a não ter
+   * opinião sobre ela, que é o comportamento correto quando o dado não existe.
+   */
+<span class="fc" id="L60">  public record Padronizacao(double media, double desvio) {}</span>
+
+<span class="fc" id="L62">  public ParametrosRisco {</span>
+<span class="fc" id="L63">    coeficientes = copiaImutavel(coeficientes);</span>
+<span class="fc" id="L64">    padronizacao = copiaImutavelPadronizacao(padronizacao);</span>
+<span class="fc" id="L65">    taxaPorFaixaCep = Map.copyOf(taxaPorFaixaCep);</span>
+
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    for (CaracteristicaRisco c : CaracteristicaRisco.values()) {</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">      if (!coeficientes.containsKey(c)) {</span>
+<span class="nc" id="L69">        throw new IllegalArgumentException(</span>
+            &quot;app.logistica.risco.coeficientes sem entrada para &quot;
+                + c
+                + &quot;. Configuração incompleta&quot;
+                + &quot; produziria previsão silenciosamente errada — o boot falha de propósito.&quot;);
+      }
+<span class="pc bpc" id="L75" title="1 of 4 branches missed.">      if (c.numerica() &amp;&amp; !padronizacao.containsKey(c)) {</span>
+<span class="nc" id="L76">        throw new IllegalArgumentException(</span>
+            &quot;app.logistica.risco.padronizacao sem entrada para a característica numérica &quot; + c);
+      }
+    }
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    for (Map.Entry&lt;CaracteristicaRisco, Padronizacao&gt; e : padronizacao.entrySet()) {</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">      if (!(e.getValue().desvio() &gt; 0.0)) {</span>
+<span class="nc" id="L82">        throw new IllegalArgumentException(</span>
+<span class="nc" id="L83">            &quot;Desvio-padrão de &quot; + e.getKey() + &quot; deve ser positivo — divisão por zero no z-score.&quot;);</span>
+      }
+<span class="fc" id="L85">    }</span>
+<span class="pc bpc" id="L86" title="3 of 6 branches missed.">    if (!(limiarMedio &gt; 0.0) || !(limiarMedio &lt; limiarAlto) || !(limiarAlto &lt; 1.0)) {</span>
+<span class="nc" id="L87">      throw new IllegalArgumentException(</span>
+          &quot;Limiares devem satisfazer 0 &lt; limiarMedio &lt; limiarAlto &lt; 1, vieram &quot;
+              + limiarMedio
+              + &quot; e &quot;
+              + limiarAlto);
+    }
+<span class="pc bpc" id="L93" title="2 of 4 branches missed.">    if (!(multiplicadorMinimo &gt;= 1.0) || !(multiplicadorMaximo &gt;= multiplicadorMinimo)) {</span>
+<span class="nc" id="L94">      throw new IllegalArgumentException(</span>
+          &quot;Exige 1,0 &lt;= multiplicadorMinimo &lt;= multiplicadorMaximo. Mínimo abaixo de 1 faria o risco&quot;
+              + &quot; REDUZIR a recompensa, invertendo a tese do produto.&quot;);
+    }
+<span class="fc" id="L98">  }</span>
+
+  /**
+   * {@code EnumMap} e não {@code Map.copyOf}, e a diferença é a razão de este método existir.
+   *
+   * &lt;p&gt;{@code Map.of}/{@code Map.copyOf} randomizam a ordem de iteração &lt;b&gt;a cada execução da
+   * JVM&lt;/b&gt; ({@code ImmutableCollections.SALT}, semeado do relógio). O código deste módulo nunca
+   * itera estes mapas — lê sempre por chave, e o vetor é montado pela ordem de {@code
+   * CaracteristicaRisco.values()} — mas garantir ordem estável aqui remove a classe inteira de
+   * defeito, caso alguém no futuro itere sem saber disso. {@code EnumMap} itera pelo ordinal.
+   */
+  private static Map&lt;CaracteristicaRisco, Double&gt; copiaImutavel(
+      Map&lt;CaracteristicaRisco, Double&gt; origem) {
+<span class="fc" id="L111">    EnumMap&lt;CaracteristicaRisco, Double&gt; copia = new EnumMap&lt;&gt;(CaracteristicaRisco.class);</span>
+<span class="fc" id="L112">    copia.putAll(origem);</span>
+<span class="fc" id="L113">    return java.util.Collections.unmodifiableMap(copia);</span>
+  }
+
+  private static Map&lt;CaracteristicaRisco, Padronizacao&gt; copiaImutavelPadronizacao(
+      Map&lt;CaracteristicaRisco, Padronizacao&gt; origem) {
+<span class="fc" id="L118">    EnumMap&lt;CaracteristicaRisco, Padronizacao&gt; copia = new EnumMap&lt;&gt;(CaracteristicaRisco.class);</span>
+<span class="fc" id="L119">    copia.putAll(origem);</span>
+<span class="fc" id="L120">    return java.util.Collections.unmodifiableMap(copia);</span>
+  }
+
+  /** Coeficiente da característica. Ausência é defeito de configuração, não caso de uso. */
+  public double coeficiente(CaracteristicaRisco c) {
+<span class="fc" id="L125">    Double valor = coeficientes.get(c);</span>
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">    if (valor == null) {</span>
+<span class="nc" id="L127">      throw new IllegalStateException(&quot;Sem coeficiente publicado para &quot; + c);</span>
+    }
+<span class="fc" id="L129">    return valor;</span>
+  }
+
+  /**
+   * Taxa histórica de falha da faixa de CEP, pelos 3 primeiros dígitos.
+   *
+   * &lt;p&gt;CEP desconhecido cai em {@code taxaCepPadrao}, que é a média do treino — ou seja, z-score 0
+   * e contribuição nula. É o comportamento honesto: sem histórico daquela faixa, o modelo não deve
+   * ter opinião sobre ela, nem para mais nem para menos.
+   */
+  public double taxaDaFaixaDeCep(String cep) {
+<span class="pc bpc" id="L140" title="2 of 4 branches missed.">    if (cep == null || cep.length() &lt; 3) {</span>
+<span class="nc" id="L141">      return taxaCepPadrao;</span>
+    }
+<span class="fc" id="L143">    return taxaPorFaixaCep.getOrDefault(cep.substring(0, 3), taxaCepPadrao);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

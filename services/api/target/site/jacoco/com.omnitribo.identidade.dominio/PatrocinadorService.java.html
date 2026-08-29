@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PatrocinadorService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">PatrocinadorService.java</span></div><h1>PatrocinadorService.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import com.omnitribo.carteira.api.AporteToken;
+import com.omnitribo.carteira.api.ProvisionamentoCarteira;
+import com.omnitribo.carteira.api.ResultadoAporte;
+import com.omnitribo.compartilhado.dominio.Auditavel;
+import com.omnitribo.compartilhado.dominio.ChaveIdempotencia;
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import com.omnitribo.identidade.api.AporteResponse;
+import com.omnitribo.identidade.api.ConsultaPatrocinador;
+import com.omnitribo.identidade.api.PatrocinadorResponse;
+import com.omnitribo.identidade.infra.PatrocinadorRepository;
+import com.omnitribo.identidade.infra.UsuarioRepository;
+import java.time.Instant;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Cadastro e consulta de patrocinadores.
+ *
+ * &lt;p&gt;É o lado de identidade da carteira de patrocinador (ADR 0024). Aqui nasce o TITULAR; quem move
+ * token é {@code carteira}, e quem decide se uma missão é patrocinada é {@code missoes}.
+ *
+ * &lt;p&gt;&lt;b&gt;Fora de escopo, e continua fora:&lt;/b&gt; validação de CNPJ, meio de pagamento e prevenção a
+ * lavagem. O cadastro é por endpoint ADMIN justamente porque onboarding financeiro de verdade é
+ * produto regulado, não MVP acadêmico — ver a seção &quot;Fora de escopo, decidido&quot; do CLAUDE.md.
+ */
+@Service
+public class PatrocinadorService implements ConsultaPatrocinador {
+
+  private final PatrocinadorRepository patrocinadorRepository;
+  private final UsuarioRepository usuarioRepository;
+  private final ProvisionamentoCarteira provisionamentoCarteira;
+  private final AporteToken aporteToken;
+
+  public PatrocinadorService(
+      PatrocinadorRepository patrocinadorRepository,
+      UsuarioRepository usuarioRepository,
+      // Injetado pela INTERFACE: é o tipo declarado no campo que o ArchUnit inspeciona, e nomear
+      // ProvisionamentoCarteiraService aqui faria identidade alcançar carteira.dominio.
+      ProvisionamentoCarteira provisionamentoCarteira,
+<span class="fc" id="L47">      AporteToken aporteToken) {</span>
+<span class="fc" id="L48">    this.patrocinadorRepository = patrocinadorRepository;</span>
+<span class="fc" id="L49">    this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L50">    this.provisionamentoCarteira = provisionamentoCarteira;</span>
+<span class="fc" id="L51">    this.aporteToken = aporteToken;</span>
+<span class="fc" id="L52">  }</span>
+
+  @Override
+  @Transactional(readOnly = true)
+  public Optional&lt;UUID&gt; usuarioIdDoPatrocinadorAtivo(String transportadoraSlug) {
+<span class="pc bpc" id="L57" title="2 of 4 branches missed.">    if (transportadoraSlug == null || transportadoraSlug.isBlank()) {</span>
+<span class="nc" id="L58">      return Optional.empty();</span>
+    }
+<span class="fc" id="L60">    return patrocinadorRepository.buscarUsuarioIdAtivoPorSlug(</span>
+<span class="fc" id="L61">        transportadoraSlug.toLowerCase(Locale.ROOT));</span>
+  }
+
+  /**
+   * Cria o patrocinador: conta-titular, carteira e a relação com a transportadora.
+   *
+   * &lt;p&gt;Os três numa transação só, e isso não é conveniência. Um patrocinador sem carteira faria o
+   * primeiro webhook estourar com {@code RecursoNaoEncontradoException} lá dentro do caminho de
+   * valor, com o {@code FOR UPDATE} do ponto de custódia na mão — e a transportadora receberia 500
+   * num endpoint cujo contrato é nunca devolver 5xx para estado de negócio.
+   *
+   * &lt;p&gt;{@code garantirCarteira} roda com {@code MANDATORY}, então ele EXIGE esta transação; chamar
+   * este método fora de uma falharia na hora, que é o comportamento desejado.
+   */
+  @Auditavel(acao = &quot;PATROCINADOR_CADASTRADO&quot;, entidade = &quot;patrocinador&quot;)
+  @Transactional
+  public PatrocinadorResponse cadastrar(String nome, String transportadoraSlug, Instant agora) {
+<span class="fc" id="L78">    String slug = transportadoraSlug.toLowerCase(Locale.ROOT);</span>
+
+    // Recusa amigável ANTES de escrever. Sem ela, a segunda tentativa com o mesmo slug bateria em
+    // uk_patrocinador_slug e viraria 500 com mensagem de driver — que a regra de erro do projeto
+    // proíbe expor, e que não diz ao ADMIN o que ele fez de errado.
+<span class="fc bfc" id="L83" title="All 2 branches covered.">    if (patrocinadorRepository.existsByTransportadoraSlug(slug)) {</span>
+<span class="fc" id="L84">      throw new RegraNegocioVioladaException(</span>
+          &quot;Já existe patrocinador para a transportadora &quot; + slug + &quot;.&quot;);
+    }
+
+<span class="fc" id="L88">    String email = &quot;patrocinador@&quot; + slug + &quot;.local&quot;;</span>
+<span class="fc" id="L89">    String handle = handleDe(slug);</span>
+
+    // Derivados do slug, que é único — então a colisão só acontece se um usuário HUMANO já tiver
+    // tomado o handle. Checar é mais barato que explicar um 500 depois.
+<span class="pc bpc" id="L93" title="2 of 4 branches missed.">    if (usuarioRepository.existsByEmail(email) || usuarioRepository.existsByHandle(handle)) {</span>
+<span class="nc" id="L94">      throw new RegraNegocioVioladaException(</span>
+          &quot;Identificador derivado do slug &quot; + slug + &quot; já está em uso.&quot;);
+    }
+
+<span class="fc" id="L98">    UUID usuarioId = UUID.randomUUID();</span>
+<span class="fc" id="L99">    usuarioRepository.save(Usuario.paraPatrocinador(usuarioId, nome, email, handle, agora));</span>
+
+    // A carteira nasce junto com o titular, exatamente como no registro de gente. Provisionar sob
+    // demanda no primeiro débito seria pior: a criação aconteceria dentro da transação do webhook,
+    // que já segura locks.
+<span class="fc" id="L104">    provisionamentoCarteira.garantirCarteira(usuarioId);</span>
+
+<span class="fc" id="L106">    Patrocinador patrocinador = new Patrocinador(UUID.randomUUID(), usuarioId, slug, nome, agora);</span>
+<span class="fc" id="L107">    patrocinadorRepository.save(patrocinador);</span>
+
+<span class="fc" id="L109">    return PatrocinadorResponse.de(patrocinador);</span>
+  }
+
+  @Transactional(readOnly = true)
+  public List&lt;PatrocinadorResponse&gt; listar() {
+<span class="nc" id="L114">    return patrocinadorRepository.findAll().stream().map(PatrocinadorResponse::de).toList();</span>
+  }
+
+  @Auditavel(acao = &quot;PATROCINADOR_DESATIVADO&quot;, entidade = &quot;patrocinador&quot;)
+  @Transactional
+  public PatrocinadorResponse desativar(UUID patrocinadorId) {
+<span class="nc" id="L120">    Patrocinador patrocinador = buscar(patrocinadorId);</span>
+<span class="nc" id="L121">    patrocinador.desativar();</span>
+<span class="nc" id="L122">    patrocinadorRepository.save(patrocinador);</span>
+<span class="nc" id="L123">    return PatrocinadorResponse.de(patrocinador);</span>
+  }
+
+  /**
+   * Aporta tokens na carteira do patrocinador. É o ÚNICO ponto de emissão de moeda do sistema.
+   *
+   * &lt;p&gt;A resolução do titular e o crédito acontecem na MESMA transação. Separá-las em duas — uma
+   * leitura aqui, um {@code AporteToken.aportar} lá — deixaria uma janela entre descobrir o
+   * usuarioId e travar a carteira dele, e a chave de idempotência é derivada justamente desse
+   * usuarioId: com o patrocínio alterado no meio, a chave protegeria a carteira errada.
+   *
+   * &lt;p&gt;Emissão duplicada não é recuperável depois. Se um retry cunhasse duas vezes, ledger e
+   * projeção ficariam ambos errados na mesma direção e a reconciliação seguiria verde — por isso a
+   * idempotência aqui é obrigatória, e não um conforto de cliente.
+   */
+  @Auditavel(acao = &quot;PATROCINADOR_APORTE&quot;, entidade = &quot;patrocinador&quot;)
+  @Transactional
+  public AporteResponse aportar(
+      UUID patrocinadorId, long tokens, String chaveDoCliente, Instant agora) {
+
+<span class="fc" id="L143">    Patrocinador patrocinador = buscar(patrocinadorId);</span>
+
+    // Patrocínio encerrado não recebe aporte: emitir moeda para uma relação que acabou seria criar
+    // token que nenhuma missão vai gastar, e a conservação passaria a depender de quantos contratos
+    // foram desativados com saldo dentro.
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (!patrocinador.isAtivo()) {</span>
+<span class="fc" id="L149">      throw new RegraNegocioVioladaException(</span>
+<span class="fc" id="L150">          &quot;Patrocinador &quot; + patrocinador.getTransportadoraSlug() + &quot; está inativo.&quot;);</span>
+    }
+
+<span class="fc" id="L153">    ResultadoAporte resultado =</span>
+<span class="fc" id="L154">        aporteToken.aportar(</span>
+<span class="fc" id="L155">            patrocinador.getUsuarioId(),</span>
+            tokens,
+<span class="fc" id="L157">            ChaveIdempotencia.aportePatrocinador(patrocinador.getUsuarioId(), chaveDoCliente),</span>
+            agora);
+
+<span class="fc" id="L160">    return new AporteResponse(</span>
+<span class="fc" id="L161">        patrocinador.getId(),</span>
+<span class="fc" id="L162">        patrocinador.getUsuarioId(),</span>
+<span class="fc" id="L163">        resultado.lancamentoId(),</span>
+<span class="fc" id="L164">        resultado.saldoTokens(),</span>
+<span class="fc" id="L165">        resultado.replay());</span>
+  }
+
+  private Patrocinador buscar(UUID patrocinadorId) {
+<span class="fc" id="L169">    return patrocinadorRepository</span>
+<span class="fc" id="L170">        .findById(patrocinadorId)</span>
+<span class="pc" id="L171">        .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Patrocinador não encontrado.&quot;));</span>
+  }
+
+  /**
+   * {@code transportadora-dev} vira {@code transportadora_dev}.
+   *
+   * &lt;p&gt;O hífen do slug não é aceito em handle pela convenção do projeto, e o handle existe aqui só
+   * para satisfazer {@code uk_usuario_handle} — ninguém procura patrocinador por @.
+   */
+  private static String handleDe(String slug) {
+<span class="fc" id="L181">    return slug.replace('-', '_');</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

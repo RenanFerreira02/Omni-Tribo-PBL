@@ -1,0 +1,341 @@
+{
+  "groups": [
+    {
+      "name": "app.carteira",
+      "type": "com.omnitribo.carteira.dominio.PoliticaCarteira",
+      "sourceType": "com.omnitribo.carteira.dominio.PoliticaCarteira"
+    },
+    {
+      "name": "app.identidade.conquistas",
+      "type": "com.omnitribo.identidade.dominio.ParametrosConquistas",
+      "sourceType": "com.omnitribo.identidade.dominio.ParametrosConquistas"
+    },
+    {
+      "name": "app.impacto",
+      "type": "com.omnitribo.compartilhado.dominio.ParametrosImpacto",
+      "sourceType": "com.omnitribo.compartilhado.dominio.ParametrosImpacto"
+    },
+    {
+      "name": "app.jwt",
+      "type": "com.omnitribo.compartilhado.infra.JwtProperties",
+      "sourceType": "com.omnitribo.compartilhado.infra.JwtProperties"
+    },
+    {
+      "name": "app.logistica.risco",
+      "type": "com.omnitribo.logistica.dominio.ParametrosRisco",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco"
+    },
+    {
+      "name": "app.missoes.entrega-falida",
+      "type": "com.omnitribo.missoes.dominio.ParametrosEntregaFalida",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosEntregaFalida"
+    },
+    {
+      "name": "app.missoes.recompensa",
+      "type": "com.omnitribo.missoes.dominio.ParametrosRecompensa",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.notificacoes",
+      "type": "com.omnitribo.notificacoes.dominio.ParametrosNotificacoes",
+      "sourceType": "com.omnitribo.notificacoes.dominio.ParametrosNotificacoes"
+    },
+    {
+      "name": "app.webhooks",
+      "type": "com.omnitribo.compartilhado.infra.ParametrosWebhook",
+      "sourceType": "com.omnitribo.compartilhado.infra.ParametrosWebhook"
+    }
+  ],
+  "properties": [
+    {
+      "name": "app.carteira.saque-habilitado",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.omnitribo.carteira.dominio.PoliticaCarteira",
+      "defaultValue": false
+    },
+    {
+      "name": "app.carteira.saque-minimo-brl",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.carteira.dominio.PoliticaCarteira"
+    },
+    {
+      "name": "app.carteira.transferencia-janela",
+      "type": "java.time.Duration",
+      "sourceType": "com.omnitribo.carteira.dominio.PoliticaCarteira"
+    },
+    {
+      "name": "app.carteira.transferencia-teto-por-janela",
+      "type": "java.lang.Long",
+      "sourceType": "com.omnitribo.carteira.dominio.PoliticaCarteira",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.carteira.transferencia-teto-por-transacao",
+      "type": "java.lang.Long",
+      "sourceType": "com.omnitribo.carteira.dominio.PoliticaCarteira",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.identidade.conquistas.nivel-veterano",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.identidade.dominio.ParametrosConquistas",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.identidade.conquistas.streak-constante",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.identidade.dominio.ParametrosConquistas",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.identidade.conquistas.xp-iniciante",
+      "type": "java.lang.Long",
+      "sourceType": "com.omnitribo.identidade.dominio.ParametrosConquistas",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.identidade.conquistas.xp-pilar-da-tribo",
+      "type": "java.lang.Long",
+      "sourceType": "com.omnitribo.identidade.dominio.ParametrosConquistas",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.identidade.conquistas.xp-vizinho-presente",
+      "type": "java.lang.Long",
+      "sourceType": "com.omnitribo.identidade.dominio.ParametrosConquistas",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.impacto.custo-reentrega-brl",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.compartilhado.dominio.ParametrosImpacto"
+    },
+    {
+      "name": "app.jwt.audience",
+      "type": "java.lang.String",
+      "sourceType": "com.omnitribo.compartilhado.infra.JwtProperties"
+    },
+    {
+      "name": "app.jwt.chave-privada-caminho",
+      "type": "java.lang.String",
+      "sourceType": "com.omnitribo.compartilhado.infra.JwtProperties"
+    },
+    {
+      "name": "app.jwt.chave-publica-caminho",
+      "type": "java.lang.String",
+      "sourceType": "com.omnitribo.compartilhado.infra.JwtProperties"
+    },
+    {
+      "name": "app.jwt.issuer",
+      "type": "java.lang.String",
+      "sourceType": "com.omnitribo.compartilhado.infra.JwtProperties"
+    },
+    {
+      "name": "app.jwt.ttl-access",
+      "type": "java.time.Duration",
+      "sourceType": "com.omnitribo.compartilhado.infra.JwtProperties"
+    },
+    {
+      "name": "app.logistica.risco.coeficientes",
+      "type": "java.util.Map<com.omnitribo.logistica.dominio.CaracteristicaRisco,java.lang.Double>",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco"
+    },
+    {
+      "name": "app.logistica.risco.intercepto",
+      "type": "java.lang.Double",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.logistica.risco.limiar-alto",
+      "type": "java.lang.Double",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.logistica.risco.limiar-medio",
+      "type": "java.lang.Double",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.logistica.risco.multiplicador-maximo",
+      "type": "java.lang.Double",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.logistica.risco.multiplicador-minimo",
+      "type": "java.lang.Double",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.logistica.risco.padronizacao",
+      "type": "java.util.Map<com.omnitribo.logistica.dominio.CaracteristicaRisco,com.omnitribo.logistica.dominio.ParametrosRisco$Padronizacao>",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco"
+    },
+    {
+      "name": "app.logistica.risco.taxa-cep-padrao",
+      "type": "java.lang.Double",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.logistica.risco.taxa-por-faixa-cep",
+      "type": "java.util.Map<java.lang.String,java.lang.Double>",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco"
+    },
+    {
+      "name": "app.logistica.risco.versao",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.logistica.dominio.ParametrosRisco",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.missoes.entrega-falida.nivel-minimo",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosEntregaFalida",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.missoes.entrega-falida.prazo-retirada",
+      "type": "java.time.Duration",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosEntregaFalida"
+    },
+    {
+      "name": "app.missoes.entrega-falida.raio-checkin-m",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosEntregaFalida",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.missoes.recompensa.base-tokens",
+      "type": "java.util.Map<com.omnitribo.missoes.dominio.CategoriaMissao,java.lang.Long>",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.multiplicador-complexidade",
+      "type": "java.util.Map<com.omnitribo.missoes.dominio.ComplexidadeMissao,java.math.BigDecimal>",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.multiplicador-risco-maximo",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.multiplicador-risco-minimo",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.peso-leve-ate-kg",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.peso-media-ate-kg",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.teto-tokens",
+      "type": "java.lang.Long",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.missoes.recompensa.teto-xp",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.missoes.recompensa.tokens-por-cem-litros",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.tokens-por-kg",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.tokens-por-km",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.tokens-por-real-ofertado",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.versao",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.missoes.recompensa.volume-leve-ate-l",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.volume-media-ate-l",
+      "type": "java.math.BigDecimal",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa"
+    },
+    {
+      "name": "app.missoes.recompensa.xp-por-token",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.missoes.dominio.ParametrosRecompensa",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.notificacoes.alertas-alta-prioridade-por-hora",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.notificacoes.dominio.ParametrosNotificacoes",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.notificacoes.alertas-por-hora",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.notificacoes.dominio.ParametrosNotificacoes",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.notificacoes.raio-alerta-metros",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.notificacoes.dominio.ParametrosNotificacoes",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.notificacoes.tribos-por-evento",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.notificacoes.dominio.ParametrosNotificacoes",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.webhooks.janela-timestamp",
+      "type": "java.time.Duration",
+      "sourceType": "com.omnitribo.compartilhado.infra.ParametrosWebhook"
+    },
+    {
+      "name": "app.webhooks.requisicoes-por-minuto",
+      "type": "java.lang.Integer",
+      "sourceType": "com.omnitribo.compartilhado.infra.ParametrosWebhook",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.webhooks.segredos",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "sourceType": "com.omnitribo.compartilhado.infra.ParametrosWebhook"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

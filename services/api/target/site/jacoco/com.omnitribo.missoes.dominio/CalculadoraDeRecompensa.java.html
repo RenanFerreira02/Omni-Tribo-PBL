@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CalculadoraDeRecompensa.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">CalculadoraDeRecompensa.java</span></div><h1>CalculadoraDeRecompensa.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+/**
+ * Deriva a recompensa de uma missão a partir das suas características.
+ *
+ * &lt;h2&gt;Por que existe&lt;/h2&gt;
+ *
+ * &lt;p&gt;Até o ADR 0009 a recompensa vinha do CLIENTE: {@code CriarMissaoRequest} tinha {@code
+ * xpRecompensa} e {@code tokensRecompensa}, e o único controle era um {@code @Max}. Medido contra a
+ * API: uma missão AJUDA sem peso, sem volume e sem destino foi criada com &lt;b&gt;5.000 XP e 1.000
+ * tokens&lt;/b&gt; — o teto. Um teto sem fórmula significa que toda missão pode valer o teto, e a única
+ * variável é a vontade de quem cria. Naquele momento ENTREGA e AJUDA ainda cunhavam token (lacuna
+ * do §4.4), então isso era emissão sem contrapartida: 656 → 2.656 tokens em dois ciclos. Hoje as
+ * duas pagam do pote — ENTREGA pelo patrocinador (ADR 0024) e AJUDA pela tribo (ADR 0025) —, e só
+ * ENTREGA criada por humano ainda cunha.
+ *
+ * &lt;p&gt;Isto não fecha a cunhagem — fecha o &lt;b&gt;arbítrio sobre o tamanho dela&lt;/b&gt;.
+ *
+ * &lt;h2&gt;Função pura, e o que isso compra&lt;/h2&gt;
+ *
+ * &lt;p&gt;Sem Spring, sem repositório, sem relógio: mesmas entradas, mesma saída, sempre. É o que
+ * permite testar monotonicidade e faixa varrendo milhares de combinações em milissegundos, e é o
+ * que torna a fórmula versionável — uma função que consulta o banco não pode ser reexecutada no
+ * passado para auditar um crédito antigo. Mesmo molde de {@link RegraNivel} e de {@code
+ * AvaliacaoAntifraude}.
+ *
+ * &lt;p&gt;A distância chega pronta, em metros, medida pelo PostGIS — nunca calculada aqui. É a mesma
+ * convenção de {@code AvaliacaoAntifraude}, cujo javadoc registra &quot;distância medida pelo PostGIS,
+ * nunca informada pelo cliente&quot;. Quem mede é {@code ConsultasGeoespaciais.distanciaMetros}.
+ *
+ * &lt;h2&gt;A fórmula&lt;/h2&gt;
+ *
+ * &lt;pre&gt;
+ *   tokens = min(teto, base(categoria) × mult(complexidade)
+ *                      + km × tokensPorKm
+ *                      + kg × tokensPorKg
+ *                      + (litros / 100) × tokensPorCemLitros)
+ *   xp     = min(tetoXp, tokens × xpPorToken)
+ * &lt;/pre&gt;
+ *
+ * &lt;p&gt;Base multiplicada e adicionais somados, e não tudo multiplicado: multiplicar a distância pela
+ * complexidade faria uma entrega pesada e longa explodir de forma não linear, e a soma mantém cada
+ * fator legível para quem for contestar o valor.
+ */
+public final class CalculadoraDeRecompensa {
+
+<span class="fc" id="L50">  private static final BigDecimal METROS_POR_KM = new BigDecimal(&quot;1000&quot;);</span>
+<span class="fc" id="L51">  private static final BigDecimal LITROS_POR_UNIDADE_DE_VOLUME = new BigDecimal(&quot;100&quot;);</span>
+
+  private CalculadoraDeRecompensa() {}
+
+  /**
+   * Insumos da fórmula.
+   *
+   * @param complexidadeDeclarada usada apenas quando peso e volume são ambos nulos; ignorada em
+   *     favor da derivação quando há dado. O verificador de request recusa envio redundante, então
+   *     um valor aqui com peso e volume presentes não deveria chegar — mas se chegar, a derivação
+   *     vence, porque dado objetivo ganha de declaração.
+   * @param distanciaM distância origem→destino em metros, medida pelo PostGIS. Nula quando a missão
+   *     não tem destino, o que é sempre o caso em TRIBO.
+   * @param valorOfertadoBrl valor que um TERCEIRO (hoje, a transportadora no webhook de entrega
+   *     falida) declara estar disposto a custear. Nulo em toda missão criada por usuário — o app
+   *     não tem esse campo e nunca terá, porque quem cria a missão não paga (ADR 0009).
+   *     &lt;p&gt;Entra como INSUMO e nada mais: aumenta a recompensa em TOKEN, e jamais é gravado em
+   *     {@code missao.valor_brl}, que {@code ck_missao_economia} trava em zero. A diferença importa
+   *     — o executor continua recebendo XP e token, não reais, e a conversão do real ofertado em
+   *     patrocínio do pote acontece fora do ciclo da missão.
+   *     &lt;p&gt;Existe porque uma entrega difícil vale mais para quem a paga, e a transportadora é a
+   *     única parte que sabe quanto: peso, volume e distância descrevem o esforço, não a urgência.
+   */
+<span class="fc" id="L74">  public record Insumos(</span>
+      CategoriaMissao categoria,
+      ComplexidadeMissao complexidadeDeclarada,
+      BigDecimal pesoKg,
+      BigDecimal volumeL,
+      Double distanciaM,
+      BigDecimal valorOfertadoBrl,
+      BigDecimal multiplicadorRisco) {
+
+    /** Missão criada por usuário: sem valor ofertado e sem risco avaliado. */
+    public Insumos(
+        CategoriaMissao categoria,
+        ComplexidadeMissao complexidadeDeclarada,
+        BigDecimal pesoKg,
+        BigDecimal volumeL,
+        Double distanciaM,
+        BigDecimal valorOfertadoBrl) {
+<span class="fc" id="L91">      this(categoria, complexidadeDeclarada, pesoKg, volumeL, distanciaM, valorOfertadoBrl, null);</span>
+<span class="fc" id="L92">    }</span>
+  }
+
+  /**
+   * Resultado, com a complexidade EFETIVA — derivada ou declarada.
+   *
+   * &lt;p&gt;Devolver a complexidade, e não só os números, é o que permite ao app explicar o valor ao
+   * usuário e ao servidor persistir a mesma coisa que mostrou na prévia.
+   *
+   * @param multiplicadorRisco o fator EFETIVAMENTE aplicado, depois do clamp. Viaja no resultado
+   *     porque é congelado em {@code missao.multiplicador_risco} junto com {@code versao_formula} —
+   *     sem ele, um crédito antigo não teria como ser explicado depois de o modelo mudar. Sempre
+   *     preenchido: 1,00 quando não houve avaliação de risco.
+   */
+<span class="fc" id="L106">  public record Recompensa(</span>
+      int xp,
+      long tokens,
+      ComplexidadeMissao complexidade,
+      int versaoFormula,
+      BigDecimal multiplicadorRisco) {}
+
+  /** Calcula a recompensa. Determinística: mesmas entradas, mesma saída. */
+  public static Recompensa calcular(Insumos insumos, ParametrosRecompensa p) {
+<span class="fc" id="L115">    ComplexidadeMissao complexidade = complexidadeEfetiva(insumos, p);</span>
+
+<span class="fc" id="L117">    Long base = p.baseTokens().get(insumos.categoria());</span>
+<span class="fc" id="L118">    BigDecimal multiplicador = p.multiplicadorComplexidade().get(complexidade);</span>
+<span class="pc bpc" id="L119" title="1 of 4 branches missed.">    if (base == null || multiplicador == null) {</span>
+      // Configuração incompleta é erro de operação, não entrada inválida: falhar alto aqui é melhor
+      // que produzir zero e criar uma missão sem recompensa que ninguém aceitaria.
+<span class="fc" id="L122">      throw new IllegalStateException(</span>
+          &quot;Parâmetros de recompensa sem entrada para categoria &quot;
+<span class="fc" id="L124">              + insumos.categoria()</span>
+              + &quot; ou complexidade &quot;
+              + complexidade
+              + &quot;.&quot;);
+    }
+
+    // O risco multiplica a BASE, junto da complexidade — nunca o total.
+    //
+    // Multiplicar o total contradiria a decisão de projeto registrada no javadoc desta classe
+    // (&quot;base
+    // multiplicada, adicionais somados&quot;), e teria efeito perverso: uma entrega longa e pesada num
+    // endereço arriscado veria os três adicionais escalados juntos, e a recompensa explodiria de
+    // forma não linear justamente no caso extremo. Na base, o risco reprecifica a DIFICULDADE
+    // intrínseca da missão, que é o que ele mede.
+<span class="fc" id="L138">    BigDecimal risco = multiplicadorDeRiscoEfetivo(insumos.multiplicadorRisco(), p);</span>
+<span class="fc" id="L139">    BigDecimal total = new BigDecimal(base).multiply(multiplicador).multiply(risco);</span>
+<span class="fc" id="L140">    total = total.add(adicionalDistancia(insumos.distanciaM(), p));</span>
+<span class="fc" id="L141">    total = total.add(adicionalPeso(insumos.pesoKg(), p));</span>
+<span class="fc" id="L142">    total = total.add(adicionalVolume(insumos.volumeL(), p));</span>
+<span class="fc" id="L143">    total = total.add(adicionalValorOfertado(insumos.valorOfertadoBrl(), p));</span>
+
+    // HALF_UP e não truncamento: truncar tornaria a fórmula não monotônica em passos pequenos —
+    // dois pesos diferentes cairiam no mesmo inteiro e um aumento de insumo não aumentaria nada.
+<span class="fc" id="L147">    long tokens = Math.min(total.setScale(0, RoundingMode.HALF_UP).longValue(), p.tetoTokens());</span>
+    // Piso de 1: missão que não recompensa nada não é missão. Só acontece com base zerada na
+    // configuração, mas o piso evita que um erro de calibração produza trabalho de graça.
+<span class="fc" id="L150">    tokens = Math.max(tokens, 1L);</span>
+
+<span class="fc" id="L152">    int xp = (int) Math.min((long) tokens * p.xpPorToken(), p.tetoXp());</span>
+
+<span class="fc" id="L154">    return new Recompensa(xp, tokens, complexidade, p.versao(), risco);</span>
+  }
+
+  /**
+   * Multiplicador de risco efetivamente aplicado, sempre dentro do teto.
+   *
+   * &lt;p&gt;Ausente vira 1,00, o neutro: missão criada por usuário não passa por avaliação de risco, e
+   * tratar isso como &quot;risco desconhecido = risco alto&quot; pagaria mais por ignorância.
+   *
+   * &lt;p&gt;&lt;b&gt;O clamp é a segunda barreira, não a primeira.&lt;/b&gt; {@code PrevisorDeRisco} já limita o
+   * valor na origem; repetir aqui é deliberado, porque esta classe é a última função pura antes do
+   * congelamento em banco e não pode confiar em quem a chamou. Um multiplicador fora de faixa vindo
+   * de um chamador futuro — ou de um parâmetro mal calibrado — cunharia token além do previsto, e a
+   * cunhagem não tem como ser desfeita depois de creditada.
+   */
+  private static BigDecimal multiplicadorDeRiscoEfetivo(
+      BigDecimal informado, ParametrosRecompensa p) {
+<span class="fc bfc" id="L171" title="All 2 branches covered.">    if (informado == null) {</span>
+<span class="fc" id="L172">      return p.multiplicadorRiscoMinimo();</span>
+    }
+<span class="fc bfc" id="L174" title="All 2 branches covered.">    if (informado.compareTo(p.multiplicadorRiscoMinimo()) &lt; 0) {</span>
+<span class="fc" id="L175">      return p.multiplicadorRiscoMinimo();</span>
+    }
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (informado.compareTo(p.multiplicadorRiscoMaximo()) &gt; 0) {</span>
+<span class="fc" id="L178">      return p.multiplicadorRiscoMaximo();</span>
+    }
+<span class="fc" id="L180">    return informado;</span>
+  }
+
+  /**
+   * Complexidade efetiva: derivada quando há peso E volume, declarada quando não há.
+   *
+   * &lt;p&gt;A assimetria é deliberada. Onde existe dado objetivo, o criador não opina — senão a
+   * complexidade viraria o mesmo arbítrio que a recompensa livre era, só com três degraus. Onde não
+   * existe (mutirão, ajuda sem carga), declarar é a única opção honesta, e o teto por missão limita
+   * o dano.
+   */
+  public static ComplexidadeMissao complexidadeEfetiva(Insumos insumos, ParametrosRecompensa p) {
+<span class="pc bpc" id="L192" title="1 of 4 branches missed.">    if (insumos.pesoKg() != null &amp;&amp; insumos.volumeL() != null) {</span>
+<span class="fc" id="L193">      return derivarComplexidade(insumos.pesoKg(), insumos.volumeL(), p);</span>
+    }
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">    return insumos.complexidadeDeclarada() != null</span>
+<span class="fc" id="L196">        ? insumos.complexidadeDeclarada()</span>
+<span class="nc" id="L197">        : ComplexidadeMissao.LEVE;</span>
+  }
+
+  /**
+   * Deriva a complexidade de peso e volume.
+   *
+   * &lt;p&gt;É o MAIOR dos dois que decide: uma caixa de isopor de 2 m³ pesa pouco e continua não cabendo
+   * numa moto. Usar a média deixaria o volume ser diluído pelo peso baixo.
+   */
+  public static ComplexidadeMissao derivarComplexidade(
+      BigDecimal pesoKg, BigDecimal volumeL, ParametrosRecompensa p) {
+<span class="fc" id="L208">    boolean leve =</span>
+<span class="fc bfc" id="L209" title="All 4 branches covered.">        pesoKg.compareTo(p.pesoLeveAteKg()) &lt;= 0 &amp;&amp; volumeL.compareTo(p.volumeLeveAteL()) &lt;= 0;</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">    if (leve) {</span>
+<span class="fc" id="L211">      return ComplexidadeMissao.LEVE;</span>
+    }
+<span class="fc" id="L213">    boolean media =</span>
+<span class="fc bfc" id="L214" title="All 4 branches covered.">        pesoKg.compareTo(p.pesoMediaAteKg()) &lt;= 0 &amp;&amp; volumeL.compareTo(p.volumeMediaAteL()) &lt;= 0;</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">    return media ? ComplexidadeMissao.MEDIA : ComplexidadeMissao.PESADA;</span>
+  }
+
+  private static BigDecimal adicionalDistancia(Double distanciaM, ParametrosRecompensa p) {
+<span class="fc bfc" id="L219" title="All 4 branches covered.">    if (distanciaM == null || distanciaM &lt;= 0) {</span>
+<span class="fc" id="L220">      return BigDecimal.ZERO;</span>
+    }
+<span class="fc" id="L222">    return BigDecimal.valueOf(distanciaM)</span>
+<span class="fc" id="L223">        .divide(METROS_POR_KM, 4, RoundingMode.HALF_UP)</span>
+<span class="fc" id="L224">        .multiply(p.tokensPorKm());</span>
+  }
+
+  private static BigDecimal adicionalPeso(BigDecimal pesoKg, ParametrosRecompensa p) {
+<span class="fc bfc" id="L228" title="All 2 branches covered.">    return pesoKg == null ? BigDecimal.ZERO : pesoKg.multiply(p.tokensPorKg());</span>
+  }
+
+  private static BigDecimal adicionalVolume(BigDecimal volumeL, ParametrosRecompensa p) {
+<span class="fc bfc" id="L232" title="All 2 branches covered.">    return volumeL == null</span>
+<span class="fc" id="L233">        ? BigDecimal.ZERO</span>
+        : volumeL
+<span class="fc" id="L235">            .divide(LITROS_POR_UNIDADE_DE_VOLUME, 4, RoundingMode.HALF_UP)</span>
+<span class="fc" id="L236">            .multiply(p.tokensPorCemLitros());</span>
+  }
+
+  /**
+   * Converte o valor ofertado por terceiro em tokens adicionais.
+   *
+   * &lt;p&gt;Não é câmbio. A taxa é de CALIBRAÇÃO, deliberadamente baixa, e existe para ordenar missões
+   * por urgência — não para estabelecer quanto vale um token em reais. O ADR 0009 §6 recusa fixar
+   * essa cotação em qualquer lugar do produto, porque token conversível é dinheiro, com KYC junto.
+   *
+   * &lt;p&gt;Negativo é tratado como zero em vez de reduzir a recompensa: um valor ofertado negativo é
+   * dado ruim da transportadora, e deixá-lo subtrair permitiria a um parceiro rebaixar a recompensa
+   * da comunidade abaixo do que o esforço já justifica.
+   */
+  private static BigDecimal adicionalValorOfertado(
+      BigDecimal valorOfertadoBrl, ParametrosRecompensa p) {
+<span class="fc bfc" id="L252" title="All 4 branches covered.">    if (valorOfertadoBrl == null || valorOfertadoBrl.signum() &lt;= 0) {</span>
+<span class="fc" id="L253">      return BigDecimal.ZERO;</span>
+    }
+<span class="fc" id="L255">    return valorOfertadoBrl.multiply(p.tokensPorRealOfertado());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

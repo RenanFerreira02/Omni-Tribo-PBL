@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EstornoFinanciamentoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">EstornoFinanciamentoService.java</span></div><h1>EstornoFinanciamentoService.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import com.omnitribo.carteira.api.EstornoPote;
+import java.time.Instant;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Devolve o pote aos financiadores quando a missão termina sem pagar ninguém.
+ *
+ * &lt;p&gt;Existe porque a conservação da moeda, sozinha, não basta. Uma missão TRIBO pode ser financiada
+ * e depois CANCELADA pelo criador ou EXPIRADA pelo job de expiração. Sem estorno, os tokens
+ * ficariam em {@code missao.pote_tokens} para sempre: a soma (carteiras + potes) continuaria
+ * fechando, mas uma parte dela estaria em custódia que ninguém mais alcança — economicamente
+ * idêntico a queimar dinheiro de terceiros, e o teste de conservação passaria contando tokens que
+ * na prática sumiram.
+ *
+ * &lt;p&gt;Vive em {@code missoes} porque quem é dono do pote é a missão. O crédito de volta nas
+ * carteiras vai pela porta {@link EstornoPote}, já que o ArchUnit proíbe {@code missoes} de tocar
+ * {@code carteira.dominio}.
+ */
+@Service
+public class EstornoFinanciamentoService {
+
+  private final EstornoPote estornoPote;
+
+<span class="fc" id="L28">  public EstornoFinanciamentoService(EstornoPote estornoPote) {</span>
+<span class="fc" id="L29">    this.estornoPote = estornoPote;</span>
+<span class="fc" id="L30">  }</span>
+
+  /**
+   * Estorna todo o pote e o zera, na transação do chamador.
+   *
+   * &lt;p&gt;O chamador já segura o lock da linha da missão, então a ordem global {@code missao} → {@code
+   * carteira} é respeitada mesmo quando isto roda dentro do lote do job de expiração.
+   *
+   * &lt;p&gt;Idempotente por construção: a chave de cada estorno é derivada de {@code (missaoId,
+   * carteiraFinanciadorId)}, sem participação do cliente. Se o lote de expiração reprocessar a
+   * mesma missão, os lançamentos já existem e nada é gravado de novo.
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void estornarPote(Missao missao, Instant agora) {
+<span class="fc" id="L44">    long noPote = missao.getPoteTokens();</span>
+<span class="fc" id="L45">    long devolvido = estornoPote.estornarFinanciadores(missao.getId(), agora);</span>
+
+    // O pote só cresce por financiamento e só encolhe pagando a conclusão. Num estado terminal SEM
+    // pagamento, a soma dos financiamentos tem de bater exatamente com o pote. Divergir aqui
+    // significa que token entrou ou saiu do pote por um caminho não contabilizado — falhar alto,
+    // porque a alternativa é uma economia que não fecha e ninguém percebe.
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">    if (devolvido != noPote) {</span>
+<span class="nc" id="L52">      throw new IllegalStateException(</span>
+          &quot;Estorno da missão &quot;
+<span class="nc" id="L54">              + missao.getId()</span>
+              + &quot; devolveu &quot;
+              + devolvido
+              + &quot; tokens mas o pote tinha &quot;
+              + noPote
+              + &quot;.&quot;);
+    }
+<span class="fc" id="L61">    missao.zerarPote();</span>
+<span class="fc" id="L62">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

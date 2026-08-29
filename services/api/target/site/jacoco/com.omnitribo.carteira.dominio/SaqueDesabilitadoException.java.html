@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SaqueDesabilitadoException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">SaqueDesabilitadoException.java</span></div><h1>SaqueDesabilitadoException.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import com.omnitribo.compartilhado.api.TipoProblema;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import java.net.URI;
+
+/**
+ * Saque recusado porque o recurso está desligado por configuração ({@code
+ * app.carteira.saque-habilitado}), e não porque o pedido do usuário tem algo de errado.
+ *
+ * &lt;p&gt;Ganha {@code type} próprio porque a tela reage diferente: não é um alerta de erro que o
+ * usuário possa corrigir tentando outro valor, é um estado do produto — o BRL saiu do ciclo de
+ * missões (ADR 0009) e não há mais como ganhá-lo. Confundir isso com &quot;saldo insuficiente&quot; faria o
+ * app sugerir ao usuário juntar saldo para uma operação que não vai reabrir. Ver ADR 0010.
+ *
+ * &lt;p&gt;Os demais 422 do {@code SaqueService} — saldo insuficiente, limites — continuam genéricos,
+ * pelo mesmo critério invertido: neles a tela faz a mesma coisa, que é exibir o {@code detail}.
+ */
+public class SaqueDesabilitadoException extends RegraNegocioVioladaException {
+
+  public SaqueDesabilitadoException(String mensagem) {
+<span class="fc" id="L22">    super(mensagem);</span>
+<span class="fc" id="L23">  }</span>
+
+  @Override
+  public URI getTipo() {
+<span class="fc" id="L27">    return TipoProblema.SAQUE_DESABILITADO;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

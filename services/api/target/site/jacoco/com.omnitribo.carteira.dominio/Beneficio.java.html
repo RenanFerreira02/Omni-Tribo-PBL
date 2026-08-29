@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Beneficio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">Beneficio.java</span></div><h1>Beneficio.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * O que o token compra. Item de catálogo de um {@link Parceiro}.
+ *
+ * &lt;p&gt;{@code custoTokens} é o preço VIGENTE. O resgate congela o que foi cobrado na própria linha de
+ * {@link Resgate} — sem isso, um reajuste reinterpretaria retroativamente todo resgate já feito, e
+ * sumiria a resposta para &quot;quanto esta pessoa pagou por isto, no dia em que pagou?&quot;. Mesmo
+ * raciocínio de {@code missao.versao_formula}.
+ */
+@Entity
+@Table(name = &quot;beneficio&quot;)
+public class Beneficio {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  @Column(name = &quot;parceiro_id&quot;, nullable = false, updatable = false)
+  private UUID parceiroId;
+
+  @Column(nullable = false, length = 120)
+  private String titulo;
+
+  @Column(nullable = false, length = 500)
+  private String descricao;
+
+  @Column(name = &quot;custo_tokens&quot;, nullable = false)
+  private long custoTokens;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 10)
+  private TipoBeneficio tipo;
+
+  @Column(nullable = false)
+  private boolean ativo;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+<span class="fc" id="L50">  protected Beneficio() {}</span>
+
+  public Beneficio(
+      UUID id,
+      UUID parceiroId,
+      String titulo,
+      String descricao,
+      long custoTokens,
+      TipoBeneficio tipo,
+<span class="fc" id="L59">      Instant criadoEm) {</span>
+<span class="fc" id="L60">    this.id = id;</span>
+<span class="fc" id="L61">    this.parceiroId = parceiroId;</span>
+<span class="fc" id="L62">    this.titulo = titulo;</span>
+<span class="fc" id="L63">    this.descricao = descricao;</span>
+<span class="fc" id="L64">    this.custoTokens = custoTokens;</span>
+<span class="fc" id="L65">    this.tipo = tipo;</span>
+<span class="fc" id="L66">    this.ativo = true;</span>
+<span class="fc" id="L67">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L68">  }</span>
+
+  public UUID getId() {
+<span class="fc" id="L71">    return id;</span>
+  }
+
+  public UUID getParceiroId() {
+<span class="fc" id="L75">    return parceiroId;</span>
+  }
+
+  public String getTitulo() {
+<span class="fc" id="L79">    return titulo;</span>
+  }
+
+  public String getDescricao() {
+<span class="fc" id="L83">    return descricao;</span>
+  }
+
+  public long getCustoTokens() {
+<span class="fc" id="L87">    return custoTokens;</span>
+  }
+
+  public TipoBeneficio getTipo() {
+<span class="fc" id="L91">    return tipo;</span>
+  }
+
+  public boolean isAtivo() {
+<span class="fc" id="L95">    return ativo;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="nc" id="L99">    return criadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

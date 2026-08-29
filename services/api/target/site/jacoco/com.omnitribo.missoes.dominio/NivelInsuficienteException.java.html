@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NivelInsuficienteException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">NivelInsuficienteException.java</span></div><h1>NivelInsuficienteException.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import com.omnitribo.compartilhado.api.TipoProblema;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import java.net.URI;
+import java.util.Map;
+
+/**
+ * Aceite recusado por reputação insuficiente.
+ *
+ * &lt;p&gt;Ganha {@code type} próprio pelo critério do ADR 0010 — uma URI por REAÇÃO DE UI. A tela não
+ * faz o que faz nos outros 422: ela mostra quanto falta e leva ao perfil, em vez de pedir para
+ * corrigir o pedido e tentar de novo. Repetir a mesma requisição amanhã pode funcionar, sem que
+ * nada no corpo mude, e é isso que separa este caso de &quot;os dados enviados não satisfazem a regra&quot;.
+ *
+ * &lt;p&gt;O nível exigido e o atual vão em {@code getPropriedades()}, como extensões do ProblemDetail,
+ * pelo mesmo motivo que o check-in fora do raio devolve {@code distanciaM} e {@code raioM}: o app
+ * precisa montar a frase com números, e ler número de dentro do {@code detail} é acoplar a UI à
+ * revisão de copy do servidor.
+ */
+public class NivelInsuficienteException extends RegraNegocioVioladaException {
+
+  private final int nivelExigido;
+  private final int nivelAtual;
+
+  public NivelInsuficienteException(int nivelExigido, int nivelAtual) {
+<span class="fc" id="L27">    super(</span>
+        &quot;Esta missão exige nível &quot;
+            + nivelExigido
+            + &quot; e o seu é &quot;
+            + nivelAtual
+            + &quot;. Missões com custódia de encomenda de terceiros são restritas a membros com&quot;
+            + &quot; reputação consolidada.&quot;);
+<span class="fc" id="L34">    this.nivelExigido = nivelExigido;</span>
+<span class="fc" id="L35">    this.nivelAtual = nivelAtual;</span>
+<span class="fc" id="L36">  }</span>
+
+  @Override
+  public URI getTipo() {
+<span class="fc" id="L40">    return TipoProblema.NIVEL_INSUFICIENTE;</span>
+  }
+
+  @Override
+  public Map&lt;String, Object&gt; getPropriedades() {
+<span class="fc" id="L45">    return Map.of(&quot;nivelExigido&quot;, nivelExigido, &quot;nivelAtual&quot;, nivelAtual);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResultadoRisco.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.dominio</a> &gt; <span class="el_source">ResultadoRisco.java</span></div><h1>ResultadoRisco.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.dominio;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ * Veredito do modelo para uma entrega: probabilidade, faixa, e POR QUÊ.
+ *
+ * &lt;p&gt;&lt;b&gt;Aqui é a fronteira onde a medida vira economia.&lt;/b&gt; O modelo calcula em {@code double}
+ * porque nada nele é dinheiro; {@code probabilidadeFalha} e {@code multiplicadorRecompensa} saem em
+ * {@code BigDecimal} nas escalas exatas das colunas que os recebem ({@code NUMERIC(5,4)} em {@code
+ * entrega_falida.risco_probabilidade} e {@code NUMERIC(4,2)} em {@code
+ * missao.multiplicador_risco}), para que a conversão aconteça UMA vez, num lugar identificável, e
+ * não espalhada por chamadores.
+ *
+ * @param logOdds soma do intercepto com todas as contribuições. Exposto para que a identidade
+ *     {@code logOddsBase + Σ contribuições = logOdds} seja verificável por teste — é o que separa
+ *     uma explicação auditável de uma decorativa.
+ * @param logOddsBase o intercepto, isolado. &lt;b&gt;Não é um fator desta entrega&lt;/b&gt; e por isso fica
+ *     fora de {@code fatoresPrincipais}: é o log-odds de uma entrega média, num endereço
+ *     residencial, numa manhã de dia útil. Incluí-lo no ranking faria o intercepto — tipicamente o
+ *     maior valor absoluto — aparecer como &quot;principal fator de risco&quot; em toda previsão.
+ * @param featuresImputadas características cujo valor real não estava disponível e foi substituído
+ *     pela média do treino. Vazia no caminho feliz; contém {@code CHUVA_MM}/{@code TEMPERATURA_C}
+ *     quando o provedor de clima não respondeu. Sai na resposta de propósito: um score que se
+ *     apoiou em imputação é menos confiável, e esconder isso seria desonesto com quem lê.
+ */
+public record ResultadoRisco(
+    BigDecimal probabilidadeFalha,
+    FaixaRisco faixaRisco,
+    BigDecimal multiplicadorRecompensa,
+    List&lt;FatorRisco&gt; fatoresPrincipais,
+    double logOdds,
+    double logOddsBase,
+    int versaoModelo,
+    List&lt;String&gt; featuresImputadas) {
+
+  /**
+   * Cópias defensivas das listas.
+   *
+   * &lt;p&gt;Sem elas o SpotBugs acusa {@code EI_EXPOSE_REP} e o build quebra — mas a razão de fundo é
+   * que este record é congelado em banco: um chamador mutando a lista depois da construção mudaria
+   * o que foi gravado.
+   */
+<span class="fc" id="L45">  public ResultadoRisco {</span>
+<span class="fc" id="L46">    fatoresPrincipais = List.copyOf(fatoresPrincipais);</span>
+<span class="fc" id="L47">    featuresImputadas = List.copyOf(featuresImputadas);</span>
+<span class="fc" id="L48">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

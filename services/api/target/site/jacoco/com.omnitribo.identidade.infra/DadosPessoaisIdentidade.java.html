@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DadosPessoaisIdentidade.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.infra</a> &gt; <span class="el_source">DadosPessoaisIdentidade.java</span></div><h1>DadosPessoaisIdentidade.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.infra;
+
+import com.omnitribo.compartilhado.api.DadosPessoaisDoUsuario;
+import com.omnitribo.identidade.dominio.RegraNivel;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
+
+/**
+ * Seção &quot;identidade&quot; da exportação LGPD: quem a pessoa é para o sistema, e o que ela consentiu.
+ *
+ * &lt;p&gt;{@code senha_hash} NÃO sai, e a exclusão é deliberada. O titular tem direito aos dados dele,
+ * não ao material criptográfico que protege a conta — e um hash exportado é um alvo de força bruta
+ * offline entregue de bandeja, num arquivo que a pessoa provavelmente vai guardar sem cuidado.
+ */
+@Component
+public class DadosPessoaisIdentidade implements DadosPessoaisDoUsuario {
+
+  private final JdbcClient jdbc;
+
+<span class="fc" id="L24">  public DadosPessoaisIdentidade(JdbcClient jdbc) {</span>
+<span class="fc" id="L25">    this.jdbc = jdbc;</span>
+<span class="fc" id="L26">  }</span>
+
+  @Override
+  public String secao() {
+<span class="fc" id="L30">    return &quot;identidade&quot;;</span>
+  }
+
+  @Override
+  public List&lt;Map&lt;String, Object&gt;&gt; exportar(UUID usuarioId) {
+<span class="fc" id="L35">    List&lt;Map&lt;String, Object&gt;&gt; cadastro =</span>
+<span class="fc" id="L36">        jdbc.sql(</span>
+                &quot;&quot;&quot;
+                SELECT u.nome, u.email, u.handle, u.xp, u.streak, u.rating,
+                       u.papel, u.status, u.criado_em AS cadastrado_em,
+                       t.nome AS tribo, t.bairro AS bairro_da_tribo
+                  FROM usuario u
+                  LEFT JOIN tribo t ON t.id = u.tribo_id
+                 WHERE u.id = :usuario
+                &quot;&quot;&quot;)
+<span class="fc" id="L45">            .param(&quot;usuario&quot;, usuarioId)</span>
+<span class="fc" id="L46">            .query()</span>
+<span class="fc" id="L47">            .listOfRows();</span>
+
+<span class="fc" id="L49">    List&lt;Map&lt;String, Object&gt;&gt; consentimentos =</span>
+<span class="fc" id="L50">        jdbc.sql(</span>
+                &quot;&quot;&quot;
+                SELECT tipo, concedido, versao_texto, criado_em
+                  FROM consentimento
+                 WHERE usuario_id = :usuario
+                 ORDER BY criado_em DESC
+                &quot;&quot;&quot;)
+<span class="fc" id="L57">            .param(&quot;usuario&quot;, usuarioId)</span>
+<span class="fc" id="L58">            .query()</span>
+<span class="fc" id="L59">            .listOfRows();</span>
+
+    // Uma linha só, com o histórico de consentimento aninhado: o arquivo é lido por uma pessoa, e
+    // duas seções separadas para &quot;quem sou&quot; e &quot;o que aceitei&quot; só espalhariam a mesma resposta.
+<span class="fc" id="L63">    return cadastro.stream()</span>
+<span class="fc" id="L64">        .map(</span>
+            linha -&gt; {
+<span class="fc" id="L66">              Map&lt;String, Object&gt; completo = new LinkedHashMap&lt;&gt;(linha);</span>
+              // Nível DERIVADO do XP, não lido de `usuario.nivel`.
+              //
+              // A coluna é cache recalculado a cada concessão, e as duas leituras divergiam de
+              // verdade: para a alice do seed, GET /usuarios/me respondia 2 (derivado por
+              // RegraNivel) e esta exportação respondia 3 (a coluna). Duas respostas para a mesma
+              // pergunta, e a que ia no arquivo de direito do titular era a errada.
+              //
+              // Quem manda é a FÓRMULA — a coluna existe para evitar recalcular em listagem, não
+              // para ser fonte de verdade. Ver PerfilService, que já derivava.
+<span class="fc" id="L76">              completo.put(&quot;nivel&quot;, RegraNivel.nivelPara(((Number) linha.get(&quot;xp&quot;)).longValue()));</span>
+<span class="fc" id="L77">              completo.put(&quot;consentimentos&quot;, consentimentos);</span>
+<span class="fc" id="L78">              return completo;</span>
+            })
+<span class="fc" id="L80">        .toList();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

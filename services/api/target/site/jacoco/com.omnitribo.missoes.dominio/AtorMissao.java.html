@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AtorMissao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">AtorMissao.java</span></div><h1>AtorMissao.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * Quem está agindo sobre a missão. A identidade vem SEMPRE do JWT — nunca do corpo, query ou header
+ * da requisição.
+ *
+ * &lt;p&gt;Por que um enum de papel próprio em vez de PapelUsuario: PapelUsuario mora em
+ * identidade/dominio, e a regra ArchUnit proíbe qualquer classe fora de com.omnitribo.identidade..
+ * de acessá-lo. O controller deriva o papel da authority ROLE_ADMIN do SecurityContext, que é
+ * populada pelo JwtAuthFilter a partir do claim &quot;papel&quot;.
+ */
+public record AtorMissao(UUID usuarioId, PapelAtor papel) {
+
+<span class="fc" id="L17">  public enum PapelAtor {</span>
+<span class="fc" id="L18">    USUARIO,</span>
+<span class="fc" id="L19">    ADMIN,</span>
+<span class="fc" id="L20">    SISTEMA</span>
+  }
+
+<span class="fc" id="L23">  public AtorMissao {</span>
+<span class="fc" id="L24">    Objects.requireNonNull(papel, &quot;papel do ator é obrigatório&quot;);</span>
+<span class="pc bpc" id="L25" title="1 of 4 branches missed.">    if (papel != PapelAtor.SISTEMA &amp;&amp; usuarioId == null) {</span>
+<span class="nc" id="L26">      throw new IllegalArgumentException(&quot;ator humano exige usuarioId vindo do JWT&quot;);</span>
+    }
+<span class="fc" id="L28">  }</span>
+
+  public static AtorMissao usuario(UUID id) {
+<span class="fc" id="L31">    return new AtorMissao(Objects.requireNonNull(id), PapelAtor.USUARIO);</span>
+  }
+
+  public static AtorMissao admin(UUID id) {
+<span class="fc" id="L35">    return new AtorMissao(Objects.requireNonNull(id), PapelAtor.ADMIN);</span>
+  }
+
+  /** Job de expiração: sem usuário, então missao_evento.ator_id fica NULL (coluna nullable). */
+  public static AtorMissao sistema() {
+<span class="fc" id="L40">    return new AtorMissao(null, PapelAtor.SISTEMA);</span>
+  }
+
+  public boolean ehAdmin() {
+<span class="fc bfc" id="L44" title="All 2 branches covered.">    return papel == PapelAtor.ADMIN;</span>
+  }
+
+  public boolean ehSistema() {
+<span class="fc bfc" id="L48" title="All 2 branches covered.">    return papel == PapelAtor.SISTEMA;</span>
+  }
+
+  public boolean ehMesmo(UUID outro) {
+<span class="pc bpc" id="L52" title="1 of 4 branches missed.">    return usuarioId != null &amp;&amp; usuarioId.equals(outro);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

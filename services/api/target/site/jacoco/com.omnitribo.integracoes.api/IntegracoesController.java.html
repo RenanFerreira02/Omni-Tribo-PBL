@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IntegracoesController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.integracoes.api</a> &gt; <span class="el_source">IntegracoesController.java</span></div><h1>IntegracoesController.java</h1><pre class="source lang-java linenums">package com.omnitribo.integracoes.api;
+
+import com.omnitribo.integracoes.dominio.ClimaService;
+import com.omnitribo.integracoes.dominio.EnderecoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Consultas a provedores externos, atrás da nossa fronteira.
+ *
+ * &lt;p&gt;O app NUNCA fala com o provedor direto, e a razão não é estética: assim a chave de API (se
+ * algum dia houver uma), a política de cache e o limite de chamadas ficam do lado que controlamos —
+ * um app instalado não pode ser corrigido, e uma chave embutida nele não pode ser rotacionada. Além
+ * disso o vocabulário chega ao cliente já traduzido para o nosso, então trocar de provedor não
+ * obriga a publicar versão nova. Ver ADR 0011.
+ *
+ * &lt;p&gt;Os dois endpoints exigem autenticação. São baratos, mas custam chamada externa: deixá-los
+ * anônimos os transformaria num proxy aberto que qualquer um pode usar em nosso nome.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1&quot;)
+@Tag(name = &quot;Integrações&quot;, description = &quot;Clima e endereço por CEP&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+@Validated
+public class IntegracoesController {
+
+  private final ClimaService climaService;
+  private final EnderecoService enderecoService;
+
+<span class="fc" id="L41">  public IntegracoesController(ClimaService climaService, EnderecoService enderecoService) {</span>
+<span class="fc" id="L42">    this.climaService = climaService;</span>
+<span class="fc" id="L43">    this.enderecoService = enderecoService;</span>
+<span class="fc" id="L44">  }</span>
+
+  @GetMapping(&quot;/clima&quot;)
+  @Operation(
+      summary = &quot;Condição meteorológica atual&quot;,
+      description =
+          &quot;Para o card do mapa. A coordenada é arredondada a 2 casas (~1,1 km) antes de virar &quot;
+              + &quot;chave de cache — a previsão do provedor já tem resolução de quilômetros. &quot;
+              + &quot;Indisponibilidade do provedor responde 503 com type servico-externo-indisponivel: &quot;
+              + &quot;o cliente deve ESCONDER o card, não exibir erro.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Condição atual&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;503&quot;, description = &quot;Provedor externo indisponível&quot;)
+  })
+  public ClimaResponse clima(@Valid @ModelAttribute CoordenadaRequest coordenada) {
+<span class="fc" id="L61">    return climaService.consultar(coordenada.lat(), coordenada.lon());</span>
+  }
+
+  @GetMapping(&quot;/enderecos/{cep}&quot;)
+  @Operation(
+      summary = &quot;Endereço por CEP&quot;,
+      description =
+          &quot;Conveniência de preenchimento do formulário de missão, não fonte de verdade: o endereço &quot;
+              + &quot;que vale é o que viaja no corpo da criação e é validado lá. CEP bem formado e &quot;
+              + &quot;inexistente responde 404; provedor fora do ar responde 503 — e as duas coisas &quot;
+              + &quot;pedem reações opostas do usuário, por isso não compartilham type.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Endereço resolvido&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;404&quot;, ref = &quot;#/components/responses/NaoEncontrado&quot;),
+    @ApiResponse(responseCode = &quot;503&quot;, description = &quot;Provedor externo indisponível&quot;)
+  })
+  public EnderecoResponse endereco(
+      @PathVariable @Pattern(regexp = &quot;\\d{8}&quot;, message = &quot;CEP deve ter 8 dígitos, sem hífen&quot;)
+          String cep) {
+<span class="fc" id="L82">    return enderecoService.buscar(cep);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

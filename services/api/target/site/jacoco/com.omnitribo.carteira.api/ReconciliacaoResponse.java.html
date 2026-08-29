@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReconciliacaoResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.api</a> &gt; <span class="el_source">ReconciliacaoResponse.java</span></div><h1>ReconciliacaoResponse.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.api;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
+
+/**
+ * Relatório de conciliação do ledger.
+ *
+ * @param integro {@code true} quando NENHUMA carteira diverge. É a asserção que todo teste de
+ *     concorrência faz ao final: se o ledger e as projeções batem depois de 100 threads brigando
+ *     pela mesma linha, a atomicidade não é teórica.
+ */
+@Schema(description = &quot;Resultado da conciliação entre ledger e projeções de saldo&quot;)
+public record ReconciliacaoResponse(
+    long carteirasVerificadas, boolean integro, List&lt;DivergenciaResponse&gt; divergencias) {
+
+  /** List.copyOf: a lista guardada é imutável e o acessor não tem o que expor. */
+<span class="fc" id="L18">  public ReconciliacaoResponse {</span>
+<span class="fc" id="L19">    divergencias = List.copyOf(divergencias);</span>
+<span class="fc" id="L20">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResumoEntregasFalidas.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.api</a> &gt; <span class="el_source">ResumoEntregasFalidas.java</span></div><h1>ResumoEntregasFalidas.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.api;
+
+/**
+ * O topo do funil de impacto: o que a transportadora reportou e o que aconteceu com cada encomenda.
+ *
+ * &lt;p&gt;&lt;b&gt;São QUATRO desfechos, não três, e o quarto foi descoberto por teste.&lt;/b&gt; O webhook produz
+ * três (ADR 0021 e ADR 0024): {@code CONVERTIDA}, {@code RECUSADA} por ponto lotado e {@code
+ * SEM_PATROCINIO}. Mas o schema permite — e o seed V901 usa — a linha com {@code missao_id} nulo
+ * &lt;i&gt;e&lt;/i&gt; {@code motivo_recusa} nulo: encomenda recebida, fisicamente na custódia, que nunca virou
+ * missão nem foi recusada. É o {@code pendentes}, e são 16 das 22 linhas do banco de
+ * desenvolvimento.
+ *
+ * &lt;p&gt;A primeira versão deste record tinha três campos e um javadoc afirmando que eles somavam o
+ * total. {@code ImpactoTest.funilBateComOBanco} reprovou na hora — a soma dava 6 contra 22
+ * recebidas. Sem esse teste, o painel teria publicado uma taxa de conversão calculada sobre um
+ * denominador que ninguém sabia conter um quarto grupo invisível.
+ *
+ * &lt;p&gt;Com os quatro, a identidade vale de novo: {@code recebidas = convertidas + pendentes +
+ * recusadasPontoLotado + recusadasSemPatrocinio}. Um quinto desfecho futuro quebra o teste em vez
+ * de sumir dentro de um resto.
+ *
+ * &lt;p&gt;Os dois motivos de recusa vêm separados de propósito: lotação é problema de CAPACIDADE do
+ * bairro e patrocínio é problema de DINHEIRO da transportadora. Agregá-los num &quot;recusadas&quot; único
+ * esconderia qual gargalo apertar.
+ */
+<span class="fc" id="L26">public record ResumoEntregasFalidas(</span>
+    long recebidas,
+    long convertidas,
+    long pendentes,
+    long recusadasPontoLotado,
+    long recusadasSemPatrocinio) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

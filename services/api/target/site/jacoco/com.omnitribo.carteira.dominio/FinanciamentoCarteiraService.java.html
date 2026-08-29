@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FinanciamentoCarteiraService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">FinanciamentoCarteiraService.java</span></div><h1>FinanciamentoCarteiraService.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import com.omnitribo.carteira.api.EstornoPote;
+import com.omnitribo.carteira.api.FinanciamentoMissao;
+import com.omnitribo.carteira.api.ResultadoFinanciamento;
+import com.omnitribo.carteira.infra.CarteiraRepository;
+import com.omnitribo.carteira.infra.LancamentoRepository;
+import com.omnitribo.compartilhado.dominio.ChaveIdempotencia;
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Lado carteira do financiamento: débito do financiador e estorno do pote. */
+@Service
+public class FinanciamentoCarteiraService implements FinanciamentoMissao, EstornoPote {
+
+  private static final String CARTEIRA_AUSENTE = &quot;Carteira não encontrada.&quot;;
+
+  private final CarteiraRepository carteiraRepository;
+  private final LancamentoRepository lancamentoRepository;
+  private final LivroRazaoService livroRazaoService;
+
+  public FinanciamentoCarteiraService(
+      CarteiraRepository carteiraRepository,
+      LancamentoRepository lancamentoRepository,
+<span class="fc" id="L32">      LivroRazaoService livroRazaoService) {</span>
+<span class="fc" id="L33">    this.carteiraRepository = carteiraRepository;</span>
+<span class="fc" id="L34">    this.lancamentoRepository = lancamentoRepository;</span>
+<span class="fc" id="L35">    this.livroRazaoService = livroRazaoService;</span>
+<span class="fc" id="L36">  }</span>
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Optional&lt;ResultadoFinanciamento&gt; sondar(UUID financiadorId, String chaveIdempotencia) {
+<span class="fc" id="L41">    Carteira carteira = travarCarteiraDe(financiadorId);</span>
+<span class="fc" id="L42">    return livroRazaoService</span>
+<span class="fc" id="L43">        .consultar(chaveIdempotencia)</span>
+<span class="fc" id="L44">        .map(l -&gt; new ResultadoFinanciamento(l.getId(), carteira.getSaldoTokens(), true));</span>
+  }
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public ResultadoFinanciamento debitar(
+      UUID financiadorId, UUID missaoId, long tokens, String chaveIdempotencia, Instant agora) {
+
+    // NÃO reemite o SELECT ... FOR UPDATE, e aqui isso é CORRETO — leia antes de &quot;consertar&quot;.
+    //
+    // `sondar` já travou esta carteira na MESMA transação, então o Hibernate devolve a instância do
+    // persistence context sem ir ao banco. É a única ocorrência no projeto em que a armadilha da
+    // primeira leitura é benigna: o lock existe, foi adquirido por quem sondou, e é ele que fecha a
+    // corrida entre sondar e inserir. Trocar isto por uma leitura &quot;mais segura&quot; não acrescenta
+    // proteção nenhuma e só gasta uma ida ao banco.
+<span class="fc" id="L59">    Carteira carteira = travarCarteiraDe(financiadorId);</span>
+
+    // Recusa ANTES de qualquer escrita: 422 tem de sair sem efeito colateral nenhum.
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">    if (carteira.getSaldoTokens() &lt; tokens) {</span>
+<span class="nc" id="L63">      throw new RegraNegocioVioladaException(</span>
+          &quot;Saldo de &quot;
+<span class="nc" id="L65">              + carteira.getSaldoTokens()</span>
+              + &quot; tokens é insuficiente para financiar &quot;
+              + tokens
+              + &quot;.&quot;);
+    }
+
+<span class="fc" id="L71">    Lancamento lancamento =</span>
+<span class="fc" id="L72">        livroRazaoService.registrar(</span>
+            carteira,
+<span class="fc" id="L74">            Movimento.deTokens(</span>
+                SinalLancamento.DEBITO,
+                MotivoLancamento.FINANCIAMENTO_TRIBO,
+                tokens,
+                missaoId,
+                null,
+                chaveIdempotencia,
+                null,
+                agora));
+
+<span class="fc" id="L84">    return new ResultadoFinanciamento(lancamento.getId(), carteira.getSaldoTokens(), false);</span>
+  }
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Optional&lt;ResultadoFinanciamento&gt; debitarPatrocinador(
+      UUID patrocinadorUsuarioId,
+      UUID missaoId,
+      long tokens,
+      String chaveIdempotencia,
+      Instant agora) {
+
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">    if (tokens &lt;= 0) {</span>
+      // Guarda de programação, não regra de negócio: o chamador já decide não financiar recompensa
+      // zero. Um lançamento de valor zero consumiria uma chave de idempotência sem mover nada, e
+      // ck_lancamento_valor_nao_nulo (V13) o recusaria com 500.
+<span class="nc" id="L100">      throw new IllegalArgumentException(</span>
+          &quot;Financiamento de patrocinador exige tokens positivos; recebeu &quot; + tokens + &quot;.&quot;);
+    }
+
+    // Primeira leitura desta carteira na transação, então o FOR UPDATE é de fato emitido.
+<span class="fc" id="L105">    Carteira carteira = travarCarteiraDe(patrocinadorUsuarioId);</span>
+
+    // VAZIO, não exceção. A encomenda já está no ponto de custódia e a recusa precisa ser GRAVADA
+    // na entrega falida — lançar aqui abortaria a transação e apagaria o registro. Ver o javadoc da
+    // porta e o padrão do check-in rejeitado.
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (carteira.getSaldoTokens() &lt; tokens) {</span>
+<span class="fc" id="L111">      return Optional.empty();</span>
+    }
+
+<span class="fc" id="L114">    Lancamento lancamento =</span>
+<span class="fc" id="L115">        livroRazaoService.registrar(</span>
+            carteira,
+<span class="fc" id="L117">            Movimento.deTokens(</span>
+                SinalLancamento.DEBITO,
+                MotivoLancamento.FINANCIAMENTO_PATROCINADOR,
+                tokens,
+                missaoId,
+                null,
+                chaveIdempotencia,
+                null,
+                agora));
+
+<span class="fc" id="L127">    return Optional.of(</span>
+<span class="fc" id="L128">        new ResultadoFinanciamento(lancamento.getId(), carteira.getSaldoTokens(), false));</span>
+  }
+
+  /**
+   * Resolve {@code usuarioId → carteiraId} por projeção escalar e então trava a linha.
+   *
+   * &lt;p&gt;{@code buscarIdPorUsuario}, nunca {@code findByUsuarioId}: materializar a {@code Carteira}
+   * aqui a poria no persistence context e o {@code buscarParaAtualizar} seguinte devolveria a
+   * instância em cache sem emitir o {@code FOR UPDATE} — o lock sumiria em silêncio.
+   */
+  private Carteira travarCarteiraDe(UUID financiadorId) {
+<span class="fc" id="L139">    UUID carteiraId =</span>
+        carteiraRepository
+<span class="fc" id="L141">            .buscarIdPorUsuario(financiadorId)</span>
+<span class="pc" id="L142">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+<span class="fc" id="L143">    return carteiraRepository</span>
+<span class="fc" id="L144">        .buscarParaAtualizar(carteiraId)</span>
+<span class="pc" id="L145">        .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+  }
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public long estornarFinanciadores(UUID missaoId, Instant agora) {
+<span class="fc" id="L151">    List&lt;Lancamento&gt; financiamentos = lancamentoRepository.buscarFinanciamentosDaMissao(missaoId);</span>
+<span class="fc" id="L152">    long total = 0;</span>
+
+    // Ordenado por id da carteira para respeitar a ordem global de lock mesmo quando a mesma
+    // pessoa financiou duas vezes ou quando duas missões estornam em paralelo no lote de expiração.
+<span class="fc" id="L156">    List&lt;UUID&gt; carteiras =</span>
+<span class="fc" id="L157">        financiamentos.stream().map(Lancamento::getCarteiraId).distinct().sorted().toList();</span>
+
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    for (UUID carteiraId : carteiras) {</span>
+<span class="fc" id="L160">      long aDevolver =</span>
+<span class="fc" id="L161">          financiamentos.stream()</span>
+<span class="fc" id="L162">              .filter(l -&gt; l.getCarteiraId().equals(carteiraId))</span>
+<span class="fc" id="L163">              .mapToLong(Lancamento::getValorTokens)</span>
+<span class="fc" id="L164">              .sum();</span>
+
+<span class="fc" id="L166">      String chave = ChaveIdempotencia.estornoFinanciamento(missaoId, carteiraId);</span>
+
+<span class="fc" id="L168">      Carteira carteira =</span>
+          carteiraRepository
+<span class="fc" id="L170">              .buscarParaAtualizar(carteiraId)</span>
+<span class="pc" id="L171">              .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+
+      // Já estornado num processamento anterior: conta no total, mas não credita de novo. Devolver
+      // zero aqui faria o chamador acusar divergência justamente no caso correto.
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">      if (livroRazaoService.consultar(chave).isPresent()) {</span>
+<span class="nc" id="L176">        total += aDevolver;</span>
+<span class="nc" id="L177">        continue;</span>
+      }
+
+<span class="fc" id="L180">      livroRazaoService.registrar(</span>
+          carteira,
+<span class="fc" id="L182">          Movimento.deTokens(</span>
+              SinalLancamento.CREDITO,
+              MotivoLancamento.ESTORNO,
+              aDevolver,
+              missaoId,
+              null,
+              chave,
+              null,
+              agora));
+<span class="fc" id="L191">      total += aDevolver;</span>
+<span class="fc" id="L192">    }</span>
+<span class="fc" id="L193">    return total;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

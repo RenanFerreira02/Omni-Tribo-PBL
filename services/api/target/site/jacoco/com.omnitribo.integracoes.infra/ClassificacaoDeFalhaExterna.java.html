@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClassificacaoDeFalhaExterna.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.integracoes.infra</a> &gt; <span class="el_source">ClassificacaoDeFalhaExterna.java</span></div><h1>ClassificacaoDeFalhaExterna.java</h1><pre class="source lang-java linenums">package com.omnitribo.integracoes.infra;
+
+import com.omnitribo.integracoes.api.ServicoExternoIndisponivelException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
+
+/**
+ * Decide o significado de uma falha de chamada externa. Duas perguntas, respostas diferentes.
+ *
+ * &lt;p&gt;&lt;b&gt;Por que a classificação mora aqui e não dentro do disjuntor:&lt;/b&gt; ela tem TRÊS consumidores
+ * — a política de retry, o contador do disjuntor e o log — e as respostas não coincidem. Um 429 não
+ * deve ser repetido (repetir piora) mas conta contra a saúde do provedor; um 404 não é nenhuma das
+ * duas coisas. Espalhar essas regras pelos dois lugares faria as duas versões divergirem na
+ * primeira manutenção.
+ *
+ * &lt;p&gt;&lt;b&gt;O caso mais importante não aparece aqui, e é proposital.&lt;/b&gt; O {@code {&quot;erro&quot;:true}} do
+ * ViaCEP e o bloco {@code current} ausente do Open-Meteo chegam como HTTP &lt;b&gt;200&lt;/b&gt;: para esta
+ * classe eles são SUCESSO, e a checagem deles acontece FORA da chamada protegida, nos clientes. Ver
+ * o javadoc de {@link ClienteViaCep} — mover aquela checagem para dentro da região protegida faria
+ * cinco usuários digitando CEP errado abrirem o disjuntor de um provedor saudável.
+ */
+final class ClassificacaoDeFalhaExterna {
+
+  private ClassificacaoDeFalhaExterna() {}
+
+  /**
+   * Repetir tem chance real de mudar o resultado?
+   *
+   * &lt;p&gt;É a pergunta do retry, e a resposta é conservadora de propósito: só o que é comprovadamente
+   * transitório entra. Timeout e 5xx entram; qualquer outra coisa fica de fora, inclusive erro de
+   * desserialização — se o provedor mudou o JSON, repetir só gasta o dobro do tempo para falhar
+   * igual.
+   */
+  static boolean eTransitoria(Throwable t) {
+    // Recusa do nosso próprio bulkhead ou do disjuntor. Repetir seria empurrar contra uma porta que
+    // nós mesmos fechamos, e ainda por cima segurando a thread que a porta existe para liberar.
+<span class="fc bfc" id="L37" title="All 2 branches covered.">    if (t instanceof ServicoExternoIndisponivelException) {</span>
+<span class="fc" id="L38">      return false;</span>
+    }
+    // Timeout de conexão ou de leitura, DNS, socket. É o modo de falha número um com PT2S.
+<span class="fc bfc" id="L41" title="All 2 branches covered.">    if (t instanceof ResourceAccessException) {</span>
+<span class="fc" id="L42">      return true;</span>
+    }
+    // Cobre HttpServerErrorException E UnknownHttpStatusCodeException (status fora do enum padrão):
+    // perguntar ao status é o que evita o buraco de um 5xx não padronizado escapar da checagem.
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">    if (t instanceof RestClientResponseException r) {</span>
+<span class="fc" id="L47">      return r.getStatusCode().is5xxServerError();</span>
+    }
+<span class="nc" id="L49">    return false;</span>
+  }
+
+  /**
+   * Conta contra a SAÚDE do provedor, para efeito de abrir o disjuntor?
+   *
+   * &lt;p&gt;Superconjunto de {@link #eTransitoria}: acrescenta o 429. Um provedor que nos limita está
+   * dizendo, no protocolo dele, que não quer mais tráfego nosso — parar de chamar é exatamente a
+   * reação certa, ainda que repetir a mesma requisição seja exatamente a errada.
+   *
+   * &lt;p&gt;&lt;b&gt;4xx não entra&lt;/b&gt;, e a razão é que 4xx é problema NOSSO: URL errada, parâmetro inválido,
+   * contrato mudado. Contá-lo transformaria um defeito nosso em &quot;provedor fora do ar&quot; e o
+   * esconderia atrás de um 503 — o disjuntor viraria uma máquina de mascarar bug.
+   */
+  static boolean indicaProvedorDoente(Throwable t) {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (eTransitoria(t)) {</span>
+<span class="fc" id="L65">      return true;</span>
+    }
+<span class="fc bfc" id="L67" title="All 4 branches covered.">    return t instanceof RestClientResponseException r &amp;&amp; r.getStatusCode().value() == 429;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

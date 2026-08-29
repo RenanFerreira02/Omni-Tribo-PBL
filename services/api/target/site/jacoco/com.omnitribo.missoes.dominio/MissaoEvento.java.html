@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MissaoEvento.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">MissaoEvento.java</span></div><h1>MissaoEvento.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+// APPEND-ONLY — trilha do ciclo de vida da missão; nunca se altera um evento registrado.
+@Immutable
+@Entity
+@Table(name = &quot;missao_evento&quot;)
+public class MissaoEvento {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  // missaoId: FK dentro do mesmo módulo — permitida
+  @Column(name = &quot;missao_id&quot;, nullable = false, updatable = false)
+  private UUID missaoId;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, updatable = false, length = 30)
+  private TipoMissaoEvento tipo;
+
+  // atorId: FK para usuario — missoes→identidade é permitido; nullable (eventos do sistema)
+  @Column(name = &quot;ator_id&quot;, updatable = false)
+  private UUID atorId;
+
+  // length = 30 acompanha a V11: 'AGUARDANDO_CONFIRMACAO' tem 22 caracteres.
+  @Column(name = &quot;de_status&quot;, updatable = false, length = 30)
+  private String deStatus;
+
+  @Column(name = &quot;para_status&quot;, updatable = false, length = 30)
+  private String paraStatus;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(updatable = false, columnDefinition = &quot;jsonb&quot;)
+  private String payload;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+<span class="fc" id="L51">  protected MissaoEvento() {}</span>
+
+  public MissaoEvento(
+      UUID id,
+      UUID missaoId,
+      TipoMissaoEvento tipo,
+      UUID atorId,
+      StatusMissao deStatus,
+      StatusMissao paraStatus,
+      String payload,
+<span class="fc" id="L61">      Instant criadoEm) {</span>
+<span class="fc" id="L62">    this.id = id;</span>
+<span class="fc" id="L63">    this.missaoId = missaoId;</span>
+<span class="fc" id="L64">    this.tipo = tipo;</span>
+<span class="fc" id="L65">    this.atorId = atorId;</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">    this.deStatus = deStatus != null ? deStatus.name() : null;</span>
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">    this.paraStatus = paraStatus != null ? paraStatus.name() : null;</span>
+<span class="fc" id="L68">    this.payload = payload;</span>
+<span class="fc" id="L69">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L70">  }</span>
+
+  public UUID getId() {
+<span class="nc" id="L73">    return id;</span>
+  }
+
+  public UUID getMissaoId() {
+<span class="fc" id="L77">    return missaoId;</span>
+  }
+
+  public TipoMissaoEvento getTipo() {
+<span class="fc" id="L81">    return tipo;</span>
+  }
+
+  public UUID getAtorId() {
+<span class="nc" id="L85">    return atorId;</span>
+  }
+
+  public String getDeStatus() {
+<span class="fc" id="L89">    return deStatus;</span>
+  }
+
+  public String getParaStatus() {
+<span class="fc" id="L93">    return paraStatus;</span>
+  }
+
+  public String getPayload() {
+<span class="nc" id="L97">    return payload;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="fc" id="L101">    return criadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

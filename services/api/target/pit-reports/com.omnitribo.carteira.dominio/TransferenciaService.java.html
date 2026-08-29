@@ -1,0 +1,3363 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>TransferenciaService.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package com.omnitribo.carteira.dominio;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.carteira.api.TransferenciaResponse;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.carteira.infra.CarteiraRepository;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.carteira.infra.LancamentoRepository;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.compartilhado.dominio.Auditavel;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.compartilhado.dominio.ChaveIdempotencia;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.omnitribo.identidade.api.ConsultaAfiliacao;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.time.Instant;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.Optional;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.UUID;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.stereotype.Service;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.transaction.annotation.Transactional;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Transfer&#234;ncia de tokens entre membros da mesma tribo.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;&#201; a opera&#231;&#227;o que exige mais cuidado do m&#243;dulo, por dois motivos que se somam: ela toca DUAS</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * linhas de carteira na mesma transa&#231;&#227;o, e as duas pontas podem se inverter entre requisi&#231;&#245;es</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * concorrentes. Ver {@link #ordenarELocar} para a prova de aus&#234;ncia de deadlock.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@Service</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>public class TransferenciaService {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static final String CARTEIRA_AUSENTE = &#34;Carteira n&#227;o encontrada.&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final CarteiraRepository carteiraRepository;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final LancamentoRepository lancamentoRepository;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final LivroRazaoService livroRazaoService;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final ConsultaAfiliacao consultaAfiliacao;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final PoliticaCarteira politica;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public TransferenciaService(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      CarteiraRepository carteiraRepository,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      LancamentoRepository lancamentoRepository,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      LivroRazaoService livroRazaoService,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      ConsultaAfiliacao consultaAfiliacao,</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      PoliticaCarteira politica) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.carteiraRepository = carteiraRepository;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.lancamentoRepository = lancamentoRepository;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.livroRazaoService = livroRazaoService;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.consultaAfiliacao = consultaAfiliacao;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.politica = politica;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Auditavel(acao = &#34;TOKENS_TRANSFERIDOS&#34;, entidade = &#34;carteira&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Transactional</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public TransferenciaResponse transferir(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      UUID remetenteId, UUID destinatarioId, long tokens, String mensagem, String chaveDoCliente) {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    Instant agora = Instant.now();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // Regras que n&#227;o dependem de saldo v&#234;m antes do lock: n&#227;o faz sentido travar duas linhas para</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // descobrir que o usu&#225;rio est&#225; transferindo para si mesmo.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_57'/>
+57
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_57'>1</a>
+<span>
+1. transferir : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (remetenteId.equals(destinatarioId)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new RegraNegocioVioladaException(&#34;N&#227;o &#233; poss&#237;vel transferir para a pr&#243;pria carteira.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_59'/>
+59
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_59'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_60'/>
+60
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_60'>2</a>
+<span>
+1. transferir : changed conditional boundary &rarr; KILLED<br/>
+2. transferir : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (tokens &#62; politica.transferenciaTetoPorTransacao()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new RegraNegocioVioladaException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_62'/>
+62
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_62'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;Transfer&#234;ncia de &#34;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + tokens</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_64'/>
+64
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_64'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + &#34; tokens excede o teto de &#34;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>              + politica.transferenciaTetoPorTransacao()</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + &#34; por transa&#231;&#227;o.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_68'/>
+68
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_68'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // Regra de dom&#237;nio da moeda comunit&#225;ria: TOKEN s&#243; circula dentro da tribo (ADR 0004). Sem isto,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // &#34;comunit&#225;ria&#34; n&#227;o significaria nada &#8212; o token seria uma moeda global com outro nome.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_70'/>
+70
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_70'>1</a>
+<span>
+1. transferir : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (!consultaAfiliacao.mesmaTribo(remetenteId, destinatarioId)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_71'/>
+71
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_71'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new RegraNegocioVioladaException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;Tokens s&#243; podem ser transferidos entre membros da mesma tribo.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_73'/>
+73
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_73'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_74'/>
+74
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_74'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_75'/>
+75
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_75'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    UUID carteiraOrigemId =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_76'/>
+76
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_76'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        carteiraRepository</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_77'/>
+77
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_77'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            .buscarIdPorUsuario(remetenteId)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_78'/>
+78
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_78'>1</a>
+<span>
+1. lambda$transferir$0 : replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::lambda$transferir$0 &rarr; NO_COVERAGE<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>            .orElseThrow(() -&#62; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_79'/>
+79
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_79'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    UUID carteiraDestinoId =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_80'/>
+80
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_80'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        carteiraRepository</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_81'/>
+81
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_81'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            .buscarIdPorUsuario(destinatarioId)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_82'/>
+82
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_82'>1</a>
+<span>
+1. lambda$transferir$1 : replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::lambda$transferir$1 &rarr; NO_COVERAGE<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>            .orElseThrow(() -&#62; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_83'/>
+83
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_83'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_84'/>
+84
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_84'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    ParTravado par = ordenarELocar(carteiraOrigemId, carteiraDestinoId);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_85'/>
+85
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_85'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    Carteira origem = par.origem();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_86'/>
+86
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_86'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    Carteira destino = par.destino();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_87'/>
+87
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_87'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_88'/>
+88
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_88'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String chaveEnvio = ChaveIdempotencia.transferenciaEnviada(remetenteId, chaveDoCliente);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_89'/>
+89
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_89'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String chaveRecebimento = ChaveIdempotencia.transferenciaRecebida(remetenteId, chaveDoCliente);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_90'/>
+90
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_90'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_91'/>
+91
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_91'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // SONDAR DEPOIS DO LOCK &#8212; &#233; o que fecha a corrida entre sondar e inserir. A carteira do</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_92'/>
+92
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_92'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // remetente est&#225; travada em qualquer ordem, ent&#227;o duas requisi&#231;&#245;es com a mesma chave est&#227;o</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_93'/>
+93
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_93'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // serializadas por ela e a segunda enxerga o lan&#231;amento da primeira.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_94'/>
+94
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_94'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    Optional&#60;Lancamento&#62; jaEnviado = livroRazaoService.consultar(chaveEnvio);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_95'/>
+95
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_95'>1</a>
+<span>
+1. transferir : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (jaEnviado.isPresent()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_96'/>
+96
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_96'>1</a>
+<span>
+1. transferir : replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::transferir &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return new TransferenciaResponse(</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_97'/>
+97
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_97'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          jaEnviado.get().getId(), null, origem.getSaldoTokens(), true);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_98'/>
+98
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_98'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_99'/>
+99
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_99'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_100'/>
+100
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_100'>2</a>
+<span>
+1. transferir : changed conditional boundary &rarr; SURVIVED<br/>
+2. transferir : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>    if (origem.getSaldoTokens() &#60; tokens) {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_101'/>
+101
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_101'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      // 422 ANTES de qualquer escrita. Nada foi gravado at&#233; aqui, ent&#227;o a recusa &#233; literalmente</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_102'/>
+102
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_102'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      // sem efeito colateral &#8212; &#233; o que o teste verifica.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_103'/>
+103
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_103'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new RegraNegocioVioladaException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_104'/>
+104
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_104'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;Saldo de &#34;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_105'/>
+105
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_105'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>              + origem.getSaldoTokens()</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_106'/>
+106
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_106'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + &#34; tokens &#233; insuficiente para transferir &#34;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_107'/>
+107
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_107'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + tokens</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_108'/>
+108
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_108'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + &#34;.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_109'/>
+109
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_109'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_110'/>
+110
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_110'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_111'/>
+111
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_111'>1</a>
+<span>
+1. transferir : removed call to com/omnitribo/carteira/dominio/TransferenciaService::validarTetoDaJanela &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    validarTetoDaJanela(origem.getId(), tokens, agora);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_112'/>
+112
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_112'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_113'/>
+113
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_113'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    Lancamento saida =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_114'/>
+114
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_114'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        livroRazaoService.registrar(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_115'/>
+115
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_115'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>            origem,</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_116'/>
+116
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_116'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            Movimento.deTokens(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_117'/>
+117
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_117'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                SinalLancamento.DEBITO,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_118'/>
+118
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_118'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                MotivoLancamento.TRANSFERENCIA_ENVIADA,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_119'/>
+119
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_119'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                tokens,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_120'/>
+120
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_120'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                null,</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_121'/>
+121
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_121'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>                destino.getId(),</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_122'/>
+122
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_122'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                chaveEnvio,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_123'/>
+123
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_123'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                mensagem,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_124'/>
+124
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_124'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                agora));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_125'/>
+125
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_125'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_126'/>
+126
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_126'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    Lancamento entrada =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_127'/>
+127
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_127'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        livroRazaoService.registrar(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_128'/>
+128
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_128'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>            destino,</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_129'/>
+129
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_129'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            Movimento.deTokens(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_130'/>
+130
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_130'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                SinalLancamento.CREDITO,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_131'/>
+131
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_131'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                MotivoLancamento.TRANSFERENCIA_RECEBIDA,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_132'/>
+132
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_132'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                tokens,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_133'/>
+133
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_133'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                null,</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_134'/>
+134
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_134'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>                origem.getId(),</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_135'/>
+135
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_135'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                chaveRecebimento,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_136'/>
+136
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_136'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                mensagem,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_137'/>
+137
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_137'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>                agora));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_138'/>
+138
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_138'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_139'/>
+139
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_139'>1</a>
+<span>
+1. transferir : replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::transferir &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return new TransferenciaResponse(</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_140'/>
+140
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_140'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        saida.getId(), entrada.getId(), origem.getSaldoTokens(), false);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_141'/>
+141
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_141'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_142'/>
+142
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_142'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_143'/>
+143
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_143'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_144'/>
+144
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_144'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Trava as duas carteiras em ORDEM DETERMIN&#205;STICA CRESCENTE DE id.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_145'/>
+145
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_145'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_146'/>
+146
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_146'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;p&#62;&#201; esta ordena&#231;&#227;o, e nada mais, que impede o deadlock A&#8594;B / B&#8594;A. Sem ela: duas transfer&#234;ncias</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_147'/>
+147
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_147'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * simult&#226;neas em sentidos opostos entre as MESMAS carteiras pediriam os mesmos dois locks em</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_148'/>
+148
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_148'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * ordens opostas &#8212; cada transa&#231;&#227;o seguraria um e esperaria pelo outro, e o PostgreSQL mataria uma</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_149'/>
+149
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_149'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * com {@code 40P01} depois de {@code deadlock_timeout} (1 s por padr&#227;o). O usu&#225;rio veria 500, e</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_150'/>
+150
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_150'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * de forma intermitente, que &#233; o pior modo de falhar.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_151'/>
+151
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_151'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_152'/>
+152
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_152'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;p&#62;Por que ordenar funciona: deadlock exige um CICLO no grafo de espera. Travando sempre do</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_153'/>
+153
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_153'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * menor id para o maior, uma transa&#231;&#227;o s&#243; pode esperar por outra que segura um id ESTRITAMENTE</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_154'/>
+154
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_154'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * MENOR do que o pr&#243;ximo que ela quer. A espera portanto sempre anda numa dire&#231;&#227;o s&#243;, e um ciclo</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_155'/>
+155
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_155'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * exigiria voltar. N&#227;o &#233; probabilidade reduzida &#8212; &#233; impossibilidade por constru&#231;&#227;o.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_156'/>
+156
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_156'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_157'/>
+157
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_157'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;p&#62;Duas notas que parecem bug a quem revisa:</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_158'/>
+158
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_158'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_159'/>
+159
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_159'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;ul&#62;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_160'/>
+160
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_160'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *   &#60;li&#62;{@code UUID.compareTo} compara os dois {@code long} internos COM SINAL, e essa ordem N&#195;O</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_161'/>
+161
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_161'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *       &#233; a mesma do tipo {@code uuid} do PostgreSQL. &#201; irrelevante: a prova exige UMA ordem</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_162'/>
+162
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_162'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *       total consistente entre todos os call sites, n&#227;o concord&#226;ncia com a do banco.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_163'/>
+163
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_163'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *   &#60;li&#62;Ordenamos por {@code carteira.id} &#8212; a PK da linha efetivamente travada &#8212; e n&#227;o por {@code</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_164'/>
+164
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_164'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *       usuario_id}, para que a propriedade seja verific&#225;vel lendo o SQL emitido.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_165'/>
+165
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_165'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;/ul&#62;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_166'/>
+166
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_166'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_167'/>
+167
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_167'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;p&#62;Duas idas ao banco em vez de um {@code where id in (:a, :b) order by id}: nessa forma o n&#243;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_168'/>
+168
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_168'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * {@code LockRows} do PostgreSQL fica ACIMA do n&#243; de acesso que o planner escolher, e com bitmap</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_169'/>
+169
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_169'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * scan ou &#237;ndice n&#227;o ordenado a ordem de emiss&#227;o das linhas &#8212; logo a de aquisi&#231;&#227;o dos locks &#8212; n&#227;o</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_170'/>
+170
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_170'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#233; a do {@code ORDER BY}. O round-trip extra compra uma garantia; a query &#250;nica compra uma</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_171'/>
+171
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_171'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * suposi&#231;&#227;o sobre o planner.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_172'/>
+172
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_172'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_173'/>
+173
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_173'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private ParTravado ordenarELocar(UUID carteiraOrigemId, UUID carteiraDestinoId) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_174'/>
+174
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_174'>2</a>
+<span>
+1. ordenarELocar : changed conditional boundary &rarr; SURVIVED<br/>
+2. ordenarELocar : negated conditional &rarr; SURVIVED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>    boolean origemPrimeiro = carteiraOrigemId.compareTo(carteiraDestinoId) &#60; 0;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_175'/>
+175
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_175'>1</a>
+<span>
+1. ordenarELocar : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    UUID primeira = origemPrimeiro ? carteiraOrigemId : carteiraDestinoId;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_176'/>
+176
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_176'>1</a>
+<span>
+1. ordenarELocar : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    UUID segunda = origemPrimeiro ? carteiraDestinoId : carteiraOrigemId;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_177'/>
+177
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_177'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_178'/>
+178
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_178'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    Carteira a =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_179'/>
+179
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_179'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        carteiraRepository</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_180'/>
+180
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_180'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            .buscarParaAtualizar(primeira)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_181'/>
+181
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_181'>1</a>
+<span>
+1. lambda$ordenarELocar$2 : replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::lambda$ordenarELocar$2 &rarr; NO_COVERAGE<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>            .orElseThrow(() -&#62; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_182'/>
+182
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_182'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    Carteira b =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_183'/>
+183
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_183'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        carteiraRepository</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_184'/>
+184
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_184'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            .buscarParaAtualizar(segunda)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_185'/>
+185
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_185'>1</a>
+<span>
+1. lambda$ordenarELocar$3 : replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::lambda$ordenarELocar$3 &rarr; NO_COVERAGE<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>            .orElseThrow(() -&#62; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_186'/>
+186
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_186'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_187'/>
+187
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_187'>2</a>
+<span>
+1. ordenarELocar : replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::ordenarELocar &rarr; KILLED<br/>
+2. ordenarELocar : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return origemPrimeiro ? new ParTravado(a, b) : new ParTravado(b, a);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_188'/>
+188
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_188'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_189'/>
+189
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_189'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_190'/>
+190
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_190'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_191'/>
+191
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_191'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Teto acumulado numa janela deslizante.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_192'/>
+192
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_192'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_193'/>
+193
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_193'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;p&#62;Sozinho, o teto por transa&#231;&#227;o n&#227;o limita nada: quem controla a conta faz N transfer&#234;ncias de</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_194'/>
+194
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_194'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * valor abaixo do teto. Este &#233; o que fecha isso.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_195'/>
+195
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_195'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_196'/>
+196
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_196'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;p&#62;A consulta &#233; racy em tese e correta na pr&#225;tica pelo mesmo motivo da verifica&#231;&#227;o de saldo:</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_197'/>
+197
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_197'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * roda DEPOIS do lock da carteira de origem, ent&#227;o duas transfer&#234;ncias do mesmo remetente est&#227;o</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_198'/>
+198
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_198'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * serializadas e a segunda enxerga o lan&#231;amento da primeira.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_199'/>
+199
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_199'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_200'/>
+200
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_200'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private void validarTetoDaJanela(UUID carteiraOrigemId, long tokens, Instant agora) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_201'/>
+201
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_201'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    Instant inicioDaJanela = agora.minus(politica.transferenciaJanela());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_202'/>
+202
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_202'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    long jaEnviado =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_203'/>
+203
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_203'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        lancamentoRepository.somarTransferenciasEnviadasDesde(carteiraOrigemId, inicioDaJanela);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_204'/>
+204
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_204'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_205'/>
+205
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_205'>3</a>
+<span>
+1. validarTetoDaJanela : Replaced long addition with subtraction &rarr; KILLED<br/>
+2. validarTetoDaJanela : changed conditional boundary &rarr; KILLED<br/>
+3. validarTetoDaJanela : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (jaEnviado + tokens &#62; politica.transferenciaTetoPorJanela()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_206'/>
+206
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_206'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new RegraNegocioVioladaException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_207'/>
+207
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_207'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;Transfer&#234;ncia excede o teto de &#34;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_208'/>
+208
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_208'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>              + politica.transferenciaTetoPorJanela()</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_209'/>
+209
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_209'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + &#34; tokens por janela de &#34;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_210'/>
+210
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_210'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>              + politica.transferenciaJanela().toHours()</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_211'/>
+211
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_211'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + &#34;h. J&#225; enviados na janela: &#34;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_212'/>
+212
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_212'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + jaEnviado</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_213'/>
+213
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_213'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              + &#34;.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_214'/>
+214
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_214'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_215'/>
+215
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_215'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_216'/>
+216
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_216'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_217'/>
+217
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_217'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /** Par j&#225; travado, devolvido nos pap&#233;is de neg&#243;cio para o chamador n&#227;o reordenar por engano. */</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_218'/>
+218
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_218'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private record ParTravado(Carteira origem, Carteira destino) {}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@530e08a7_219'/>
+219
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_219'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_57'>57</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_57'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorTransacaoDa422()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_60'>60</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_60'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorJanelaDa422DepoisDeVariasTransferenciasValidas()]</span></span> changed conditional boundary &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorTransacaoDa422()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_70'>70</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_70'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:transferenciaParaOutraTriboDa422SemEfeito()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_78'>78</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_78'/> 
+
+<p class='NO_COVERAGE'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$transferir$0<br/><b>Killed by : </b>none</span></span> replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::lambda$transferir$0 &rarr; NO_COVERAGE</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_82'>82</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_82'/> 
+
+<p class='NO_COVERAGE'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$transferir$1<br/><b>Killed by : </b>none</span></span> replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::lambda$transferir$1 &rarr; NO_COVERAGE</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_95'>95</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_95'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:saldoInsuficienteDa422SemEfeito()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_96'>96</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_96'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()]</span></span> replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::transferir &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_100'>100</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_100'/> 
+
+<p class='SURVIVED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>none</span></span> changed conditional boundary &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.carteira.dominio.TransferenciaService,-method=transferir,-methodDesc=(Ljava/util/UUID;Ljava/util/UUID;JLjava/lang/String;Ljava/lang/String;)Lcom/omnitribo/carteira/api/TransferenciaResponse;],-indexes=[151],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.carteira.dominio.TransferenciaService,-method=transferir,-methodDesc=(Ljava/util/UUID;Ljava/util/UUID;JLjava/lang/String;Ljava/lang/String;)Lcom/omnitribo/carteira/api/TransferenciaResponse;],-indexes=[151],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=com.omnitribo.carteira.dominio.TransferenciaService,-method=transferir,-methodDesc=(Ljava/util/UUID;Ljava/util/UUID;JLjava/lang/String;Ljava/lang/String;)Lcom/omnitribo/carteira/api/TransferenciaResponse;],-indexes=[151],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:saldoInsuficienteDa422SemEfeito()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:retryDaMesmaChaveComValorDiferenteNaoCriaSegundaTransferencia()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:transferenciaEntreMembrosDaMesmaTriboFunciona()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorJanelaDa422DepoisDeVariasTransferenciasValidas()]</li> <li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()]</li> <li>com.omnitribo.carteira.api.TransferenciaDeadlockTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaDeadlockTest]/[method:transferenciasCruzadasSimultaneas_semDeadlockESaldosCorretos()]</li> 
+</ul>
+</div></div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:saldoInsuficienteDa422SemEfeito()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_111'>111</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_111'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorJanelaDa422DepoisDeVariasTransferenciasValidas()]</span></span> removed call to com/omnitribo/carteira/dominio/TransferenciaService::validarTetoDaJanela &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_139'>139</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_139'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>transferir<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:transferenciaEntreMembrosDaMesmaTriboFunciona()]</span></span> replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::transferir &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_174'>174</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_174'/> 
+
+<p class='SURVIVED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>ordenarELocar<br/><b>Killed by : </b>none</span></span> changed conditional boundary &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.carteira.dominio.TransferenciaService,-method=ordenarELocar,-methodDesc=(Ljava/util/UUID;Ljava/util/UUID;)Lcom/omnitribo/carteira/dominio/TransferenciaService$ParTravado;],-indexes=[6],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.carteira.dominio.TransferenciaService,-method=ordenarELocar,-methodDesc=(Ljava/util/UUID;Ljava/util/UUID;)Lcom/omnitribo/carteira/dominio/TransferenciaService$ParTravado;],-indexes=[6],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=com.omnitribo.carteira.dominio.TransferenciaService,-method=ordenarELocar,-methodDesc=(Ljava/util/UUID;Ljava/util/UUID;)Lcom/omnitribo/carteira/dominio/TransferenciaService$ParTravado;],-indexes=[6],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:saldoInsuficienteDa422SemEfeito()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:retryDaMesmaChaveComValorDiferenteNaoCriaSegundaTransferencia()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:transferenciaEntreMembrosDaMesmaTriboFunciona()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorJanelaDa422DepoisDeVariasTransferenciasValidas()]</li> <li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()]</li> <li>com.omnitribo.carteira.api.TransferenciaDeadlockTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaDeadlockTest]/[method:transferenciasCruzadasSimultaneas_semDeadlockESaldosCorretos()]</li> 
+</ul>
+</div></div> <p class='SURVIVED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>ordenarELocar<br/><b>Killed by : </b>none</span></span> negated conditional &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.carteira.dominio.TransferenciaService,-method=ordenarELocar,-methodDesc=(Ljava/util/UUID;Ljava/util/UUID;)Lcom/omnitribo/carteira/dominio/TransferenciaService$ParTravado;],-indexes=[6],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.carteira.dominio.TransferenciaService,-method=ordenarELocar,-methodDesc=(Ljava/util/UUID;Ljava/util/UUID;)Lcom/omnitribo/carteira/dominio/TransferenciaService$ParTravado;],-indexes=[6],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=com.omnitribo.carteira.dominio.TransferenciaService,-method=ordenarELocar,-methodDesc=(Ljava/util/UUID;Ljava/util/UUID;)Lcom/omnitribo/carteira/dominio/TransferenciaService$ParTravado;],-indexes=[6],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:saldoInsuficienteDa422SemEfeito()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:retryDaMesmaChaveComValorDiferenteNaoCriaSegundaTransferencia()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:transferenciaEntreMembrosDaMesmaTriboFunciona()]</li> <li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorJanelaDa422DepoisDeVariasTransferenciasValidas()]</li> <li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()]</li> <li>com.omnitribo.carteira.api.TransferenciaDeadlockTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaDeadlockTest]/[method:transferenciasCruzadasSimultaneas_semDeadlockESaldosCorretos()]</li> 
+</ul>
+</div></div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_175'>175</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_175'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>ordenarELocar<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_176'>176</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_176'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>ordenarELocar<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_181'>181</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_181'/> 
+
+<p class='NO_COVERAGE'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$ordenarELocar$2<br/><b>Killed by : </b>none</span></span> replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::lambda$ordenarELocar$2 &rarr; NO_COVERAGE</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_185'>185</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_185'/> 
+
+<p class='NO_COVERAGE'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$ordenarELocar$3<br/><b>Killed by : </b>none</span></span> replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::lambda$ordenarELocar$3 &rarr; NO_COVERAGE</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_187'>187</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_187'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>ordenarELocar<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:saldoInsuficienteDa422SemEfeito()]</span></span> replaced return value with null for com/omnitribo/carteira/dominio/TransferenciaService::ordenarELocar &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>ordenarELocar<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@530e08a7_205'>205</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@530e08a7_205'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>validarTetoDaJanela<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorJanelaDa422DepoisDeVariasTransferenciasValidas()]</span></span> Replaced long addition with subtraction &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>validarTetoDaJanela<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorJanelaDa422DepoisDeVariasTransferenciasValidas()]</span></span> changed conditional boundary &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>validarTetoDaJanela<br/><b>Killed by : </b>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorTransacaoDa422()] (32 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:transferenciaParaOutraTriboDa422SemEfeito()] (34 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:saldoInsuficienteDa422SemEfeito()] (33 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:transferenciaParaSiMesmoDa422()] (45 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:mesmaChaveDeIdempotenciaNaoTransfereDuasVezes()] (47 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:retryDaMesmaChaveComValorDiferenteNaoCriaSegundaTransferencia()] (63 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:transferenciaEntreMembrosDaMesmaTriboFunciona()] (64 ms)</li><li>com.omnitribo.carteira.api.TransferenciaControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaControllerTest]/[method:acimaDoTetoPorJanelaDa422DepoisDeVariasTransferenciasValidas()] (89 ms)</li><li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()] (1549 ms)</li><li>com.omnitribo.carteira.api.TransferenciaDeadlockTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.TransferenciaDeadlockTest]/[method:transferenciasCruzadasSimultaneas_semDeadlockESaldosCorretos()] (1642 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.25.9 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.infra</a> &gt; <span class="el_source">JwtService.java</span></div><h1>JwtService.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.infra;
+
+import com.omnitribo.compartilhado.api.EmissorDeToken;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import jakarta.annotation.PostConstruct;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.Date;
+import java.util.UUID;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+@Service
+@EnableConfigurationProperties(JwtProperties.class)
+public class JwtService implements EmissorDeToken {
+
+  private final JwtProperties props;
+  private PrivateKey privateKey;
+  private PublicKey publicKey;
+
+<span class="fc" id="L34">  public JwtService(JwtProperties props) {</span>
+<span class="fc" id="L35">    this.props = props;</span>
+<span class="fc" id="L36">  }</span>
+
+  @PostConstruct
+  protected void carregarChaves() {
+    try {
+<span class="fc" id="L41">      this.privateKey = carregarChavePrivada(props.chavePrivadaCaminho());</span>
+<span class="fc" id="L42">      this.publicKey = carregarChavePublica(props.chavePublicaCaminho());</span>
+<span class="nc" id="L43">    } catch (Exception e) {</span>
+      // Falha de startup é intencional: sem chaves RSA a API não pode emitir ou validar tokens.
+<span class="nc" id="L45">      throw new IllegalStateException(</span>
+<span class="nc" id="L46">          &quot;Falha ao carregar chaves RSA para JWT: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L47">    }</span>
+<span class="fc" id="L48">  }</span>
+
+  /** Emite um access token RS256 para o usuário, com TTL configurado em app.jwt.ttl-access. */
+  @Override
+  public String emitirAccessToken(UUID usuarioId, String email, String papel) {
+<span class="nc" id="L53">    Instant agora = Instant.now();</span>
+<span class="nc" id="L54">    return Jwts.builder()</span>
+<span class="nc" id="L55">        .subject(usuarioId.toString())</span>
+        // jti aleatório por token. ATENÇÃO: nada o verifica hoje, e não existe blocklist — este
+        // claim é uma opção mantida aberta, não uma defesa. A revogação que existe é por CONTA, não
+        // por token: o JwtAuthFilter consulta ConsultaSessao a cada requisição, e é isso que barra
+        // conta anonimizada e ADMIN rebaixado. Revogar um token específico (logout de um aparelho
+        // invalidando o access token daquele aparelho) exigiria estado persistente ou distribuído e
+        // ficou fora do MVP — ver ADR 0016.
+<span class="nc" id="L62">        .id(UUID.randomUUID().toString())</span>
+<span class="nc" id="L63">        .claim(&quot;email&quot;, email)</span>
+<span class="nc" id="L64">        .claim(&quot;papel&quot;, papel)</span>
+<span class="nc" id="L65">        .issuer(props.issuer())</span>
+<span class="nc" id="L66">        .audience()</span>
+<span class="nc" id="L67">        .add(props.audience())</span>
+<span class="nc" id="L68">        .and()</span>
+<span class="nc" id="L69">        .issuedAt(Date.from(agora))</span>
+<span class="nc" id="L70">        .expiration(Date.from(agora.plus(props.ttlAccess())))</span>
+        // RS256 (RSA + SHA-256): assimétrico — chave privada assina, pública verifica.
+        // Vantagem sobre HS256: o recurso server pode verificar sem conhecer a chave privada.
+<span class="nc" id="L73">        .signWith(privateKey, Jwts.SIG.RS256)</span>
+<span class="nc" id="L74">        .compact();</span>
+  }
+
+  /**
+   * Valida assinatura, expiração, issuer e audience do token.
+   *
+   * @throws JwtValidacaoException se qualquer verificação falhar
+   */
+  public Claims validar(String token) {
+    try {
+<span class="nc" id="L84">      return Jwts.parser()</span>
+<span class="nc" id="L85">          .verifyWith(publicKey)</span>
+<span class="nc" id="L86">          .requireIssuer(props.issuer())</span>
+<span class="nc" id="L87">          .requireAudience(props.audience())</span>
+<span class="nc" id="L88">          .build()</span>
+<span class="nc" id="L89">          .parseSignedClaims(token)</span>
+<span class="nc" id="L90">          .getPayload();</span>
+<span class="nc" id="L91">    } catch (JwtException | IllegalArgumentException e) {</span>
+      // JwtException cobre: assinatura inválida, token expirado, issuer/audience errados.
+      // Não relançamos a exceção original: evita vazar detalhes do token na resposta.
+<span class="nc" id="L94">      throw new JwtValidacaoException(&quot;Token inválido ou expirado&quot;);</span>
+    }
+  }
+
+  // ─── Carregamento de chaves PEM ───────────────────────────────────────────
+
+  private PrivateKey carregarChavePrivada(String caminho)
+      throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+<span class="fc" id="L102">    String pem = lerPem(caminho, &quot;PRIVATE KEY&quot;, &quot;RSA PRIVATE KEY&quot;);</span>
+<span class="fc" id="L103">    byte[] der = Base64.getDecoder().decode(pem);</span>
+<span class="fc" id="L104">    return KeyFactory.getInstance(&quot;RSA&quot;).generatePrivate(new PKCS8EncodedKeySpec(der));</span>
+  }
+
+  private PublicKey carregarChavePublica(String caminho)
+      throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+<span class="fc" id="L109">    String pem = lerPem(caminho, &quot;PUBLIC KEY&quot;);</span>
+<span class="fc" id="L110">    byte[] der = Base64.getDecoder().decode(pem);</span>
+<span class="fc" id="L111">    return KeyFactory.getInstance(&quot;RSA&quot;).generatePublic(new X509EncodedKeySpec(der));</span>
+  }
+
+  private String lerPem(String caminho, String... cabecalhosPossiveis) throws IOException {
+<span class="fc" id="L115">    String conteudo = Files.readString(Path.of(caminho));</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">    for (String cabecalho : cabecalhosPossiveis) {</span>
+<span class="fc" id="L117">      String inicio = &quot;-----BEGIN &quot; + cabecalho + &quot;-----&quot;;</span>
+<span class="fc" id="L118">      String fim = &quot;-----END &quot; + cabecalho + &quot;-----&quot;;</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">      if (conteudo.contains(inicio)) {</span>
+<span class="fc" id="L120">        return conteudo.replace(inicio, &quot;&quot;).replace(fim, &quot;&quot;).replaceAll(&quot;\\s&quot;, &quot;&quot;);</span>
+      }
+    }
+<span class="nc" id="L123">    throw new IOException(&quot;Formato PEM não reconhecido em: &quot; + caminho);</span>
+  }
+
+  /** Lançada quando o JWT falha em qualquer verificação (assinatura, exp, iss, aud). */
+  public static class JwtValidacaoException extends RuntimeException {
+<span class="fc" id="L128">    private final HttpStatus status = HttpStatus.UNAUTHORIZED;</span>
+
+    public JwtValidacaoException(String mensagem) {
+<span class="fc" id="L131">      super(mensagem);</span>
+<span class="fc" id="L132">    }</span>
+
+    public HttpStatus getStatus() {
+<span class="nc" id="L135">      return status;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

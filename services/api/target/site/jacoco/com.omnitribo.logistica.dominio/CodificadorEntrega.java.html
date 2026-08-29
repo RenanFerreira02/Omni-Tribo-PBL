@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CodificadorEntrega.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.dominio</a> &gt; <span class="el_source">CodificadorEntrega.java</span></div><h1>CodificadorEntrega.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.dominio;
+
+import java.util.Map;
+
+/**
+ * Traduz uma entrega para o vetor numérico que o modelo consome. Função pura.
+ *
+ * &lt;p&gt;&lt;b&gt;Esta classe é o contrato compartilhado entre o treino e a produção.&lt;/b&gt; O treinador, que
+ * mora em {@code src/test}, usa exatamente estes métodos — nunca uma cópia. Se o encoder do treino
+ * divergisse do de produção, o modelo passaria a somar o coeficiente de uma característica sobre o
+ * valor de outra e &lt;b&gt;nenhum teste acusaria&lt;/b&gt;: os números continuariam plausíveis, só que
+ * errados. {@code ModeloRiscoTreinoTest} fecha essa porta comparando a inferência de runtime com a
+ * do treinador em toda a partição de teste.
+ *
+ * &lt;p&gt;As janelas de hora e a categoria de endereço entram como indicadores com REFERÊNCIA
+ * DESCARTADA: manhã (06h–11h) e {@code RESIDENCIAL} não têm posição no vetor. Ver {@link
+ * CaracteristicaRisco} para por que descartar a referência é obrigatório e não economia.
+ */
+public final class CodificadorEntrega {
+
+  private static final int INICIO_MANHA = 6;
+  private static final int INICIO_TARDE = 12;
+  private static final int INICIO_NOITE = 18;
+  private static final int INICIO_MADRUGADA = 22;
+
+  private CodificadorEntrega() {}
+
+  /**
+   * Vetor BRUTO: indicadores em 0/1, numéricas na unidade natural (kg, litros, mm, °C).
+   *
+   * &lt;p&gt;Separado de {@link #padronizar} porque o treinador precisa do bruto para CALCULAR μ e σ — e
+   * só pode calculá-los depois de saber quais linhas caíram na partição de treino.
+   */
+  public static double[] codificar(FeaturesEntrega f) {
+<span class="fc" id="L35">    double[] x = new double[CaracteristicaRisco.TOTAL];</span>
+
+<span class="fc bfc" id="L37" title="All 2 branches covered.">    boolean comercial = f.tipoEndereco() == TipoEndereco.COMERCIAL;</span>
+<span class="fc" id="L38">    boolean fimDeSemana = f.fimDeSemana();</span>
+
+<span class="fc" id="L40">    x[CaracteristicaRisco.JANELA_MADRUGADA.indice()] = indicador(ehMadrugada(f.horaDoDia()));</span>
+<span class="fc" id="L41">    x[CaracteristicaRisco.JANELA_TARDE.indice()] = indicador(ehTarde(f.horaDoDia()));</span>
+<span class="fc" id="L42">    x[CaracteristicaRisco.JANELA_NOITE.indice()] = indicador(ehNoite(f.horaDoDia()));</span>
+
+<span class="fc" id="L44">    x[CaracteristicaRisco.ENDERECO_COMERCIAL.indice()] = indicador(comercial);</span>
+<span class="fc" id="L45">    x[CaracteristicaRisco.ENDERECO_CONDOMINIO.indice()] =</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        indicador(f.tipoEndereco() == TipoEndereco.CONDOMINIO);</span>
+<span class="fc" id="L47">    x[CaracteristicaRisco.ENDERECO_RURAL.indice()] =</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        indicador(f.tipoEndereco() == TipoEndereco.RURAL);</span>
+
+<span class="fc" id="L50">    x[CaracteristicaRisco.FIM_DE_SEMANA.indice()] = indicador(fimDeSemana);</span>
+    // Produto das duas dummies. Sem este termo, o modelo linear não tem como aprender que o efeito
+    // de &quot;comercial&quot; DEPENDE de ser fim de semana — ele só somaria os dois efeitos isolados.
+<span class="fc bfc" id="L53" title="All 4 branches covered.">    x[CaracteristicaRisco.COMERCIAL_EM_FIM_DE_SEMANA.indice()] =</span>
+<span class="fc" id="L54">        indicador(comercial &amp;&amp; fimDeSemana);</span>
+
+<span class="fc" id="L56">    x[CaracteristicaRisco.TAXA_HISTORICA_CEP.indice()] = f.taxaHistoricaCep();</span>
+<span class="fc" id="L57">    x[CaracteristicaRisco.PESO_KG.indice()] = f.pesoKg();</span>
+<span class="fc" id="L58">    x[CaracteristicaRisco.VOLUME_L.indice()] = f.volumeL();</span>
+<span class="fc" id="L59">    x[CaracteristicaRisco.CHUVA_MM.indice()] = f.chuvaMm();</span>
+<span class="fc" id="L60">    x[CaracteristicaRisco.TEMPERATURA_C.indice()] = f.temperaturaC();</span>
+<span class="fc" id="L61">    x[CaracteristicaRisco.TENTATIVAS_ANTERIORES.indice()] = f.tentativasAnteriores();</span>
+
+<span class="fc" id="L63">    return x;</span>
+  }
+
+  /**
+   * Aplica z-score nas numéricas; indicadores passam intactos.
+   *
+   * &lt;p&gt;Padronizar indicador produziria &quot;log-odds por desvio-padrão de um indicador&quot;, que não
+   * significa nada, e faria a AUSÊNCIA da característica contribuir com valor negativo diferente de
+   * zero — quebrando a propriedade de que a categoria de referência contribui exatamente 0 e some
+   * do ranking de fatores.
+   */
+  public static double[] padronizar(
+      double[] bruto, Map&lt;CaracteristicaRisco, ParametrosRisco.Padronizacao&gt; padronizacao) {
+<span class="fc" id="L76">    double[] z = new double[CaracteristicaRisco.TOTAL];</span>
+    // Laço pela ORDEM DO ENUM, nunca pela iteração de um mapa: a ordem de iteração de mapa imutável
+    // varia entre execuções da JVM e decidiria a soma em ponto flutuante do log-odds.
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    for (CaracteristicaRisco c : CaracteristicaRisco.values()) {</span>
+<span class="fc" id="L80">      int i = c.indice();</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">      if (!c.numerica()) {</span>
+<span class="fc" id="L82">        z[i] = bruto[i];</span>
+<span class="fc" id="L83">        continue;</span>
+      }
+<span class="fc" id="L85">      ParametrosRisco.Padronizacao pad = padronizacao.get(c);</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">      if (pad == null) {</span>
+<span class="nc" id="L87">        throw new IllegalStateException(&quot;Sem padronização publicada para &quot; + c);</span>
+      }
+<span class="fc" id="L89">      z[i] = (bruto[i] - pad.media()) / pad.desvio();</span>
+    }
+<span class="fc" id="L91">    return z;</span>
+  }
+
+  /**
+   * Sobrecarga que toma o mapa de dentro dos parâmetros publicados.
+   *
+   * &lt;p&gt;A assinatura acima recebe só o MAPA, e não o {@link ParametrosRisco} inteiro, por uma razão
+   * concreta: durante o treino os coeficientes ainda não existem, então não há como construir um
+   * {@code ParametrosRisco} válido — mas a padronização já precisa ser aplicada. Sem esta
+   * separação, o treinador teria de reimplementar o z-score, e a divergência entre os dois
+   * codificadores é exatamente o defeito que esta classe existe para impedir.
+   */
+  public static double[] padronizar(double[] bruto, ParametrosRisco p) {
+<span class="fc" id="L104">    return padronizar(bruto, p.padronizacao());</span>
+  }
+
+  /** Codifica e padroniza numa passada. É o caminho usado pela inferência de runtime. */
+  public static double[] codificarEPadronizar(FeaturesEntrega f, ParametrosRisco p) {
+<span class="fc" id="L109">    return padronizar(codificar(f), p.padronizacao());</span>
+  }
+
+  private static double indicador(boolean ligado) {
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    return ligado ? 1.0 : 0.0;</span>
+  }
+
+  private static boolean ehMadrugada(int hora) {
+<span class="fc bfc" id="L117" title="All 4 branches covered.">    return hora &gt;= INICIO_MADRUGADA || hora &lt; INICIO_MANHA;</span>
+  }
+
+  private static boolean ehTarde(int hora) {
+<span class="fc bfc" id="L121" title="All 4 branches covered.">    return hora &gt;= INICIO_TARDE &amp;&amp; hora &lt; INICIO_NOITE;</span>
+  }
+
+  private static boolean ehNoite(int hora) {
+<span class="fc bfc" id="L125" title="All 4 branches covered.">    return hora &gt;= INICIO_NOITE &amp;&amp; hora &lt; INICIO_MADRUGADA;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

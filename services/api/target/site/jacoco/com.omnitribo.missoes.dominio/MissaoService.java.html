@@ -1,0 +1,1138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MissaoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">MissaoService.java</span></div><h1>MissaoService.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import com.omnitribo.carteira.api.ComandoCreditoConclusao;
+import com.omnitribo.carteira.api.CreditoRecompensa;
+import com.omnitribo.carteira.api.FinanciamentoMissao;
+import com.omnitribo.carteira.api.ResultadoCredito;
+import com.omnitribo.compartilhado.api.ConsultasGeoespaciais;
+import com.omnitribo.compartilhado.api.ConsultasGeoespaciais.AlvoProximo;
+import com.omnitribo.compartilhado.api.PaginaResponse;
+import com.omnitribo.compartilhado.api.PublicadorEventos;
+import com.omnitribo.compartilhado.dominio.Auditavel;
+import com.omnitribo.compartilhado.dominio.ChaveIdempotencia;
+import com.omnitribo.compartilhado.dominio.Coordenadas;
+import com.omnitribo.compartilhado.dominio.Geohash;
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import com.omnitribo.geolocalizacao.api.ComandoCheckin;
+import com.omnitribo.geolocalizacao.api.RegistroCheckin;
+import com.omnitribo.geolocalizacao.api.ResultadoCheckin;
+import com.omnitribo.identidade.api.ProgressaoUsuario;
+import com.omnitribo.identidade.api.ResultadoProgressao;
+import com.omnitribo.identidade.api.UsuarioSistema;
+import com.omnitribo.logistica.api.BaixaCustodia;
+import com.omnitribo.missoes.api.AtualizarMissaoRequest;
+import com.omnitribo.missoes.api.ConfirmacaoRetirada;
+import com.omnitribo.missoes.api.ConversaoEntregaFalida;
+import com.omnitribo.missoes.api.CriarMissaoRequest;
+import com.omnitribo.missoes.api.MissaoFiltroRequest;
+import com.omnitribo.missoes.api.MissaoProximaFiltroRequest;
+import com.omnitribo.missoes.api.MissaoProximaResponse;
+import com.omnitribo.missoes.api.MissaoResponse;
+import com.omnitribo.missoes.api.RegistrarCheckinRequest;
+import com.omnitribo.missoes.api.ResolverDisputaRequest;
+import com.omnitribo.missoes.api.ResultadoRegistroCheckin;
+import com.omnitribo.missoes.infra.CacheMissoesProximas;
+import com.omnitribo.missoes.infra.ChaveProximidade;
+import com.omnitribo.missoes.infra.MissaoEventoRepository;
+import com.omnitribo.missoes.infra.MissaoRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.locationtech.jts.geom.Point;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
+
+/** Orquestra o ciclo de vida de missões. Toda mudança de status passa pela máquina de estados. */
+@Service
+public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirada {
+
+<span class="fc" id="L66">  private static final Logger log = LoggerFactory.getLogger(MissaoService.class);</span>
+
+  private static final String NAO_ENCONTRADA = &quot;Missão não encontrada.&quot;;
+
+  /**
+   * Mapper próprio, não injetado.
+   *
+   * &lt;p&gt;Duas razões. Primeira, técnica: o Spring Boot 4.1 autoconfigura o mapper do Jackson 3
+   * (tools.jackson), então não existe bean de com.fasterxml.jackson.databind.ObjectMapper para
+   * injetar. Segunda, de projeto: o payload gravado na trilha append-only é registro histórico e
+   * não pode mudar de formato quando alguém ajustar a serialização da API.
+   */
+<span class="fc" id="L78">  private static final JsonMapper MAPPER_TRILHA = JsonMapper.builder().build();</span>
+
+  private final MissaoRepository missaoRepository;
+  private final MissaoEventoRepository missaoEventoRepository;
+  private final ConsultasGeoespaciais consultasGeoespaciais;
+  private final CacheMissoesProximas cacheMissoesProximas;
+
+  // Injetados pela INTERFACE (porta em api/ do outro módulo): a regra ArchUnit proíbe
+  // missoes.dominio de tocar dominio/ ou infra/ alheios, e é o TIPO DECLARADO aqui que o ArchUnit
+  // inspeciona. Trocar por uma implementação concreta continuaria compilando e quebraria o teste
+  // de arquitetura — que é exatamente o ponto dele.
+  private final RegistroCheckin registroCheckin;
+  private final CreditoRecompensa creditoRecompensa;
+  private final ProgressaoUsuario progressaoUsuario;
+  private final PublicadorEventos publicadorEventos;
+  private final BaixaCustodia baixaCustodia;
+
+  // Só o financiamento pelo PATROCINADOR passa por aqui. O financiamento comunitário continua em
+  // FinanciamentoService, que é onde vivem as regras de tribo e o endpoint que as expõe — este
+  // serviço não deve ganhar aquelas regras junto.
+  private final FinanciamentoMissao financiamentoMissao;
+
+  // Exceção deliberada à regra acima: EstornoFinanciamentoService é do PRÓPRIO módulo missoes, e
+  // por isso pode ser injetado como classe concreta.
+  private final EstornoFinanciamentoService estornoFinanciamentoService;
+
+  // Calibração da fórmula de recompensa. Injetada como record de properties para que ajustar os
+  // números não exija recompilar — a FÓRMULA é código, os NÚMEROS são configuração.
+  private final ParametrosRecompensa parametrosRecompensa;
+
+  // Calibração da missão gerada por entrega falida. Separada da recompensa de propósito: mudar um
+  // prazo aqui não pode exigir subir a versao da FÓRMULA.
+  private final ParametrosEntregaFalida parametrosEntregaFalida;
+
+  public MissaoService(
+      MissaoRepository missaoRepository,
+      MissaoEventoRepository missaoEventoRepository,
+      ConsultasGeoespaciais consultasGeoespaciais,
+      CacheMissoesProximas cacheMissoesProximas,
+      RegistroCheckin registroCheckin,
+      CreditoRecompensa creditoRecompensa,
+      ProgressaoUsuario progressaoUsuario,
+      PublicadorEventos publicadorEventos,
+      BaixaCustodia baixaCustodia,
+      FinanciamentoMissao financiamentoMissao,
+      EstornoFinanciamentoService estornoFinanciamentoService,
+      ParametrosRecompensa parametrosRecompensa,
+<span class="fc" id="L125">      ParametrosEntregaFalida parametrosEntregaFalida) {</span>
+<span class="fc" id="L126">    this.missaoRepository = missaoRepository;</span>
+<span class="fc" id="L127">    this.missaoEventoRepository = missaoEventoRepository;</span>
+<span class="fc" id="L128">    this.consultasGeoespaciais = consultasGeoespaciais;</span>
+<span class="fc" id="L129">    this.cacheMissoesProximas = cacheMissoesProximas;</span>
+<span class="fc" id="L130">    this.registroCheckin = registroCheckin;</span>
+<span class="fc" id="L131">    this.creditoRecompensa = creditoRecompensa;</span>
+<span class="fc" id="L132">    this.progressaoUsuario = progressaoUsuario;</span>
+<span class="fc" id="L133">    this.publicadorEventos = publicadorEventos;</span>
+<span class="fc" id="L134">    this.baixaCustodia = baixaCustodia;</span>
+<span class="fc" id="L135">    this.financiamentoMissao = financiamentoMissao;</span>
+<span class="fc" id="L136">    this.estornoFinanciamentoService = estornoFinanciamentoService;</span>
+<span class="fc" id="L137">    this.parametrosRecompensa = parametrosRecompensa;</span>
+<span class="fc" id="L138">    this.parametrosEntregaFalida = parametrosEntregaFalida;</span>
+<span class="fc" id="L139">  }</span>
+
+  // A trilha de auditoria fica no serviço, não no controller: é onde a escrita acontece e onde o
+  // proxy do @Transactional já existe. Anotar o controller criaria um proxy CGLIB sobre o MVC sem
+  // ganho nenhum. Só escrita é auditada; leitura não.
+  @Auditavel(acao = &quot;MISSAO_CRIADA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse criar(CriarMissaoRequest req, AtorMissao ator) {
+<span class="fc" id="L147">    Instant agora = Instant.now();</span>
+
+    // A recompensa é DERIVADA aqui, não recebida: até o ADR 0009 ela vinha do corpo, e uma missão
+    // trivial podia nascer valendo o teto. Congelada junto com a versão da fórmula — ver o javadoc
+    // de CalculadoraDeRecompensa.
+<span class="fc" id="L152">    CalculadoraDeRecompensa.Recompensa recompensa = calcularRecompensa(req);</span>
+
+    // Toda missão nasce RASCUNHO, e o criador é sempre o dono do JWT. Nenhum dos dois é
+    // aceito do corpo da requisição.
+<span class="fc" id="L156">    Missao missao =</span>
+        new Missao(
+<span class="fc" id="L158">            UUID.randomUUID(),</span>
+<span class="fc" id="L159">            ator.usuarioId(),</span>
+<span class="fc" id="L160">            req.categoria(),</span>
+<span class="fc" id="L161">            req.titulo(),</span>
+<span class="fc" id="L162">            req.descricao(),</span>
+            StatusMissao.RASCUNHO,
+            recompensa,
+            // ZERO fixo, não mais vindo do request: nenhuma categoria remunera em BRL desde o ADR
+            // 0009, e a ck_missao_economia (V15) recusaria qualquer outra coisa no INSERT.
+            BigDecimal.ZERO,
+<span class="fc" id="L168">            Coordenadas.ponto(req.origemLat(), req.origemLon()),</span>
+<span class="fc" id="L169">            Coordenadas.ponto(req.destinoLat(), req.destinoLon()),</span>
+<span class="fc" id="L170">            req.pontoCustodiaId(),</span>
+<span class="fc" id="L171">            req.cep(),</span>
+<span class="fc" id="L172">            req.logradouro(),</span>
+<span class="fc" id="L173">            req.bairro(),</span>
+<span class="fc" id="L174">            req.cidade(),</span>
+<span class="fc" id="L175">            req.uf(),</span>
+<span class="fc" id="L176">            req.raioCheckinM(),</span>
+<span class="fc" id="L177">            req.pesoKg(),</span>
+<span class="fc" id="L178">            req.volumeL(),</span>
+<span class="fc" id="L179">            req.janelaInicio(),</span>
+<span class="fc" id="L180">            req.janelaFim(),</span>
+            agora);
+
+<span class="fc" id="L183">    Missao salva = missaoRepository.save(missao);</span>
+
+    // No-op semântico hoje: a missão nasce RASCUNHO e o radar só devolve ABERTA, então não há
+    // entrada de cache que esta criação possa invalidar. Fica aqui de propósito — no dia em que
+    // `criar` aceitar outro status inicial, o gancho já está no lugar certo.
+<span class="fc" id="L188">    cacheMissoesProximas.invalidarAposCommit();</span>
+
+<span class="fc" id="L190">    return MissaoResponse.de(salva);</span>
+  }
+
+  /**
+   * Monta os insumos e chama a calculadora.
+   *
+   * &lt;p&gt;A distância só é medida quando há destino — TRIBO nunca tem, e uma consulta ao PostGIS para
+   * descobrir isso seria ida ao banco para receber zero. Quem mede é {@code
+   * ConsultasGeoespaciais.distanciaMetros}, que recebe quatro escalares e não toca a tabela.
+   */
+  public CalculadoraDeRecompensa.Recompensa calcularRecompensa(CriarMissaoRequest req) {
+<span class="fc" id="L201">    Double distanciaM = null;</span>
+<span class="pc bpc" id="L202" title="3 of 4 branches missed.">    if (req.destinoLat() != null &amp;&amp; req.destinoLon() != null) {</span>
+<span class="nc" id="L203">      distanciaM =</span>
+<span class="nc" id="L204">          consultasGeoespaciais.distanciaMetros(</span>
+<span class="nc" id="L205">              req.origemLat(), req.origemLon(), req.destinoLat(), req.destinoLon());</span>
+    }
+
+<span class="fc" id="L208">    return CalculadoraDeRecompensa.calcular(</span>
+        new CalculadoraDeRecompensa.Insumos(
+<span class="fc" id="L210">            req.categoria(),</span>
+<span class="fc" id="L211">            req.complexidade(),</span>
+<span class="fc" id="L212">            req.pesoKg(),</span>
+<span class="fc" id="L213">            req.volumeL(),</span>
+            distanciaM,
+            // Missão criada por usuário nunca tem valor ofertado: o DTO não tem o campo e não deve
+            // ter — quem cria a missão não paga (ADR 0009). Só a conversão de entrega falida
+            // preenche isto, com o valor que a TRANSPORTADORA declarou.
+            null),
+        parametrosRecompensa);
+  }
+
+  /**
+   * Converte uma entrega falida em missão de retirada, já ABERTA. Implementa {@link
+   * ConversaoEntregaFalida}.
+   *
+   * &lt;p&gt;&lt;b&gt;Roda na transação do webhook&lt;/b&gt; ({@code REQUIRED}, que é o default), que já segura o
+   * {@code FOR UPDATE} do ponto de custódia. A missão e o incremento da ocupação precisam commitar
+   * juntos: separados, existe um instante em que a vaga está ocupada por uma encomenda sem missão
+   * que a retire.
+   *
+   * &lt;p&gt;&lt;b&gt;Nasce ABERTA, não RASCUNHO.&lt;/b&gt; Rascunho existe para o criador revisar antes de publicar,
+   * e aqui não há criador humano — a encomenda já está fisicamente na loja quando o webhook chega.
+   * A transição passa pela {@code MissaoStateMachine} mesmo assim, e não por um {@code
+   * StatusMissao.ABERTA} no construtor: é o que grava a linha PUBLICADA em {@code missao_evento}. A
+   * regra &quot;status de missão muda SEMPRE pela máquina de estados&quot; não tem exceção para código nosso.
+   *
+   * &lt;p&gt;&lt;b&gt;Não exige pote.&lt;/b&gt; {@code validarPoteSuficienteParaPublicar} devolve cedo para ENTREGA,
+   * e é deliberado: exigir pote aqui faria os vizinhos custearem a logística do varejista, que é o
+   * inverso do modelo. O token de ENTREGA é cunhado até a carteira de patrocinador existir — a
+   * lacuna documentada da Pendência #1.
+   */
+  @Override
+  @Transactional
+  public Optional&lt;MissaoDeRetirada&gt; abrirMissaoDeRetirada(Encomenda encomenda) {
+<span class="fc" id="L245">    Double distanciaM = null;</span>
+<span class="pc bpc" id="L246" title="2 of 4 branches missed.">    if (encomenda.destinoLat() != null &amp;&amp; encomenda.destinoLon() != null) {</span>
+<span class="fc" id="L247">      distanciaM =</span>
+<span class="fc" id="L248">          consultasGeoespaciais.distanciaMetros(</span>
+<span class="fc" id="L249">              encomenda.origemLat(),</span>
+<span class="fc" id="L250">              encomenda.origemLon(),</span>
+<span class="fc" id="L251">              encomenda.destinoLat(),</span>
+<span class="fc" id="L252">              encomenda.destinoLon());</span>
+    }
+
+    // Complexidade DERIVADA de peso e volume, como em toda ENTREGA — o webhook não declara, e o
+    // verificador de criação recusaria se declarasse.
+<span class="fc" id="L257">    CalculadoraDeRecompensa.Recompensa recompensa =</span>
+<span class="fc" id="L258">        CalculadoraDeRecompensa.calcular(</span>
+            new CalculadoraDeRecompensa.Insumos(
+                CategoriaMissao.ENTREGA,
+                null,
+<span class="fc" id="L262">                encomenda.pesoKg(),</span>
+<span class="fc" id="L263">                encomenda.volumeL(),</span>
+                distanciaM,
+<span class="fc" id="L265">                encomenda.valorOfertadoBrl(),</span>
+                // Único caminho do sistema que produz multiplicador diferente de 1: só a entrega
+                // falida passa por avaliação de risco. Missão criada por usuário usa o construtor
+                // curto de Insumos e recebe o neutro.
+<span class="fc" id="L269">                encomenda.multiplicadorRisco()),</span>
+            parametrosRecompensa);
+
+<span class="fc" id="L272">    Instant fimDaJanela = encomenda.agora().plus(parametrosEntregaFalida.prazoRetirada());</span>
+
+    // O id é gerado AQUI, antes da entidade existir, porque o financiamento precisa dele para
+    // gravar `lancamento.missao_id` — e o financiamento precisa acontecer ANTES de a missão ser
+    // salva. A ordem não é estilo: se o patrocinador não puder pagar, nada pode ter sido escrito.
+<span class="fc" id="L277">    UUID missaoId = UUID.randomUUID();</span>
+
+    // FINANCIAMENTO PRIMEIRO. Se voltar vazio, a transação continua viva e o chamador grava a
+    // recusa na entrega falida — nenhuma missão nasce, nenhum lançamento existe, e a ocupação do
+    // ponto de custódia não é incrementada.
+    //
+    // Recompensa zero não financia nada: um lançamento de valor zero consumiria uma chave de
+    // idempotência sem mover moeda, e ck_lancamento_valor_nao_nulo (V13) o recusaria. A missão
+    // nasce
+    // patrocinada do mesmo jeito — pote zero cobrindo recompensa zero é coerente, e a conclusão
+    // pula o débito do pote pela guarda `tokens &gt; 0`.
+<span class="pc bpc" id="L288" title="1 of 2 branches missed.">    if (recompensa.tokens() &gt; 0</span>
+        &amp;&amp; financiamentoMissao
+<span class="fc" id="L290">            .debitarPatrocinador(</span>
+<span class="fc" id="L291">                encomenda.patrocinadorUsuarioId(),</span>
+                missaoId,
+<span class="fc" id="L293">                recompensa.tokens(),</span>
+<span class="fc" id="L294">                ChaveIdempotencia.financiamentoPatrocinador(</span>
+<span class="fc" id="L295">                    encomenda.patrocinadorUsuarioId(), missaoId),</span>
+<span class="fc" id="L296">                encomenda.agora())</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">            .isEmpty()) {</span>
+<span class="fc" id="L298">      log.warn(</span>
+          &quot;Entrega falida {} sem conversão: patrocinador {} não tem saldo para {} tokens.&quot;,
+<span class="fc" id="L300">          encomenda.entregaFalidaId(),</span>
+<span class="fc" id="L301">          encomenda.patrocinadorUsuarioId(),</span>
+<span class="fc" id="L302">          recompensa.tokens());</span>
+<span class="fc" id="L303">      return Optional.empty();</span>
+    }
+
+<span class="fc" id="L306">    Missao missao =</span>
+        new Missao(
+            missaoId,
+            // O criador é o próprio sistema. É o que destrava a publicação sem inventar evento
+            // novo: AtorEsperado.CRIADOR compara identidade, e AtorMissao aceita usuarioId com
+            // papel SISTEMA.
+            UsuarioSistema.ID,
+            CategoriaMissao.ENTREGA,
+<span class="fc" id="L314">            tituloDaRetirada(encomenda.descricaoDoItem()),</span>
+<span class="fc" id="L315">            descricaoDaRetirada(encomenda),</span>
+            StatusMissao.RASCUNHO,
+            recompensa,
+            // ZERO literal. O valor ofertado pela transportadora já entrou na recompensa em TOKEN
+            // acima; copiá-lo para cá violaria ck_missao_economia e o ADR 0009.
+            BigDecimal.ZERO,
+<span class="fc" id="L321">            Coordenadas.ponto(encomenda.origemLat(), encomenda.origemLon()),</span>
+<span class="fc" id="L322">            Coordenadas.ponto(encomenda.destinoLat(), encomenda.destinoLon()),</span>
+<span class="fc" id="L323">            encomenda.pontoCustodiaId(),</span>
+<span class="fc" id="L324">            encomenda.cep(),</span>
+<span class="fc" id="L325">            encomenda.logradouro(),</span>
+<span class="fc" id="L326">            encomenda.bairro(),</span>
+<span class="fc" id="L327">            encomenda.cidade(),</span>
+<span class="fc" id="L328">            encomenda.uf(),</span>
+<span class="fc" id="L329">            parametrosEntregaFalida.raioCheckinM(),</span>
+<span class="fc" id="L330">            encomenda.pesoKg(),</span>
+<span class="fc" id="L331">            encomenda.volumeL(),</span>
+<span class="fc" id="L332">            encomenda.agora(),</span>
+            fimDaJanela,
+<span class="fc" id="L334">            encomenda.agora());</span>
+
+<span class="fc" id="L336">    missao.exigirNivelMinimo(parametrosEntregaFalida.nivelMinimo());</span>
+<span class="fc" id="L337">    missao.registrarFaixaRisco(encomenda.faixaRisco());</span>
+
+    // A missão passa a PATROCINADOR e o pote recebe o que o patrocinador acabou de pagar. Os dois
+    // juntos, aqui, ANTES do PUBLICAR: `validarPoteSuficienteParaPublicar` não roda neste caminho
+    // — a transição abaixo chama a máquina de estados direto, sem passar por `aplicar` —, então
+    // nada além desta ordem impede uma missão patrocinada de nascer com o pote vazio.
+<span class="fc" id="L343">    missao.financiadaPeloPatrocinador();</span>
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">    if (recompensa.tokens() &gt; 0) {</span>
+<span class="fc" id="L345">      missao.creditarPote(recompensa.tokens());</span>
+    }
+<span class="fc" id="L347">    missaoRepository.save(missao);</span>
+
+<span class="fc" id="L349">    AtorMissao sistema = new AtorMissao(UsuarioSistema.ID, AtorMissao.PapelAtor.SISTEMA);</span>
+<span class="fc" id="L350">    MissaoEvento trilha =</span>
+<span class="fc" id="L351">        MissaoStateMachine.transicionar(</span>
+            missao,
+            EventoMissao.PUBLICAR,
+            sistema,
+<span class="fc" id="L355">            serializar(</span>
+<span class="fc" id="L356">                Map.of(&quot;origem&quot;, &quot;ENTREGA_FALIDA&quot;, &quot;entregaFalidaId&quot;, encomenda.entregaFalidaId())),</span>
+<span class="fc" id="L357">            encomenda.agora());</span>
+<span class="fc" id="L358">    missaoRepository.save(missao);</span>
+<span class="fc" id="L359">    missaoEventoRepository.save(trilha);</span>
+
+    // Aqui a invalidação NÃO é no-op, ao contrário da de `criar`: esta missão nasce ABERTA e o
+    // radar de proximidade devolve exatamente ABERTA. Sem isto, quem consultou a região nos últimos
+    // 30 segundos continuaria sem ver a missão até o TTL vencer.
+<span class="fc" id="L364">    cacheMissoesProximas.invalidarAposCommit();</span>
+
+<span class="fc" id="L366">    return Optional.of(</span>
+        new MissaoDeRetirada(
+<span class="fc" id="L368">            missao.getId(), recompensa.xp(), recompensa.tokens(), missao.getNivelMinimo()));</span>
+  }
+
+  /**
+   * Regra de Elegibilidade por Reputação: missão com custódia de encomenda de TERCEIRO não é
+   * aceitável por qualquer conta recém-criada.
+   *
+   * &lt;p&gt;Sai cedo no caso comum ({@code nivelMinimo == 1}, que é toda missão criada por usuário) para
+   * não pagar uma consulta de XP em cada aceite do sistema inteiro por causa de uma regra que só
+   * vale para entrega falida.
+   *
+   * &lt;p&gt;SISTEMA e ADMIN não são isentos, e isso é deliberado: nenhum dos dois aceita missão em nome
+   * de ninguém — {@code AtorEsperado} para ACEITAR já é o executor —, então uma isenção aqui só
+   * poderia servir para contornar a regra.
+   */
+  private void validarNivelParaAceitar(Missao missao, AtorMissao ator) {
+<span class="fc bfc" id="L384" title="All 2 branches covered.">    if (missao.getNivelMinimo() &lt;= 1) {</span>
+<span class="fc" id="L385">      return;</span>
+    }
+<span class="fc" id="L387">    int nivelAtual = progressaoUsuario.nivelDe(ator.usuarioId());</span>
+<span class="fc bfc" id="L388" title="All 2 branches covered.">    if (nivelAtual &lt; missao.getNivelMinimo()) {</span>
+<span class="fc" id="L389">      throw new NivelInsuficienteException(missao.getNivelMinimo(), nivelAtual);</span>
+    }
+<span class="fc" id="L391">  }</span>
+
+  private static String tituloDaRetirada(String descricaoDoItem) {
+<span class="fc" id="L394">    String titulo = &quot;Retirar e entregar: &quot; + descricaoDoItem;</span>
+    // O título tem limite de 120 no schema, e a descrição do item vem de terceiro. Truncar é melhor
+    // que estourar o INSERT com um 500 no webhook de um parceiro.
+<span class="pc bpc" id="L397" title="1 of 2 branches missed.">    return titulo.length() &lt;= 120 ? titulo : titulo.substring(0, 117) + &quot;...&quot;;</span>
+  }
+
+  /**
+   * O check-in acontece na RETIRADA, no ponto de custódia — e o texto precisa dizer isso.
+   *
+   * &lt;p&gt;{@code registrarCheckin} valida a proximidade contra {@code missao.getOrigem()}, que aqui é
+   * o ponto de custódia. Não é limitação: a origem é a coordenada da LOJA, que é dado nosso e
+   * conferido, enquanto o destino veio da transportadora. Usar o destino como centro do geofence
+   * seria deixar um terceiro escolher onde o nosso controle antifraude acredita que alguém esteve.
+   */
+  private static String descricaoDaRetirada(Encomenda encomenda) {
+    // Concatenação, e não String.formatted: o texto tem quebras de linha, e o SpotBugs
+    // (VA_FORMAT_STRING_USES_NEWLINE) exige %n em format string. %n emitiria o separador de linha
+    // da PLATAFORMA dentro de um texto que vai para o banco e depois para o app — CRLF no servidor
+    // Windows, LF no Linux, para a mesma missão. A descrição é dado, não saída de console.
+<span class="fc" id="L413">    return &quot;&quot;&quot;</span>
+           Uma entrega falhou e a encomenda está guardada num ponto de custódia do bairro.
+
+           Item: &quot;&quot;&quot;
+<span class="fc" id="L417">        + encomenda.descricaoDoItem()</span>
+        + &quot;&quot;&quot;
+
+           Faça o check-in geolocalizado AO RETIRAR, no ponto de custódia, e leve a encomenda ao \
+           endereço de destino informado.
+
+           Você recebe XP e tokens — esta missão não paga em reais.&quot;&quot;&quot;;
+  }
+
+  @Transactional(readOnly = true)
+  public PaginaResponse&lt;MissaoResponse&gt; listar(MissaoFiltroRequest filtro, AtorMissao ator) {
+    // O escopo é traduzido aqui a partir do ator do JWT — o cliente nunca informa um id de
+    // usuário para filtrar, senão listaria as missões de qualquer pessoa.
+    UUID criadorId =
+<span class="fc bfc" id="L431" title="All 2 branches covered.">        filtro.minhas() == MissaoFiltroRequest.Escopo.CRIADAS ? ator.usuarioId() : null;</span>
+    UUID executorId =
+<span class="pc bpc" id="L433" title="1 of 2 branches missed.">        filtro.minhas() == MissaoFiltroRequest.Escopo.EXECUTANDO ? ator.usuarioId() : null;</span>
+
+<span class="fc" id="L435">    PageRequest pagina =</span>
+<span class="fc" id="L436">        PageRequest.of(</span>
+<span class="fc" id="L437">            filtro.pagina(),</span>
+<span class="fc" id="L438">            filtro.tamanho(),</span>
+<span class="fc" id="L439">            Sort.by(filtro.direcao(), filtro.ordenarPor().propriedade()));</span>
+
+<span class="fc" id="L441">    Page&lt;MissaoResponse&gt; page =</span>
+        missaoRepository
+<span class="fc" id="L443">            .buscarComFiltros(</span>
+<span class="fc" id="L444">                filtro.status(),</span>
+<span class="fc" id="L445">                filtro.categoria(),</span>
+<span class="fc" id="L446">                filtro.cidade(),</span>
+<span class="fc" id="L447">                filtro.bairro(),</span>
+                criadorId,
+                executorId,
+<span class="fc" id="L450">                ator.usuarioId(),</span>
+                pagina)
+            // Recorte por PARTICIPAÇÃO. Sem ele, esta listagem entregava coordenada exata mais
+            // logradouro e CEP de toda missão do sistema a qualquer autenticado, paginada — um mapa
+            // de endereços do bairro, pela mesma porta que TriboController se recusa a abrir.
+<span class="fc" id="L455">            .map(m -&gt; MissaoResponse.de(m, ator.usuarioId()));</span>
+
+<span class="fc" id="L457">    return PaginaResponse.de(page);</span>
+  }
+
+  @Transactional(readOnly = true)
+  public MissaoResponse buscarPorId(UUID missaoId, AtorMissao ator) {
+    // Detalhe também recorta: quem só está olhando uma missão aberta de terceiro vê bairro e
+    // coordenada aproximada; ao ACEITAR, passa a ver endereço completo — que é quando de fato
+    // precisa chegar ao lugar.
+<span class="fc" id="L465">    return MissaoResponse.de(carregarVisivel(missaoId, ator), ator.usuarioId());</span>
+  }
+
+  /**
+   * Missões ABERTA dentro do raio, da mais próxima para a mais distante.
+   *
+   * &lt;p&gt;Duas consultas de propósito. A primeira, no PostGIS, devolve só (id, distância) — porque
+   * ConsultasGeoespaciais mora em compartilhado e a regra ArchUnit a proíbe de conhecer Missao. A
+   * segunda reidrata as entidades e reusa MissaoResponse.de, o que mantém uma única representação
+   * de leitura da missão na API e evita trafegar enum como String.
+   *
+   * &lt;p&gt;Nenhum filtro de visibilidade é necessário: só ABERTA sai daqui, e ABERTA é pública. É
+   * também o que mantém o resultado independente do solicitante — ver ChaveProximidade.
+   */
+  @Transactional(readOnly = true)
+  public List&lt;MissaoProximaResponse&gt; buscarProximas(MissaoProximaFiltroRequest filtro) {
+<span class="fc" id="L481">    ChaveProximidade chave =</span>
+        new ChaveProximidade(
+<span class="fc" id="L483">            Geohash.celulaDeCache(filtro.lat(), filtro.lon()),</span>
+<span class="fc" id="L484">            filtro.raioMetros(),</span>
+<span class="fc" id="L485">            filtro.categoria(),</span>
+<span class="fc" id="L486">            filtro.limite());</span>
+
+<span class="fc" id="L488">    return cacheMissoesProximas.obter(chave, ignorada -&gt; consultarProximas(filtro));</span>
+  }
+
+  private List&lt;MissaoProximaResponse&gt; consultarProximas(MissaoProximaFiltroRequest filtro) {
+<span class="fc" id="L492">    List&lt;AlvoProximo&gt; alvos =</span>
+<span class="fc" id="L493">        consultasGeoespaciais.missoesNoRaio(</span>
+<span class="fc" id="L494">            filtro.lat(),</span>
+<span class="fc" id="L495">            filtro.lon(),</span>
+<span class="fc" id="L496">            filtro.raioMetros(),</span>
+<span class="fc" id="L497">            StatusMissao.ABERTA.name(),</span>
+<span class="fc bfc" id="L498" title="All 2 branches covered.">            filtro.categoria() == null ? null : filtro.categoria().name(),</span>
+<span class="fc" id="L499">            filtro.limite());</span>
+
+<span class="fc bfc" id="L501" title="All 2 branches covered.">    if (alvos.isEmpty()) {</span>
+<span class="fc" id="L502">      return List.of();</span>
+    }
+
+<span class="fc" id="L505">    Map&lt;UUID, Missao&gt; porId =</span>
+<span class="fc" id="L506">        missaoRepository.findAllById(alvos.stream().map(AlvoProximo::id).toList()).stream()</span>
+<span class="fc" id="L507">            .collect(Collectors.toMap(Missao::getId, m -&gt; m));</span>
+
+    // Itera sobre `alvos`, NÃO sobre porId.values(): é esta iteração que preserva a ordenação por
+    // distância vinda do PostGIS. findAllById não promete ordem nenhuma.
+<span class="fc" id="L511">    return alvos.stream()</span>
+<span class="fc" id="L512">        .map(</span>
+            alvo -&gt;
+<span class="fc" id="L514">                new MissaoProximaResponse(</span>
+                    // SEMPRE recortada, para todo mundo — e é isso que preserva o cache.
+                    //
+                    // Recortar por solicitante aqui seria um erro grave: o resultado é cacheado por
+                    // ChaveProximidade (célula de geohash + raio + categoria), sem o usuário, então
+                    // uma resposta montada para um participante seria servida a um estranho. Ou a
+                    // chave passaria a incluir o solicitante, e o cache viraria uma entrada por
+                    // usuário — deixando de ser cache.
+                    //
+                    // Não custa nada: o radar só devolve ABERTA, e missão ABERTA não tem executor.
+                    // O criador que vê a própria missão aqui não precisa do endereço exato — ele o
+                    // escreveu. Quem aceitar passa a ver tudo em GET /missoes/{id}.
+<span class="fc" id="L526">                    MissaoResponse.deAproximada(porId.get(alvo.id())),</span>
+<span class="fc" id="L527">                    BigDecimal.valueOf(alvo.distanciaM()).setScale(1, RoundingMode.HALF_UP)))</span>
+<span class="fc" id="L528">        .toList();</span>
+  }
+
+  @Auditavel(acao = &quot;MISSAO_ATUALIZADA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse atualizar(UUID missaoId, AtualizarMissaoRequest req, AtorMissao ator) {
+<span class="fc" id="L534">    Missao missao =</span>
+        missaoRepository
+<span class="fc" id="L536">            .buscarParaAtualizar(missaoId)</span>
+<span class="pc" id="L537">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(NAO_ENCONTRADA));</span>
+
+<span class="fc" id="L539">    MissaoStateMachine.validarEdicao(missao, ator);</span>
+
+    // Campos nulos preservam o valor atual. Recompensa, categoria, status e executor não estão
+    // no DTO: enviá-los no JSON não altera nada.
+    Point origem =
+<span class="pc bpc" id="L544" title="1 of 2 branches missed.">        req.origemLat() != null</span>
+<span class="nc" id="L545">            ? Coordenadas.ponto(req.origemLat(), req.origemLon())</span>
+<span class="fc" id="L546">            : missao.getOrigem();</span>
+    Point destino =
+<span class="pc bpc" id="L548" title="1 of 2 branches missed.">        req.destinoLat() != null</span>
+<span class="nc" id="L549">            ? Coordenadas.ponto(req.destinoLat(), req.destinoLon())</span>
+<span class="fc" id="L550">            : missao.getDestino();</span>
+
+<span class="fc" id="L552">    missao.editarRascunho(</span>
+<span class="fc" id="L553">        ouAtual(req.titulo(), missao.getTitulo()),</span>
+<span class="fc" id="L554">        ouAtual(req.descricao(), missao.getDescricao()),</span>
+<span class="fc" id="L555">        ouAtual(req.cep(), missao.getCep()),</span>
+<span class="fc" id="L556">        ouAtual(req.logradouro(), missao.getLogradouro()),</span>
+<span class="fc" id="L557">        ouAtual(req.bairro(), missao.getBairro()),</span>
+<span class="fc" id="L558">        ouAtual(req.cidade(), missao.getCidade()),</span>
+<span class="fc" id="L559">        ouAtual(req.uf(), missao.getUf()),</span>
+        origem,
+        destino,
+<span class="fc" id="L562">        ouAtual(req.janelaInicio(), missao.getJanelaInicio()),</span>
+<span class="fc" id="L563">        ouAtual(req.janelaFim(), missao.getJanelaFim()),</span>
+<span class="pc bpc" id="L564" title="1 of 2 branches missed.">        req.raioCheckinM() != null ? req.raioCheckinM() : missao.getRaioCheckinM(),</span>
+<span class="fc" id="L565">        ouAtual(req.pesoKg(), missao.getPesoKg()),</span>
+<span class="fc" id="L566">        ouAtual(req.volumeL(), missao.getVolumeL()));</span>
+
+<span class="fc" id="L568">    Missao salva = missaoRepository.save(missao);</span>
+
+    // Obrigatório, e não é óbvio: este PATCH move `origem` e `raioCheckinM` sem mudar status
+    // nenhum. Uma missão ABERTA que muda de lugar entra e sai de raios de busca — o resultado do
+    // radar muda sem que nenhuma transição tenha ocorrido.
+<span class="fc" id="L573">    cacheMissoesProximas.invalidarAposCommit();</span>
+
+<span class="fc" id="L575">    return MissaoResponse.de(salva);</span>
+  }
+
+  @Auditavel(acao = &quot;MISSAO_PUBLICADA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse publicar(UUID missaoId, AtorMissao ator) {
+<span class="fc" id="L581">    return aplicar(missaoId, EventoMissao.PUBLICAR, ator, null);</span>
+  }
+
+  /**
+   * Missão que paga DO POTE só é publicável com o pote já cobrindo a recompensa em tokens.
+   *
+   * &lt;p&gt;Lê {@code fonte_pote}, não a categoria: vale para TRIBO, COLETA e AJUDA (ADR 0025), e também
+   * para a missão de retirada — que nunca reprova aqui porque nasce com o pote já financiado pelo
+   * patrocinador, na mesma transação da conversão.
+   *
+   * &lt;p&gt;Fecha um beco sem saída que a conservação da moeda cria. Como a conclusão paga DO POTE e não
+   * cunha token, uma missão publicada com pote menor que a recompensa chegaria a
+   * AGUARDANDO_CONFIRMACAO e o {@code /confirmar} falharia com 422 para sempre — e as únicas saídas
+   * desse estado são CONFIRMAR e CONTESTAR, então só um admin destravaria, via disputa.
+   *
+   * &lt;p&gt;Recusar aqui é falhar cedo: no publicar, o criador ainda pode financiar ou baixar a
+   * recompensa. Depois de alguém ter executado a missão, não pode mais.
+   */
+  private static void validarPoteSuficienteParaPublicar(Missao missao) {
+<span class="fc bfc" id="L600" title="All 2 branches covered.">    if (!pagaTokensDoPote(missao)) {</span>
+<span class="fc" id="L601">      return;</span>
+    }
+<span class="fc" id="L603">    long recompensa = missao.getTokensRecompensa();</span>
+<span class="pc bpc" id="L604" title="1 of 4 branches missed.">    if (recompensa &gt; 0 &amp;&amp; missao.getPoteTokens() &lt; recompensa) {</span>
+<span class="fc" id="L605">      throw new RegraNegocioVioladaException(</span>
+          &quot;Missão &quot;
+<span class="fc" id="L607">              + missao.getCategoria()</span>
+              + &quot; precisa do pote financiado antes de publicar: recompensa de &quot;
+              + recompensa
+              + &quot; tokens contra pote de &quot;
+<span class="fc" id="L611">              + missao.getPoteTokens()</span>
+              + &quot;.&quot;);
+    }
+<span class="fc" id="L614">  }</span>
+
+  @Auditavel(acao = &quot;MISSAO_ACEITA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse aceitar(UUID missaoId, AtorMissao ator) {
+<span class="fc" id="L619">    return aplicar(missaoId, EventoMissao.ACEITAR, ator, null);</span>
+  }
+
+  @Auditavel(acao = &quot;MISSAO_INICIADA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse iniciar(UUID missaoId, AtorMissao ator) {
+<span class="fc" id="L625">    return aplicar(missaoId, EventoMissao.INICIAR, ator, null);</span>
+  }
+
+  @Auditavel(acao = &quot;MISSAO_DESISTIDA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse desistir(UUID missaoId, AtorMissao ator, String motivo) {
+<span class="fc" id="L631">    return aplicar(missaoId, EventoMissao.DESISTIR, ator, payloadMotivo(motivo));</span>
+  }
+
+  @Auditavel(acao = &quot;MISSAO_CANCELADA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse cancelar(UUID missaoId, AtorMissao ator, String motivo) {
+<span class="fc" id="L637">    return aplicar(missaoId, EventoMissao.CANCELAR, ator, payloadMotivo(motivo));</span>
+  }
+
+  @Auditavel(acao = &quot;MISSAO_CONTESTADA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse contestar(UUID missaoId, AtorMissao ator, String motivo) {
+<span class="nc" id="L643">    return aplicar(missaoId, EventoMissao.CONTESTAR, ator, payloadMotivo(motivo));</span>
+  }
+
+  // ─── Check-in ──────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Check-in geolocalizado. EM_ANDAMENTO → AGUARDANDO_CONFIRMACAO.
+   *
+   * &lt;p&gt;UMA transação, UMA conexão, e a linha de auditoria commitada mesmo quando o check-in é
+   * recusado. Isso funciona porque a rejeição volta como VALOR, não como exceção: lançar daqui de
+   * dentro apagaria a linha no rollback. Quem transforma a recusa em 422 é o controller, depois do
+   * commit. Ver {@link ResultadoRegistroCheckin}.
+   *
+   * &lt;p&gt;O caminho aceito é atômico: linha de check-in, transição e trilha entram no mesmo commit.
+   */
+  @Auditavel(acao = &quot;MISSAO_CHECKIN&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public ResultadoRegistroCheckin registrarCheckin(
+      UUID missaoId, AtorMissao ator, RegistrarCheckinRequest req, String chaveCliente) {
+
+    // PRIMEIRA leitura da transação, obrigatoriamente — mesmo motivo documentado em aplicar().
+<span class="fc" id="L664">    Missao missao =</span>
+        missaoRepository
+<span class="fc" id="L666">            .buscarParaAtualizar(missaoId)</span>
+<span class="fc" id="L667">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(NAO_ENCONTRADA));</span>
+
+    // Rascunho alheio responde 404, não 403 — mesma regra de carregarVisivel(). Sem isto, um 403
+    // aqui confirmaria a existência de um rascunho que o solicitante não deveria sequer saber que
+    // existe. Vai depois do buscarParaAtualizar para preservar o invariante do lock ser a primeira
+    // leitura da transação.
+<span class="pc bpc" id="L673" title="3 of 4 branches missed.">    if (missao.getStatus() == StatusMissao.RASCUNHO &amp;&amp; !ator.ehMesmo(missao.getCriadorId())) {</span>
+<span class="nc" id="L674">      throw new RecursoNaoEncontradoException(NAO_ENCONTRADA);</span>
+    }
+
+    // 403 SEMPRE primeiro, antes até da sondagem de idempotência: sondar antes disso permitiria
+    // devolver o estado da missão a quem não é (ou não é mais) o executor.
+<span class="fc" id="L679">    MissaoStateMachine.validarAutorizacao(missao, EventoMissao.CHECKIN, ator);</span>
+
+<span class="fc" id="L681">    String chave = chaveIdempotencia(ator.usuarioId(), missaoId, chaveCliente);</span>
+
+    // Sondagem ENTRE o 403 e o 409, e a ordem é o ponto todo. Um replay legítimo chega com a missão
+    // já em AGUARDANDO_CONFIRMACAO; se a máquina de estados falasse primeiro, o retry natural do
+    // cliente móvel levaria 409 em vez do mesmo 200 de antes.
+<span class="fc" id="L686">    Optional&lt;ResultadoCheckin&gt; jaRegistrado = registroCheckin.consultar(chave);</span>
+<span class="fc bfc" id="L687" title="All 2 branches covered.">    if (jaRegistrado.isPresent()) {</span>
+<span class="fc" id="L688">      ResultadoCheckin anterior = jaRegistrado.get();</span>
+
+<span class="fc bfc" id="L690" title="All 2 branches covered.">      if (!anterior.aceito()) {</span>
+        // Replay de uma rejeição: mesmo 422, mesmo motivo, nenhuma linha nova. Idempotência vale
+        // para o fracasso também, senão um retry de rede inventaria um padrão de tentativas.
+<span class="fc" id="L693">        return ResultadoRegistroCheckin.rejeitado(</span>
+<span class="fc" id="L694">            MissaoResponse.de(missao),</span>
+<span class="fc" id="L695">            anterior.codigoRejeicao(),</span>
+<span class="fc" id="L696">            anterior.motivoRejeicao(),</span>
+<span class="fc" id="L697">            anterior.distanciaM(),</span>
+<span class="fc" id="L698">            anterior.acuraciaM());</span>
+      }
+      // Replay de um aceito: a missão já transicionou no mesmo commit que gravou a linha, então
+      // basta devolver o estado atual. Nenhuma linha nova, nenhum evento novo de trilha.
+<span class="fc" id="L702">      return ResultadoRegistroCheckin.aceito(MissaoResponse.de(missao));</span>
+    }
+
+    // 409 só agora, e antes de qualquer escrita. Ator errado ou estado errado não geram linha em
+    // `checkin`: não são tentativas de check-in que falharam na validação geoespacial, são chamadas
+    // de quem não é o executor ou de missão fora de EM_ANDAMENTO — e não haveria distancia_alvo_m
+    // (NOT NULL) a gravar.
+<span class="fc" id="L709">    MissaoStateMachine.validar(missao, EventoMissao.CHECKIN, ator);</span>
+
+<span class="fc" id="L711">    ResultadoCheckin resultado =</span>
+<span class="fc" id="L712">        registroCheckin.registrar(</span>
+            new ComandoCheckin(
+                missaoId,
+<span class="fc" id="L715">                ator.usuarioId(),</span>
+<span class="fc" id="L716">                req.lat(),</span>
+<span class="fc" id="L717">                req.lon(),</span>
+<span class="fc" id="L718">                req.acuraciaM(),</span>
+<span class="fc" id="L719">                req.mockedOuFalso(),</span>
+<span class="fc" id="L720">                Coordenadas.latitude(missao.getOrigem()),</span>
+<span class="fc" id="L721">                Coordenadas.longitude(missao.getOrigem()),</span>
+<span class="fc" id="L722">                missao.getRaioCheckinM(),</span>
+                chave,
+<span class="fc" id="L724">                Instant.now()));</span>
+
+<span class="fc bfc" id="L726" title="All 2 branches covered.">    if (!resultado.aceito()) {</span>
+      // NÃO lança: a linha em `checkin` acabou de ser gravada NESTA transação, e uma exceção aqui
+      // a levaria embora no rollback. A transação commita normalmente — sem transição, porque o
+      // check-in foi recusado — e o controller devolve 422 depois. É o que preserva a trilha
+      // antifraude sem precisar de segunda conexão.
+<span class="fc" id="L731">      return ResultadoRegistroCheckin.rejeitado(</span>
+<span class="fc" id="L732">          MissaoResponse.de(missao),</span>
+<span class="fc" id="L733">          resultado.codigoRejeicao(),</span>
+<span class="fc" id="L734">          resultado.motivoRejeicao(),</span>
+<span class="fc" id="L735">          resultado.distanciaM(),</span>
+<span class="fc" id="L736">          resultado.acuraciaM());</span>
+    }
+
+<span class="fc" id="L739">    MissaoEvento trilha =</span>
+<span class="fc" id="L740">        MissaoStateMachine.transicionar(</span>
+            missao,
+            EventoMissao.CHECKIN,
+            ator,
+<span class="fc" id="L744">            serializar(payloadCheckin(resultado)),</span>
+<span class="fc" id="L745">            Instant.now());</span>
+
+<span class="fc" id="L747">    missaoRepository.save(missao);</span>
+<span class="fc" id="L748">    missaoEventoRepository.save(trilha);</span>
+<span class="fc" id="L749">    cacheMissoesProximas.invalidarAposCommit();</span>
+
+<span class="fc" id="L751">    return ResultadoRegistroCheckin.aceito(MissaoResponse.de(missao));</span>
+  }
+
+  /**
+   * Chave de idempotência derivada, não a chave crua do cliente.
+   *
+   * &lt;p&gt;A constraint uk_checkin_idempotencia é de coluna única e namespace global. Guardar a chave
+   * como veio deixaria o cliente que envia &quot;1&quot; colidir com todo outro cliente que envia &quot;1&quot; — e a
+   * segunda chamada receberia como resposta o replay do check-in de outra pessoa. Compondo com
+   * usuário e missão antes do hash, a colisão entre usuários é impossível por construção.
+   */
+  private static String chaveIdempotencia(UUID usuarioId, UUID missaoId, String chaveCliente) {
+<span class="fc" id="L763">    String composta = usuarioId + &quot;:&quot; + missaoId + &quot;:&quot; + chaveCliente;</span>
+    try {
+<span class="fc" id="L765">      byte[] digest =</span>
+<span class="fc" id="L766">          MessageDigest.getInstance(&quot;SHA-256&quot;).digest(composta.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L767">      return HexFormat.of().formatHex(digest);</span>
+<span class="nc" id="L768">    } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L769">      throw new IllegalStateException(&quot;SHA-256 indisponível na JVM&quot;, e);</span>
+    }
+  }
+
+  /**
+   * Payload da trilha. É AQUI que o motivo de uma suspeita fica registrado: motivo_rejeicao precisa
+   * continuar nulo quando valido=true, senão &quot;motivo_rejeicao IS NOT NULL&quot; deixa de significar
+   * &quot;rejeitado&quot; em toda consulta de fraude escrita depois.
+   */
+  private static Map&lt;String, Object&gt; payloadCheckin(ResultadoCheckin resultado) {
+<span class="fc" id="L779">    Map&lt;String, Object&gt; payload = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L780">    payload.put(&quot;checkinId&quot;, resultado.checkinId().toString());</span>
+<span class="fc" id="L781">    payload.put(&quot;distanciaM&quot;, resultado.distanciaM());</span>
+<span class="fc bfc" id="L782" title="All 2 branches covered.">    if (resultado.suspeito()) {</span>
+<span class="fc" id="L783">      payload.put(&quot;suspeito&quot;, true);</span>
+<span class="fc" id="L784">      payload.put(&quot;velocidadeImplicitaKmh&quot;, resultado.velocidadeImplicitaKmh());</span>
+    }
+<span class="fc" id="L786">    return payload;</span>
+  }
+
+  // ─── Conclusão com crédito ─────────────────────────────────────────────────────────────────
+
+  /** Criador confirma a entrega: AGUARDANDO_CONFIRMACAO → CONCLUIDA, creditando o executor. */
+  @Auditavel(acao = &quot;MISSAO_CONFIRMADA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse confirmar(UUID missaoId, AtorMissao ator) {
+<span class="fc" id="L795">    return concluirComCredito(missaoId, EventoMissao.CONFIRMAR, ator, null);</span>
+  }
+
+  /**
+   * Implementa {@link ConfirmacaoRetirada}: a transportadora confirma que a encomenda chegou.
+   *
+   * &lt;p&gt;Reusa {@link #confirmar} inteiro — mesmo evento, mesma transição, mesmo crédito. O que muda
+   * é só QUEM assina o ato, e nem isso exigiu mexer na autorização: o criador da missão de retirada
+   * é o usuário-sistema, e {@code AtorMissao.ehMesmo} compara identidade, então este ator satisfaz
+   * {@code AtorEsperado.CRIADOR} por construção. É o mesmo ator de PUBLICAR em {@code
+   * abrirMissaoDeRetirada}, e o conjunto de transições continua o mesmo.
+   *
+   * &lt;p&gt;&lt;b&gt;Não generaliza para missão criada por humano&lt;/b&gt;, e a garantia não está aqui: está em
+   * quem chama. {@code logistica} resolve o {@code missaoId} a partir de uma linha de {@code
+   * entrega_falida}, então esta porta só alcança missão de retirada. Uma missão criada por gente
+   * continua exigindo o criador de carne e osso.
+   *
+   * &lt;p&gt;A justificativa vai para a trilha porque destravar-por-terceiro precisa de motivo
+   * registrado: quem lê {@code missao_evento} meses depois tem de saber que não foi o criador
+   * humano que confirmou.
+   */
+  @Override
+  @Transactional
+  public long confirmarRetirada(UUID missaoId) {
+<span class="fc" id="L819">    MissaoResponse confirmada =</span>
+<span class="fc" id="L820">        concluirComCredito(</span>
+            missaoId,
+            EventoMissao.CONFIRMAR,
+            new AtorMissao(UsuarioSistema.ID, AtorMissao.PapelAtor.SISTEMA),
+<span class="fc" id="L824">            payloadJustificativa(</span>
+                &quot;Transportadora confirmou o recebimento pelo destinatário, por webhook.&quot;));
+<span class="fc" id="L826">    return confirmada.tokensRecompensa();</span>
+  }
+
+  /**
+   * ADMIN destrava uma missão parada: CANCELADA, com estorno do pote aos financiadores.
+   *
+   * &lt;p&gt;Porta manual para o que a varredura por prazo não cobre — missão legítima em disputa
+   * silenciosa, ou parada por um motivo que a regra de prazo não previu. Sem ela, o único desfecho
+   * possível para um caso excepcional seria esperar o prazo e aceitar o que ele decidir.
+   *
+   * &lt;p&gt;Zero código novo de caminho de valor: {@code aplicar} já estorna em CANCELADA. A
+   * justificativa é obrigatória e vai para o payload da trilha — destravar é ato discricionário e
+   * precisa de motivo registrado.
+   */
+  @Auditavel(acao = &quot;MISSAO_DESTRAVADA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse destravar(UUID missaoId, AtorMissao ator, String justificativa) {
+<span class="fc" id="L843">    return aplicar(missaoId, EventoMissao.DESTRAVAR, ator, payloadJustificativa(justificativa));</span>
+  }
+
+  /**
+   * Conclui pagando o executor porque o CRIADOR não confirmou no prazo — chamado só pela varredura.
+   *
+   * &lt;p&gt;Reusa {@code concluirComCredito} inteiro, com ator SISTEMA: pote debitado, carteira
+   * creditada, XP concedido, trilha e outbox. Nenhum caminho de valor novo nasce daqui, que é o que
+   * torna esta transição segura de acrescentar — a alternativa seria um segundo caminho de crédito,
+   * e dois caminhos de crédito é como se perde a conservação sem perceber.
+   */
+  @Transactional
+  public MissaoResponse concluirPorOmissaoDoCriador(UUID missaoId, Instant agora) {
+<span class="fc" id="L856">    return concluirComCredito(</span>
+        missaoId,
+        EventoMissao.EXPIRAR_CONFIRMACAO,
+<span class="fc" id="L859">        AtorMissao.sistema(),</span>
+<span class="fc" id="L860">        payloadJustificativa(</span>
+            &quot;Criador não confirmou dentro do prazo; check-in do executor é a evidência.&quot;));
+  }
+
+  /** Admin resolve a disputa. CONCLUIR credita como a confirmação; CANCELAR não credita nada. */
+  @Auditavel(acao = &quot;DISPUTA_RESOLVIDA&quot;, entidade = &quot;missao&quot;)
+  @Transactional
+  public MissaoResponse resolverDisputa(
+      UUID missaoId, AtorMissao ator, ResolverDisputaRequest req) {
+
+<span class="fc bfc" id="L870" title="All 2 branches covered.">    if (req.resultado() == ResolverDisputaRequest.Resultado.CONCLUIR) {</span>
+<span class="fc" id="L871">      return concluirComCredito(</span>
+          missaoId,
+          EventoMissao.RESOLVER_CONCLUIR,
+          ator,
+<span class="fc" id="L875">          payloadJustificativa(req.justificativa()));</span>
+    }
+    // RESOLVER_CANCELAR não credita ninguém — cai no caminho comum, que estorna o pote se houver.
+<span class="fc" id="L878">    return aplicar(</span>
+<span class="fc" id="L879">        missaoId, EventoMissao.RESOLVER_CANCELAR, ator, payloadJustificativa(req.justificativa()));</span>
+  }
+
+  /**
+   * Conclusão de missão com crédito, em UMA transação.
+   *
+   * &lt;p&gt;Ordem obrigatória, e cada passo depende do anterior:
+   *
+   * &lt;ol&gt;
+   *   &lt;li&gt;&lt;b&gt;Travar a missão&lt;/b&gt; ({@code FOR UPDATE}, primeira leitura). É a linha serializadora:
+   *       duas conclusões concorrentes da mesma missão passam por aqui uma de cada vez.
+   *   &lt;li&gt;&lt;b&gt;Autorizar&lt;/b&gt; (403) — antes de qualquer coisa que revele estado.
+   *   &lt;li&gt;&lt;b&gt;Sondar o replay&lt;/b&gt;. Sob o lock, então é autoritativo. Se o crédito já existe, devolve
+   *       o estado atual: um retry de rede é a MESMA operação, não conflito. Sondar antes de checar
+   *       a transição é o que evita devolver 409 para quem só perdeu a resposta.
+   *   &lt;li&gt;&lt;b&gt;Validar a transição&lt;/b&gt; (409).
+   *   &lt;li&gt;&lt;b&gt;Debitar o pote&lt;/b&gt;, se a missão paga em tokens de custódia.
+   *   &lt;li&gt;&lt;b&gt;Creditar a carteira&lt;/b&gt; (ordem global: missao → carteira).
+   *   &lt;li&gt;&lt;b&gt;Conceder XP&lt;/b&gt; (missao → carteira → usuario).
+   *   &lt;li&gt;&lt;b&gt;Transicionar&lt;/b&gt; e gravar a trilha.
+   *   &lt;li&gt;&lt;b&gt;Publicar na outbox&lt;/b&gt; — última, e é o passo que o teste de rollback derruba de
+   *       propósito para provar que nada acima sobrevive.
+   * &lt;/ol&gt;
+   */
+  private MissaoResponse concluirComCredito(
+      UUID missaoId, EventoMissao evento, AtorMissao ator, Map&lt;String, Object&gt; payloadExtra) {
+
+<span class="fc" id="L906">    Instant agora = Instant.now();</span>
+
+<span class="fc" id="L908">    Missao missao =</span>
+        missaoRepository
+<span class="fc" id="L910">            .buscarParaAtualizar(missaoId)</span>
+<span class="pc" id="L911">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(NAO_ENCONTRADA));</span>
+
+<span class="fc" id="L913">    MissaoStateMachine.validarAutorizacao(missao, evento, ator);</span>
+
+<span class="fc" id="L915">    UUID executorId = missao.getExecutorId();</span>
+
+    // Sondagem de replay ANTES de validar a transição: um retry de POST /confirmar numa missão já
+    // CONCLUIDA é a mesma operação, não conflito, e checar a transição primeiro devolveria 409 a
+    // quem apenas perdeu a resposta na rede.
+    //
+    // Só faz sentido sondar quando existe executor: a chave é derivada dele, e sem executor não há
+    // como haver crédito anterior. Sem essa condição, uma missão ABERTA (executor nulo) explodiria
+    // em NPE ao derivar a chave.
+<span class="fc bfc" id="L924" title="All 2 branches covered.">    if (executorId != null) {</span>
+<span class="fc" id="L925">      String chaveExistente = ChaveIdempotencia.conclusaoMissao(missaoId, executorId);</span>
+<span class="fc bfc" id="L926" title="All 2 branches covered.">      if (creditoRecompensa.consultar(chaveExistente).isPresent()) {</span>
+<span class="fc" id="L927">        return MissaoResponse.de(missao);</span>
+      }
+    }
+
+    // 409 ANTES de qualquer 422. A ordem do contrato é 403 → 409 → regra de negócio, e é a mesma
+    // desde quando este endpoint era um stub 501 — o app já integra nessa sequência.
+<span class="fc" id="L933">    MissaoStateMachine.validar(missao, evento, ator);</span>
+
+<span class="pc bpc" id="L935" title="1 of 2 branches missed.">    if (executorId == null) {</span>
+      // Inalcançável pelas transições declaradas: só se chega a AGUARDANDO_CONFIRMACAO ou
+      // EM_DISPUTA via ACEITAR, que grava o executor. Guarda explícita para que um estado
+      // impossível vire erro legível em vez de NPE, e depois do 409 para não roubar o código dele.
+<span class="nc" id="L939">      throw new RegraNegocioVioladaException(&quot;Missão sem executor não pode ser concluída.&quot;);</span>
+    }
+
+<span class="fc" id="L942">    String chave = ChaveIdempotencia.conclusaoMissao(missaoId, executorId);</span>
+
+<span class="fc" id="L944">    long tokens = missao.getTokensRecompensa();</span>
+<span class="fc" id="L945">    boolean pagaDoPote = pagaTokensDoPote(missao);</span>
+<span class="pc bpc" id="L946" title="1 of 4 branches missed.">    if (pagaDoPote &amp;&amp; tokens &gt; 0) {</span>
+      // Missão TRIBO/COLETA paga do pote financiado, não de token cunhado — é o que conserva a
+      // oferta da moeda. A guarda de publicação já exige pote &gt;= recompensa, então isto só falha
+      // se alguém contornar o publicar; ainda assim recusamos antes de escrever qualquer coisa.
+<span class="pc bpc" id="L950" title="1 of 2 branches missed.">      if (missao.getPoteTokens() &lt; tokens) {</span>
+<span class="nc" id="L951">        throw new RegraNegocioVioladaException(</span>
+            &quot;Pote da missão tem &quot;
+<span class="nc" id="L953">                + missao.getPoteTokens()</span>
+                + &quot; tokens e a recompensa é de &quot;
+                + tokens
+                + &quot;.&quot;);
+      }
+<span class="fc" id="L958">      missao.debitarPote(tokens);</span>
+    }
+
+<span class="fc" id="L961">    ResultadoCredito credito =</span>
+<span class="fc" id="L962">        creditoRecompensa.creditarConclusao(</span>
+            new ComandoCreditoConclusao(
+<span class="fc" id="L964">                missaoId, executorId, missao.getValorBrl(), tokens, chave, agora));</span>
+
+<span class="fc" id="L966">    ResultadoProgressao progressao =</span>
+<span class="fc" id="L967">        progressaoUsuario.concederXp(executorId, missao.getXpRecompensa());</span>
+
+<span class="fc" id="L969">    Map&lt;String, Object&gt; payload = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L970" title="All 2 branches covered.">    if (payloadExtra != null) {</span>
+<span class="fc" id="L971">      payload.putAll(payloadExtra);</span>
+    }
+<span class="fc" id="L973">    payload.put(&quot;lancamentoId&quot;, credito.lancamentoId().toString());</span>
+<span class="fc" id="L974">    payload.put(&quot;valorBrl&quot;, missao.getValorBrl());</span>
+<span class="fc" id="L975">    payload.put(&quot;tokens&quot;, tokens);</span>
+<span class="fc" id="L976">    payload.put(&quot;xp&quot;, missao.getXpRecompensa());</span>
+
+<span class="fc" id="L978">    MissaoEvento trilha =</span>
+<span class="fc" id="L979">        MissaoStateMachine.transicionar(missao, evento, ator, serializar(payload), agora);</span>
+
+<span class="fc" id="L981">    missaoRepository.save(missao);</span>
+<span class="fc" id="L982">    missaoEventoRepository.save(trilha);</span>
+
+    // Baixa da custódia: a encomenda saiu do ponto e a vaga volta a existir. No-op para toda missão
+    // que não veio de entrega falida, que é a maioria.
+    //
+    // SÍNCRONA, dentro desta transação, e não pela outbox. A outbox é at-least-once, e um
+    // decremento de ocupação redespachado liberaria uma vaga que nunca existiu — divergência que só
+    // apareceria muito depois, quando um ponto aceitasse mais encomendas do que cabe. Aqui, ou a
+    // conclusão inteira commita, ou nada muda.
+<span class="fc" id="L991">    baixaCustodia.darBaixa(missaoId, agora);</span>
+
+    // Mesma transação do crédito: se a conclusão der rollback, o anúncio não sobrevive; se ela
+    // commitar, o anúncio está durável e o drenador o entrega com retry. Ver PublicadorEventos.
+<span class="fc" id="L995">    publicadorEventos.publicar(</span>
+        &quot;MissaoConcluida&quot;,
+        missaoId,
+<span class="fc" id="L998">        Map.of(</span>
+<span class="fc" id="L999">            &quot;missaoId&quot;, missaoId.toString(),</span>
+<span class="fc" id="L1000">            &quot;executorId&quot;, executorId.toString(),</span>
+<span class="fc" id="L1001">            &quot;valorBrl&quot;, missao.getValorBrl(),</span>
+<span class="fc" id="L1002">            &quot;tokens&quot;, tokens,</span>
+<span class="fc" id="L1003">            &quot;xpConcedido&quot;, missao.getXpRecompensa(),</span>
+<span class="fc" id="L1004">            &quot;nivelAtual&quot;, progressao.nivelAtual(),</span>
+<span class="fc" id="L1005">            &quot;subiuDeNivel&quot;, progressao.subiuDeNivel()));</span>
+
+<span class="fc" id="L1007">    return MissaoResponse.de(missao);</span>
+  }
+
+  /**
+   * Se a conclusão paga DO POTE ou CUNHA. Lê {@code missao.fonte_pote}, congelado na criação.
+   *
+   * &lt;p&gt;&lt;b&gt;Era por CATEGORIA até a V23, e a troca fechou a Pendência #1.&lt;/b&gt; A regra antiga — &quot;TRIBO
+   * e COLETA pagam do pote, ENTREGA e AJUDA cunham&quot; — não conseguia distinguir as duas ENTREGAs: a
+   * do webhook, que hoje tem patrocinador, e a criada por humano, que não tem. Virar a chave por
+   * categoria teria deixado a segunda impublicável, porque {@code
+   * FinanciamentoService.validarEstado} recusa financiamento de ENTREGA e o pote jamais alcançaria
+   * a recompensa. Ver {@link FontePote} e ADR 0024.
+   *
+   * &lt;p&gt;&lt;b&gt;NENHUMA categoria paga em BRL.&lt;/b&gt; O ADR 0009 tirou o BRL do ciclo de missões e a {@code
+   * ck_missao_economia} da &lt;b&gt;V15&lt;/b&gt; exige {@code valor_brl = 0} em TODAS as categorias, não só em
+   * duas (a partição por categoria era da V3, e não vale mais).
+   *
+   * &lt;p&gt;O que SOBRA de cunhagem é {@code FontePote.CUNHAGEM}, e desde o ADR 0025 isso é só ENTREGA
+   * criada por humano — AJUDA passou a pagar do pote como TRIBO. Está declarado na linha da missão
+   * em vez de implícito num {@code if}, que é a diferença entre uma lacuna conhecida e uma
+   * surpresa. A emissão que sustenta o resto agora tem um ponto único e auditado — {@code
+   * AporteToken}.
+   */
+  private static boolean pagaTokensDoPote(Missao missao) {
+<span class="fc bfc" id="L1031" title="All 2 branches covered.">    return missao.getFontePote() != FontePote.CUNHAGEM;</span>
+  }
+
+  // ─── Núcleo ────────────────────────────────────────────────────────────────────────────────
+
+  private MissaoResponse aplicar(
+      UUID missaoId, EventoMissao evento, AtorMissao ator, Map&lt;String, Object&gt; payload) {
+
+    // FOR UPDATE, e obrigatoriamente a PRIMEIRA leitura da transação: se a entidade já estivesse
+    // no persistence context, o Hibernate devolveria a instância em cache sem reemitir o
+    // SELECT ... FOR UPDATE, e o lock nunca seria adquirido.
+<span class="fc" id="L1042">    Missao missao =</span>
+        missaoRepository
+<span class="fc" id="L1044">            .buscarParaAtualizar(missaoId)</span>
+<span class="pc" id="L1045">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(NAO_ENCONTRADA));</span>
+
+    // Guarda de publicação: precisa rodar sob o lock, com a missão já carregada, e ANTES da
+    // transição — depois de transicionar, recusar exigiria desfazer.
+<span class="fc bfc" id="L1049" title="All 2 branches covered.">    if (evento == EventoMissao.PUBLICAR) {</span>
+<span class="fc" id="L1050">      MissaoStateMachine.validarAutorizacao(missao, evento, ator);</span>
+<span class="fc" id="L1051">      validarPoteSuficienteParaPublicar(missao);</span>
+    }
+
+    // Trava de reputação, na mesma posição e pelo mesmo motivo da guarda de pote acima: precisa
+    // rodar sob o lock, com a missão carregada, e ANTES da transição — depois de transicionar,
+    // recusar exigiria desfazer.
+    //
+    // Depois de validarAutorizacao e antes de validar(): a ordem 403 → 422 do projeto. Quem nem
+    // podia agir sobre esta missão recebe 403 sem descobrir o nível exigido dela.
+<span class="fc bfc" id="L1060" title="All 2 branches covered.">    if (evento == EventoMissao.ACEITAR) {</span>
+<span class="fc" id="L1061">      MissaoStateMachine.validarAutorizacao(missao, evento, ator);</span>
+<span class="fc" id="L1062">      validarNivelParaAceitar(missao, ator);</span>
+    }
+
+<span class="fc" id="L1065">    Instant agora = Instant.now();</span>
+<span class="fc" id="L1066">    MissaoEvento trilha =</span>
+<span class="fc" id="L1067">        MissaoStateMachine.transicionar(missao, evento, ator, serializar(payload), agora);</span>
+
+    // Estorno do pote em estado terminal sem pagamento. Sem isto, os tokens financiados ficariam
+    // presos na missão para sempre e a conservação da moeda — que é a garantia central desta fase —
+    // seria falsa: a soma (carteiras + potes) continuaria fechando, mas parte dela estaria em
+    // custódia inalcançável, o que economicamente é o mesmo que queimar dinheiro dos outros.
+<span class="fc" id="L1073">    StatusMissao destino = missao.getStatus();</span>
+<span class="pc bpc" id="L1074" title="1 of 4 branches missed.">    if ((destino == StatusMissao.CANCELADA || destino == StatusMissao.EXPIRADA)</span>
+<span class="fc bfc" id="L1075" title="All 2 branches covered.">        &amp;&amp; missao.getPoteTokens() &gt; 0) {</span>
+<span class="fc" id="L1076">      estornoFinanciamentoService.estornarPote(missao, agora);</span>
+    }
+
+<span class="fc" id="L1079">    missaoRepository.save(missao);</span>
+    // Mesma transação da missão: status e trilha não têm como divergir.
+<span class="fc" id="L1081">    missaoEventoRepository.save(trilha);</span>
+
+    // Ponto único de invalidação para publicar/aceitar/iniciar/desistir/cancelar/contestar — todas
+    // entram ou saem de ABERTA, que é o que o radar devolve.
+<span class="fc" id="L1085">    cacheMissoesProximas.invalidarAposCommit();</span>
+
+<span class="fc" id="L1087">    return MissaoResponse.de(missao);</span>
+  }
+
+  /**
+   * Carrega respeitando a visibilidade: rascunho alheio responde 404, não 403. Um 403 confirmaria a
+   * existência de um recurso privado a quem não deveria sequer saber que ele existe.
+   */
+  private Missao carregarVisivel(UUID missaoId, AtorMissao ator) {
+<span class="fc" id="L1095">    Missao missao =</span>
+        missaoRepository
+<span class="fc" id="L1097">            .findById(missaoId)</span>
+<span class="fc" id="L1098">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(NAO_ENCONTRADA));</span>
+
+<span class="fc bfc" id="L1100" title="All 4 branches covered.">    if (missao.getStatus() == StatusMissao.RASCUNHO &amp;&amp; !ator.ehMesmo(missao.getCriadorId())) {</span>
+<span class="fc" id="L1101">      throw new RecursoNaoEncontradoException(NAO_ENCONTRADA);</span>
+    }
+<span class="fc" id="L1103">    return missao;</span>
+  }
+
+  private static Map&lt;String, Object&gt; payloadMotivo(String motivo) {
+<span class="fc" id="L1107">    return payloadTexto(&quot;motivo&quot;, motivo);</span>
+  }
+
+  /**
+   * Chave própria: a justificativa do admin numa disputa não é o mesmo dado que o motivo de quem
+   * desistiu ou cancelou, e a trilha é lida por quem investiga incidente.
+   */
+  private static Map&lt;String, Object&gt; payloadJustificativa(String justificativa) {
+<span class="fc" id="L1115">    return payloadTexto(&quot;justificativa&quot;, justificativa);</span>
+  }
+
+  private static Map&lt;String, Object&gt; payloadTexto(String chave, String valor) {
+<span class="pc bpc" id="L1119" title="1 of 4 branches missed.">    if (valor == null || valor.isBlank()) {</span>
+<span class="fc" id="L1120">      return null;</span>
+    }
+<span class="fc" id="L1122">    Map&lt;String, Object&gt; payload = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L1123">    payload.put(chave, valor);</span>
+<span class="fc" id="L1124">    return payload;</span>
+  }
+
+  private static String serializar(Map&lt;String, Object&gt; payload) {
+<span class="pc bpc" id="L1128" title="1 of 4 branches missed.">    if (payload == null || payload.isEmpty()) {</span>
+<span class="fc" id="L1129">      return null;</span>
+    }
+<span class="fc" id="L1131">    return MAPPER_TRILHA.writeValueAsString(payload);</span>
+  }
+
+  private static &lt;T&gt; T ouAtual(T novo, T atual) {
+<span class="fc bfc" id="L1135" title="All 2 branches covered.">    return novo != null ? novo : atual;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

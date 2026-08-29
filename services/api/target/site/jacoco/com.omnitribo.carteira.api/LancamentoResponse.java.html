@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LancamentoResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.api</a> &gt; <span class="el_source">LancamentoResponse.java</span></div><h1>LancamentoResponse.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.api;
+
+import com.omnitribo.carteira.dominio.Lancamento;
+import com.omnitribo.carteira.dominio.MotivoLancamento;
+import com.omnitribo.carteira.dominio.SinalLancamento;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Uma linha do extrato.
+ *
+ * &lt;p&gt;NÃO expõe {@code chaveIdempotencia}, e isso é deliberado. A chave gravada é um sha256 do
+ * material que inclui a chave que o cliente enviou; devolvê-la no extrato permitiria a qualquer
+ * pessoa com acesso à resposta enumerar ou confirmar chaves alheias por comparação, e ela não tem
+ * uso nenhum para quem lê um extrato. O identificador público da operação é o {@code id} do
+ * lançamento.
+ */
+@Schema(description = &quot;Lançamento do ledger — imutável após o registro&quot;)
+<span class="fc" id="L21">public record LancamentoResponse(</span>
+    UUID id,
+    SinalLancamento sinal,
+    MotivoLancamento motivo,
+    BigDecimal valorBrl,
+    long valorTokens,
+    UUID missaoId,
+    @Schema(description = &quot;Carteira da outra ponta, em transferências&quot;) UUID contraparteCarteiraId,
+    String mensagem,
+    @Schema(description = &quot;Saldo de BRL resultante deste lançamento&quot;) BigDecimal saldoAposBrl,
+    @Schema(description = &quot;Saldo de tokens resultante deste lançamento&quot;) long saldoAposTokens,
+    Instant criadoEm) {
+
+  public static LancamentoResponse de(Lancamento l) {
+<span class="fc" id="L35">    return new LancamentoResponse(</span>
+<span class="fc" id="L36">        l.getId(),</span>
+<span class="fc" id="L37">        l.getSinal(),</span>
+<span class="fc" id="L38">        l.getMotivo(),</span>
+<span class="fc" id="L39">        l.getValorBrl(),</span>
+<span class="fc" id="L40">        l.getValorTokens(),</span>
+<span class="fc" id="L41">        l.getMissaoId(),</span>
+<span class="fc" id="L42">        l.getContraparteCarteiraId(),</span>
+<span class="fc" id="L43">        l.getMensagem(),</span>
+<span class="fc" id="L44">        l.getSaldoAposBrl(),</span>
+<span class="fc" id="L45">        l.getSaldoAposTokens(),</span>
+<span class="fc" id="L46">        l.getCriadoEm());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

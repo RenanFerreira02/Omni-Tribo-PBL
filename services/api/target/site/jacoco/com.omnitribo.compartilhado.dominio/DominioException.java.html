@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DominioException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.dominio</a> &gt; <span class="el_source">DominioException.java</span></div><h1>DominioException.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.dominio;
+
+import com.omnitribo.compartilhado.api.TipoProblema;
+import java.net.URI;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+
+public class DominioException extends RuntimeException {
+
+  private final HttpStatus httpStatus;
+
+  public DominioException(HttpStatus httpStatus, String mensagem) {
+<span class="fc" id="L13">    super(mensagem);</span>
+<span class="fc" id="L14">    this.httpStatus = httpStatus;</span>
+<span class="fc" id="L15">  }</span>
+
+  public HttpStatus getHttpStatus() {
+<span class="fc" id="L18">    return httpStatus;</span>
+  }
+
+  /**
+   * Valor do campo {@code type} do RFC 9457 para esta exceção.
+   *
+   * &lt;p&gt;Sobrescrito por cada subclasse com um tipo específico. A implementação padrão deriva do
+   * status, e existe para quem lança {@code DominioException} direto — hoje só o fluxo de
+   * autenticação, que precisa de 401 sem revelar qual das causas ocorreu. O efeito é que nenhuma
+   * resposta de erro do sistema sai com {@code about:blank}, mesmo sem subclasse dedicada.
+   */
+  public URI getTipo() {
+<span class="fc" id="L30">    return TipoProblema.deStatus(httpStatus);</span>
+  }
+
+  /**
+   * Campos NUMÉRICOS de extensão do RFC 9457, acrescentados ao corpo do erro.
+   *
+   * &lt;p&gt;Existe porque {@code type} responde &quot;qual foi a causa&quot; e {@code detail} responde &quot;o que
+   * dizer ao humano&quot; — mas nenhum dos dois responde &quot;quanto&quot;. A tela de check-in precisa escrever
+   * &quot;você está a 180 m; aproxime-se para até 50 m&quot;, e os únicos caminhos para isso seriam parsear o
+   * {@code detail} — proibido, porque é copy que muda a cada revisão — ou receber os números
+   * separados. É este método.
+   *
+   * &lt;p&gt;Vazio por padrão: a esmagadora maioria das recusas não tem número a dar, e sobrescrever é
+   * opt-in. O mapa é imutável e serializado direto no corpo, então só entram valores que o cliente
+   * pode ver — nunca id interno, SQL ou nome de classe.
+   */
+  public Map&lt;String, Object&gt; getPropriedades() {
+<span class="fc" id="L47">    return Map.of();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

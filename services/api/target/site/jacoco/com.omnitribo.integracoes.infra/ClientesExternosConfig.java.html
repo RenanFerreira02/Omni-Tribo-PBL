@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientesExternosConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.integracoes.infra</a> &gt; <span class="el_source">ClientesExternosConfig.java</span></div><h1>ClientesExternosConfig.java</h1><pre class="source lang-java linenums">package com.omnitribo.integracoes.infra;
+
+import java.time.Clock;
+import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.client.RestClient;
+
+/**
+ * Builder compartilhado pelos clientes externos, com TIMEOUT curto.
+ *
+ * &lt;p&gt;&lt;b&gt;O timeout é a peça central, não um detalhe de configuração.&lt;/b&gt; Sem ele, o default é
+ * esperar indefinidamente: um provedor que aceita a conexão e nunca responde prenderia a thread da
+ * requisição, e sob carga isso esgota o pool do servlet — o card de clima derrubaria o login. Dois
+ * segundos são generosos para uma consulta que existe para enfeitar um mapa.
+ *
+ * &lt;p&gt;O timeout mora AQUI, na configuração, e não dentro de cada cliente, por uma razão de teste:
+ * {@code MockRestServiceServer.bindTo(builder)} instala a própria {@code requestFactory}, e um
+ * cliente que sobrescrevesse a fábrica no construtor apagaria o mock — o teste passaria a bater na
+ * internet de verdade sem avisar.
+ *
+ * &lt;p&gt;Este bean SUBSTITUI o {@code RestClient.Builder} autoconfigurado pelo Boot (que é
+ * {@code @ConditionalOnMissingBean}). É intencional e seguro hoje: estes dois clientes são os
+ * únicos consumidores de {@code RestClient} no repositório. Se aparecer um terceiro com outra
+ * política de timeout, este bean vira qualificado em vez de global.
+ */
+@Configuration
+<span class="fc" id="L30">public class ClientesExternosConfig {</span>
+
+  @Bean
+  public RestClient.Builder restClientBuilder(
+      @Value(&quot;${app.integracoes.timeout:PT2S}&quot;) Duration timeout) {
+<span class="fc" id="L35">    SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();</span>
+<span class="fc" id="L36">    fabrica.setConnectTimeout(timeout);</span>
+<span class="fc" id="L37">    fabrica.setReadTimeout(timeout);</span>
+<span class="fc" id="L38">    return RestClient.builder().requestFactory(fabrica);</span>
+  }
+
+  /**
+   * O relógio do disjuntor, injetável para que o teste avance o tempo em vez de dormir.
+   *
+   * &lt;p&gt;É o primeiro {@code Clock} do repositório e por isso pode ser global sem qualificador. A
+   * transição &quot;aberto → meia-abertura&quot; é decidida comparando instantes, então ler {@code
+   * System.currentTimeMillis()} direto tornaria o teste de recuperação um {@code sleep} de 30 s —
+   * ou, pior, um teste que baixa a espera para milissegundos e passa a medir o escalonador do
+   * sistema operacional em vez da regra.
+   */
+  @Bean
+  public Clock relogio() {
+<span class="fc" id="L52">    return Clock.systemUTC();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

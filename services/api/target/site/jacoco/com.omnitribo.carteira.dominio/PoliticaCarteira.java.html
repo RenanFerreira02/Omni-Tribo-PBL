@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PoliticaCarteira.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">PoliticaCarteira.java</span></div><h1>PoliticaCarteira.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Limites operacionais da carteira, vinculados a {@code app.carteira.*}.
+ *
+ * &lt;p&gt;Os tetos de transferência não existem para impedir uso legítimo — existem para limitar o DANO
+ * de uma conta comprometida. Quem rouba um token de acesso pode transferir; o teto por transação
+ * impede o esvaziamento num único POST, e o teto por janela impede o mesmo esvaziamento fatiado em
+ * N requisições. Um sem o outro é contornável de forma trivial.
+ *
+ * &lt;p&gt;Record imutável, no molde de {@code JwtProperties}: propriedade ausente falha no startup, em
+ * vez de virar zero silencioso — e um teto zero recusaria toda transferência, ou pior, um teto lido
+ * como {@code null} viraria NPE só quando alguém transferisse.
+ */
+@ConfigurationProperties(prefix = &quot;app.carteira&quot;)
+<span class="fc" id="L20">public record PoliticaCarteira(</span>
+    long transferenciaTetoPorTransacao,
+    long transferenciaTetoPorJanela,
+    Duration transferenciaJanela,
+    BigDecimal saqueMinimoBrl,
+
+    /**
+     * Liga ou desliga {@code POST /carteira/saques}. &lt;b&gt;Desligado por padrão.&lt;/b&gt;
+     *
+     * &lt;p&gt;Saque é a única saída de BRL do sistema, e desde o ADR 0009 o BRL deixou de ser recompensa
+     * de missão — não existe mais forma de ganhá-lo. Manter o endpoint aberto sacaria saldo herdado
+     * de um modelo que não vale mais.
+     *
+     * &lt;p&gt;É uma FLAG, e não a remoção do código, de propósito: o fluxo de saque está implementado e
+     * coberto por testes de concorrência, mínimo, idempotência e saldo insuficiente. Se a conversão
+     * patrocinada de TOKEN para moeda corrente se concretizar, é exatamente esta a mecânica que ela
+     * reaproveita. Apagar e reescrever depois seria jogar fora trabalho já verificado.
+     *
+     * &lt;p&gt;O perfil de teste liga a flag para que essa cobertura continue exercitando o caminho real;
+     * existe um teste próprio para o comportamento com ela desligada.
+     */
+    boolean saqueHabilitado) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

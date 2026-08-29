@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SaqueService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">SaqueService.java</span></div><h1>SaqueService.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import com.omnitribo.carteira.api.SaqueResponse;
+import com.omnitribo.carteira.infra.CarteiraRepository;
+import com.omnitribo.compartilhado.dominio.Auditavel;
+import com.omnitribo.compartilhado.dominio.ChaveIdempotencia;
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Saque de BRL da carteira.
+ *
+ * &lt;p&gt;Escopo desta fase: o saque REGISTRA o débito no ledger e devolve um protocolo. A transferência
+ * para conta bancária depende de gateway externo, que está fora do MVP (ADR 0004). O débito ser
+ * gravado agora é o que importa para a integridade — o saldo sai da carteira no momento do pedido,
+ * não quando o dinheiro chega, senão a mesma quantia poderia ser sacada duas vezes na janela entre
+ * pedido e liquidação.
+ *
+ * &lt;p&gt;Só BRL. XP não é sacável por definição, e TOKEN é moeda comunitária sem lastro externo —
+ * permitir saque de token seria convertê-lo em dinheiro, e é justamente essa fronteira que o ADR
+ * 0009 mantém explícita: token resgata BENEFÍCIO de parceiro, não moeda corrente.
+ *
+ * &lt;p&gt;&lt;b&gt;DESLIGADO por padrão desde o ADR 0009&lt;/b&gt; ({@code app.carteira.saque-habilitado}). Com o
+ * BRL fora das recompensas, não há mais como ganhá-lo; deixar o saque aberto permitiria retirar
+ * saldo herdado do modelo anterior. A implementação permanece porque é a mecânica que a conversão
+ * patrocinada reaproveitaria.
+ */
+@Service
+public class SaqueService {
+
+  private static final String CARTEIRA_AUSENTE = &quot;Carteira não encontrada.&quot;;
+
+  private final CarteiraRepository carteiraRepository;
+  private final LivroRazaoService livroRazaoService;
+  private final PoliticaCarteira politica;
+
+  public SaqueService(
+      CarteiraRepository carteiraRepository,
+      LivroRazaoService livroRazaoService,
+<span class="fc" id="L46">      PoliticaCarteira politica) {</span>
+<span class="fc" id="L47">    this.carteiraRepository = carteiraRepository;</span>
+<span class="fc" id="L48">    this.livroRazaoService = livroRazaoService;</span>
+<span class="fc" id="L49">    this.politica = politica;</span>
+<span class="fc" id="L50">  }</span>
+
+  @Auditavel(acao = &quot;SAQUE_SOLICITADO&quot;, entidade = &quot;carteira&quot;)
+  @Transactional
+  public SaqueResponse sacar(UUID usuarioId, BigDecimal valorBrl, String chaveDoCliente) {
+    // Gate ANTES de qualquer leitura ou lock: desligado, esta operação não deve nem tocar o banco.
+    // 422 e não 501: o endpoint existe e o pedido está bem formado — o que não cabe é a operação,
+    // nas regras vigentes. `type` próprio (ADR 0010) porque a tela reage diferente das outras
+    // recusas daqui: recurso fechado por decisão de produto não é algo que o usuário corrija
+    // ajustando o valor, e tratá-lo como &quot;saldo insuficiente&quot; o faria juntar saldo à toa.
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (!politica.saqueHabilitado()) {</span>
+<span class="fc" id="L61">      throw new SaqueDesabilitadoException(</span>
+          &quot;Saque indisponível nesta versão: a recompensa das missões é em XP e tokens, &quot;
+              + &quot;resgatáveis em benefícios de parceiros.&quot;);
+    }
+
+<span class="fc" id="L66">    Instant agora = Instant.now();</span>
+
+<span class="fc bfc" id="L68" title="All 2 branches covered.">    if (valorBrl.compareTo(politica.saqueMinimoBrl()) &lt; 0) {</span>
+<span class="fc" id="L69">      throw new RegraNegocioVioladaException(</span>
+<span class="fc" id="L70">          &quot;Saque mínimo é R$ &quot; + politica.saqueMinimoBrl() + &quot;.&quot;);</span>
+    }
+
+<span class="fc" id="L73">    UUID carteiraId =</span>
+        carteiraRepository
+<span class="fc" id="L75">            .buscarIdPorUsuario(usuarioId)</span>
+<span class="pc" id="L76">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+
+    // LOCK → SONDAR → VALIDAR → ESCREVER.
+<span class="fc" id="L79">    Carteira carteira =</span>
+        carteiraRepository
+<span class="fc" id="L81">            .buscarParaAtualizar(carteiraId)</span>
+<span class="pc" id="L82">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+
+<span class="fc" id="L84">    String chave = ChaveIdempotencia.saque(usuarioId, chaveDoCliente);</span>
+
+<span class="fc" id="L86">    Optional&lt;Lancamento&gt; existente = livroRazaoService.consultar(chave);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (existente.isPresent()) {</span>
+<span class="fc" id="L88">      return new SaqueResponse(existente.get().getId(), carteira.getSaldoBrl(), true);</span>
+    }
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (carteira.getSaldoBrl().compareTo(valorBrl) &lt; 0) {</span>
+<span class="fc" id="L92">      throw new RegraNegocioVioladaException(</span>
+          &quot;Saldo de R$ &quot;
+<span class="fc" id="L94">              + carteira.getSaldoBrl()</span>
+              + &quot; é insuficiente para sacar R$ &quot;
+              + valorBrl
+              + &quot;.&quot;);
+    }
+
+<span class="fc" id="L100">    Lancamento lancamento =</span>
+<span class="fc" id="L101">        livroRazaoService.registrar(</span>
+            carteira,
+            new Movimento(
+                SinalLancamento.DEBITO,
+                MotivoLancamento.SAQUE,
+                valorBrl,
+                0L,
+                null,
+                null,
+                chave,
+                null,
+                agora));
+
+<span class="fc" id="L114">    return new SaqueResponse(lancamento.getId(), carteira.getSaldoBrl(), false);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

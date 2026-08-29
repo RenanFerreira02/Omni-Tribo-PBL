@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.api</a> &gt; <span class="el_source">AuthController.java</span></div><h1>AuthController.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.api;
+
+import com.omnitribo.compartilhado.api.EnderecoDoCliente;
+import com.omnitribo.identidade.dominio.AutenticacaoService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(&quot;/api/v1/auth&quot;)
+public class AuthController {
+
+  private final AutenticacaoService autenticacaoService;
+
+<span class="fc" id="L24">  public AuthController(AutenticacaoService autenticacaoService) {</span>
+<span class="fc" id="L25">    this.autenticacaoService = autenticacaoService;</span>
+<span class="fc" id="L26">  }</span>
+
+  @PostMapping(&quot;/registrar&quot;)
+  @ResponseStatus(HttpStatus.CREATED)
+  public LoginResponse registrar(
+      @Valid @RequestBody RegistrarRequest request, HttpServletRequest http) {
+<span class="fc" id="L32">    return autenticacaoService.registrar(</span>
+<span class="fc" id="L33">        request, EnderecoDoCliente.de(http), http.getHeader(&quot;User-Agent&quot;));</span>
+  }
+
+  @PostMapping(&quot;/login&quot;)
+  public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+<span class="fc" id="L38">    return autenticacaoService.login(</span>
+<span class="fc" id="L39">        request, EnderecoDoCliente.de(http), http.getHeader(&quot;User-Agent&quot;));</span>
+  }
+
+  @PostMapping(&quot;/refresh&quot;)
+  public LoginResponse refresh(
+      @Valid @RequestBody RefreshRequest request, HttpServletRequest http) {
+<span class="fc" id="L45">    return autenticacaoService.refresh(</span>
+<span class="fc" id="L46">        request.refreshToken(), EnderecoDoCliente.de(http), http.getHeader(&quot;User-Agent&quot;));</span>
+  }
+
+  // Este controller é o único sem @SecurityRequirement na CLASSE, porque a maioria dos endpoints
+  // dele é pública de verdade (login, registrar, refresh). Estes dois não são: a cadeia principal
+  // só isenta /auth/login, /auth/registrar e /auth/refresh, então logout e me exigem JWT. Sem a
+  // anotação, o schema os descrevia como anônimos e quem integrasse pela documentação escreveria um
+  // cliente que toma 401. Achado por ContratoOpenApiTest.
+  @SecurityRequirement(name = &quot;bearerAuth&quot;)
+  @PostMapping(&quot;/logout&quot;)
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void logout(
+      @Valid @RequestBody RefreshRequest request,
+      @AuthenticationPrincipal AutenticadoPrincipal principal,
+      HttpServletRequest http) {
+    // usuarioId vem do JWT — nunca do corpo. Previne logout forçado de outro usuário (IDOR).
+<span class="nc" id="L62">    autenticacaoService.logout(</span>
+<span class="nc" id="L63">        principal.id(),</span>
+<span class="nc" id="L64">        request.refreshToken(),</span>
+<span class="nc" id="L65">        EnderecoDoCliente.de(http),</span>
+<span class="nc" id="L66">        http.getHeader(&quot;User-Agent&quot;));</span>
+<span class="nc" id="L67">  }</span>
+
+  /**
+   * Retorna o perfil do usuário autenticado diretamente dos claims do JWT, sem consulta ao banco.
+   * Demonstra o fluxo stateless e serve como endpoint de verificação de token nos testes.
+   */
+  @SecurityRequirement(name = &quot;bearerAuth&quot;)
+  @GetMapping(&quot;/me&quot;)
+  public MeResponse me(@AuthenticationPrincipal AutenticadoPrincipal principal) {
+<span class="fc" id="L76">    return new MeResponse(principal.id(), principal.email(), principal.papel().name());</span>
+  }
+
+<span class="fc" id="L79">  public record MeResponse(UUID id, String email, String papel) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

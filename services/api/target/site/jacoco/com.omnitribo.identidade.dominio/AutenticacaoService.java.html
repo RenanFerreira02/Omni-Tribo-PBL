@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AutenticacaoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">AutenticacaoService.java</span></div><h1>AutenticacaoService.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import com.omnitribo.carteira.api.ProvisionamentoCarteira;
+import com.omnitribo.compartilhado.api.ControleDeTentativasLogin;
+import com.omnitribo.compartilhado.api.EmissorDeToken;
+import com.omnitribo.compartilhado.dominio.BloqueioException;
+import com.omnitribo.compartilhado.dominio.DominioException;
+import com.omnitribo.identidade.api.LoginRequest;
+import com.omnitribo.identidade.api.LoginResponse;
+import com.omnitribo.identidade.api.RegistrarRequest;
+import com.omnitribo.identidade.infra.RefreshTokenRepository;
+import com.omnitribo.identidade.infra.UsuarioRepository;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.UUID;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class AutenticacaoService {
+
+  private static final String MSG_CREDENCIAIS_INVALIDAS = &quot;Credenciais inválidas&quot;;
+<span class="fc" id="L34">  private static final Duration TTL_REFRESH = Duration.ofDays(30);</span>
+  private static final int REFRESH_TOKEN_BYTES = 32; // 256 bits de entropia
+
+  private final UsuarioRepository usuarioRepository;
+  private final RefreshTokenRepository refreshTokenRepository;
+  private final AuditoriaService auditoriaService;
+  private final EmissorDeToken jwtService;
+  private final ControleDeTentativasLogin bloqueioLoginService;
+  private final PasswordEncoder passwordEncoder;
+  private final ProvisionamentoCarteira provisionamentoCarteira;
+<span class="fc" id="L44">  private final SecureRandom secureRandom = new SecureRandom();</span>
+
+  /**
+   * Hash descartável contra o qual se compara a senha quando o email NÃO existe.
+   *
+   * &lt;p&gt;Existe para fechar um oráculo de TEMPO. A mensagem de erro já era idêntica nos dois casos,
+   * mas com {@code usuario != null &amp;&amp; matches(...)} o {@code &amp;&amp;} curto-circuita: email inexistente
+   * respondia sem executar o KDF. Medido nesta API: &lt;b&gt;~6 ms contra ~68 ms&lt;/b&gt;, diferença de 10x
+   * que qualquer cliente distingue sem esforço. Ou seja, a defesa contra enumeração de usuários
+   * estava anulada pelo relógio, e a resposta genérica dava falsa sensação de proteção.
+   *
+   * &lt;p&gt;Calculado UMA vez, na construção do bean: gerá-lo por requisição custaria um KDF a mais em
+   * todo login válido, e mantê-lo constante não enfraquece nada — ele nunca é comparado com uma
+   * senha que se pretenda aceitar. A senha de origem é aleatória e descartada aqui mesmo, então não
+   * existe valor de entrada capaz de casar com este hash.
+   *
+   * &lt;p&gt;Equalização aproximada, não perfeita: usuários do seed ainda têm hash {@code {bcrypt}} e o
+   * padrão para senhas novas é {@code {argon2}}, então os custos diferem entre si. O que este campo
+   * elimina é o degrau de 10x entre &quot;existe&quot; e &quot;não existe&quot;; o resíduo distingue no máximo a IDADE
+   * do hash, não a existência da conta.
+   */
+  private final String hashDummy;
+
+  @Value(&quot;${app.jwt.ttl-access:PT15M}&quot;)
+  private Duration ttlAccess;
+
+  public AutenticacaoService(
+      UsuarioRepository usuarioRepository,
+      RefreshTokenRepository refreshTokenRepository,
+      AuditoriaService auditoriaService,
+      EmissorDeToken jwtService,
+      ControleDeTentativasLogin bloqueioLoginService,
+      PasswordEncoder passwordEncoder,
+<span class="fc" id="L77">      ProvisionamentoCarteira provisionamentoCarteira) {</span>
+<span class="fc" id="L78">    this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L79">    this.refreshTokenRepository = refreshTokenRepository;</span>
+<span class="fc" id="L80">    this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L81">    this.jwtService = jwtService;</span>
+<span class="fc" id="L82">    this.bloqueioLoginService = bloqueioLoginService;</span>
+<span class="fc" id="L83">    this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L84">    this.provisionamentoCarteira = provisionamentoCarteira;</span>
+
+    // UUID.randomUUID() e não SecureRandom: este valor não é um segredo, é só entrada para
+    // gastar o mesmo tempo de CPU. Ele nunca é comparado com uma senha que se pretenda aceitar —
+    // casar com ele exigiria um pré-imagem do Argon2 e, ainda assim, não autenticaria ninguém,
+    // porque o resultado é descartado quando o usuário é nulo. Usar o campo secureRandom aqui
+    // dispararia DMI_RANDOM_USED_ONLY_ONCE no SpotBugs, e suprimir o aviso seria pior que trocar
+    // por uma fonte cuja força não faz diferença nenhuma para esta finalidade.
+<span class="fc" id="L92">    this.hashDummy = passwordEncoder.encode(UUID.randomUUID().toString());</span>
+<span class="fc" id="L93">  }</span>
+
+  @Transactional
+  public LoginResponse registrar(RegistrarRequest request, String ip, String userAgent) {
+    // Email normalizado: lowercase + trim para evitar duplicatas por capitalização.
+<span class="fc" id="L98">    String email = request.email().toLowerCase().trim();</span>
+
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    if (usuarioRepository.existsByEmail(email)) {</span>
+      // Mensagem deliberadamente vaga: não confirma se o email existe.
+      // Prevenção de enumeração de usuários via resposta.
+<span class="nc" id="L103">      throw new DominioException(HttpStatus.CONFLICT, &quot;Não foi possível criar a conta.&quot;);</span>
+    }
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">    if (usuarioRepository.existsByHandle(request.handle())) {</span>
+<span class="nc" id="L106">      throw new DominioException(HttpStatus.CONFLICT, &quot;Não foi possível criar a conta.&quot;);</span>
+    }
+
+<span class="fc" id="L109">    Instant agora = Instant.now();</span>
+<span class="fc" id="L110">    Usuario usuario =</span>
+        new Usuario(
+<span class="fc" id="L112">            UUID.randomUUID(),</span>
+<span class="fc" id="L113">            request.nome(),</span>
+            email,
+<span class="fc" id="L115">            passwordEncoder.encode(request.senha()), // DelegatingPasswordEncoder → {argon2}...</span>
+<span class="fc" id="L116">            request.handle(),</span>
+<span class="fc" id="L117">            request.triboId(),</span>
+            agora);
+
+<span class="fc" id="L120">    usuarioRepository.save(usuario);</span>
+
+    // Carteira nasce junto com o usuário, na MESMA transação. Sem isto, todo usuário novo ficaria
+    // sem carteira e o primeiro crédito de missão — ou qualquer transferência para ele — falharia
+    // com 404. Criar sob demanda no primeiro crédito seria pior: aconteceria dentro de uma
+    // transação que já segura locks, e dois créditos simultâneos disputariam a criação.
+<span class="fc" id="L126">    provisionamentoCarteira.garantirCarteira(usuario.getId());</span>
+
+<span class="fc" id="L128">    auditoriaService.gravar(</span>
+<span class="fc" id="L129">        usuario.getId(),</span>
+        &quot;USUARIO_REGISTRADO&quot;,
+        &quot;usuario&quot;,
+<span class="fc" id="L132">        usuario.getId().toString(),</span>
+        ip,
+        userAgent,
+<span class="fc" id="L135">        MDC.get(&quot;correlationId&quot;));</span>
+
+<span class="fc" id="L137">    return emitirTokens(usuario);</span>
+  }
+
+  @Transactional
+  public LoginResponse login(LoginRequest request, String ip, String userAgent) {
+<span class="fc" id="L142">    String email = request.email().toLowerCase().trim();</span>
+
+    // Verifica bloqueio progressivo e rate limit ANTES de qualquer consulta ao banco.
+<span class="fc" id="L145">    var bloqueio = bloqueioLoginService.verificar(ip, email);</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (bloqueio != null) {</span>
+<span class="fc" id="L147">      throw new BloqueioException(bloqueio.segundosRestantes()); // compartilhado/dominio</span>
+    }
+
+<span class="fc" id="L150">    Usuario usuario = usuarioRepository.findByEmail(email).orElse(null);</span>
+
+    // O KDF roda SEMPRE, inclusive quando o email não existe — contra o hash dummy. Escrito sem
+    // &amp;&amp; de propósito: o curto-circuito é justamente o bug que abria o oráculo de tempo, então
+    // avaliar matches() incondicionalmente é o comportamento desejado, não desperdício.
+    // Ver o javadoc de hashDummy para a medição que motivou isto.
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    String hashParaComparar = usuario != null ? usuario.getSenhaHash() : hashDummy;</span>
+<span class="fc" id="L157">    boolean senhaConfere = passwordEncoder.matches(request.senha(), hashParaComparar);</span>
+<span class="fc bfc" id="L158" title="All 4 branches covered.">    boolean senhaValida = usuario != null &amp;&amp; senhaConfere;</span>
+
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    if (!senhaValida) {</span>
+      // Registra falha; pode disparar bloqueio progressivo se atingir o limiar.
+<span class="fc" id="L162">      bloqueioLoginService.registrarFalha(ip, email);</span>
+<span class="fc" id="L163">      auditoriaService.gravar(</span>
+          null, // atorId null: não sabemos (e não revelamos) se o email existe
+          &quot;LOGIN_FALHO&quot;,
+          &quot;usuario&quot;,
+          null,
+          ip,
+          userAgent,
+<span class="fc" id="L170">          MDC.get(&quot;correlationId&quot;));</span>
+      // Mesma mensagem para senha errada E email inexistente: impede enumeração de usuários.
+<span class="fc" id="L172">      throw new DominioException(HttpStatus.UNAUTHORIZED, MSG_CREDENCIAIS_INVALIDAS);</span>
+    }
+
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">    if (usuario.getStatus() != StatusUsuario.ATIVO) {</span>
+      // Conta suspensa/banida: mesma mensagem genérica.
+<span class="nc" id="L177">      throw new DominioException(HttpStatus.UNAUTHORIZED, MSG_CREDENCIAIS_INVALIDAS);</span>
+    }
+
+<span class="fc" id="L180">    bloqueioLoginService.registrarSucesso(ip, email);</span>
+<span class="fc" id="L181">    auditoriaService.gravar(</span>
+<span class="fc" id="L182">        usuario.getId(),</span>
+        &quot;LOGIN_OK&quot;,
+        &quot;usuario&quot;,
+<span class="fc" id="L185">        usuario.getId().toString(),</span>
+        ip,
+        userAgent,
+<span class="fc" id="L188">        MDC.get(&quot;correlationId&quot;));</span>
+
+<span class="fc" id="L190">    return emitirTokens(usuario);</span>
+  }
+
+  // noRollbackFor: revogarFamilia() precisa persistir mesmo quando a exceção é lançada logo após.
+  // Sem isso, a transação faria rollback, desfazendo as revogações — a família pareceria ativa.
+  @Transactional(noRollbackFor = DominioException.class)
+  public LoginResponse refresh(String tokenOpaco, String ip, String userAgent) {
+<span class="fc" id="L197">    String tokenHash = sha256(tokenOpaco);</span>
+<span class="fc" id="L198">    RefreshToken token =</span>
+        refreshTokenRepository
+<span class="fc" id="L200">            .findByTokenHash(tokenHash)</span>
+<span class="pc" id="L201">            .orElseThrow(() -&gt; new DominioException(HttpStatus.UNAUTHORIZED, &quot;Sessão inválida&quot;));</span>
+
+<span class="fc bfc" id="L203" title="All 2 branches covered.">    if (token.getRevogadoEm() != null) {</span>
+      // DETECÇÃO DE REUSO: token já foi rotacionado mas está sendo apresentado de novo.
+      // Cenário: atacante roubou o refresh token após uma rotação legítima.
+      // Resposta: revogar TODA a família — força o usuário legítimo a re-autenticar.
+      // Referência: RFC 6819 §5.2.2.3.
+<span class="fc" id="L208">      revogarFamilia(token.getFamiliaId());</span>
+<span class="fc" id="L209">      auditoriaService.gravar(</span>
+<span class="fc" id="L210">          token.getUsuarioId(),</span>
+          &quot;REFRESH_REUSO&quot;,
+          &quot;refresh_token&quot;,
+<span class="fc" id="L213">          token.getFamiliaId().toString(),</span>
+          ip,
+          userAgent,
+<span class="fc" id="L216">          MDC.get(&quot;correlationId&quot;));</span>
+<span class="fc" id="L217">      throw new DominioException(HttpStatus.UNAUTHORIZED, &quot;Sessão inválida&quot;);</span>
+    }
+
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">    if (!token.estaValido()) {</span>
+<span class="nc" id="L221">      throw new DominioException(HttpStatus.UNAUTHORIZED, &quot;Sessão expirada&quot;);</span>
+    }
+
+<span class="fc" id="L224">    Usuario usuario =</span>
+        usuarioRepository
+<span class="fc" id="L226">            .findById(token.getUsuarioId())</span>
+<span class="pc" id="L227">            .orElseThrow(() -&gt; new DominioException(HttpStatus.UNAUTHORIZED, &quot;Sessão inválida&quot;));</span>
+
+    // Rotação: revoga o token atual e emite um novo na mesma família.
+<span class="fc" id="L230">    UUID novoId = UUID.randomUUID();</span>
+<span class="fc" id="L231">    token.revogar(novoId);</span>
+<span class="fc" id="L232">    refreshTokenRepository.save(token);</span>
+
+<span class="fc" id="L234">    LoginResponse resposta = emitirTokens(usuario, token.getFamiliaId(), novoId);</span>
+
+<span class="fc" id="L236">    auditoriaService.gravar(</span>
+<span class="fc" id="L237">        usuario.getId(),</span>
+        &quot;REFRESH_OK&quot;,
+        &quot;refresh_token&quot;,
+<span class="fc" id="L240">        token.getFamiliaId().toString(),</span>
+        ip,
+        userAgent,
+<span class="fc" id="L243">        MDC.get(&quot;correlationId&quot;));</span>
+
+<span class="fc" id="L245">    return resposta;</span>
+  }
+
+  @Transactional
+  public void logout(UUID usuarioId, String tokenOpaco, String ip, String userAgent) {
+<span class="nc" id="L250">    String tokenHash = sha256(tokenOpaco);</span>
+<span class="nc" id="L251">    refreshTokenRepository</span>
+<span class="nc" id="L252">        .findByTokenHash(tokenHash)</span>
+<span class="nc" id="L253">        .filter(t -&gt; t.getUsuarioId().equals(usuarioId)) // previne revogar token de outro usuário</span>
+<span class="nc" id="L254">        .ifPresent(t -&gt; t.revogar(null));</span>
+
+<span class="nc" id="L256">    auditoriaService.gravar(</span>
+        usuarioId,
+        &quot;LOGOUT&quot;,
+        &quot;usuario&quot;,
+<span class="nc" id="L260">        usuarioId.toString(),</span>
+        ip,
+        userAgent,
+<span class="nc" id="L263">        MDC.get(&quot;correlationId&quot;));</span>
+<span class="nc" id="L264">  }</span>
+
+  // ─── Helpers privados ─────────────────────────────────────────────────────
+
+  private LoginResponse emitirTokens(Usuario usuario) {
+<span class="fc" id="L269">    UUID familiaId = UUID.randomUUID(); // nova família para login/registro</span>
+<span class="fc" id="L270">    UUID tokenId = UUID.randomUUID();</span>
+<span class="fc" id="L271">    return emitirTokens(usuario, familiaId, tokenId);</span>
+  }
+
+  private LoginResponse emitirTokens(Usuario usuario, UUID familiaId, UUID novoTokenId) {
+<span class="fc" id="L275">    String accessToken =</span>
+<span class="fc" id="L276">        jwtService.emitirAccessToken(</span>
+<span class="fc" id="L277">            usuario.getId(), usuario.getEmail(), usuario.getPapel().name());</span>
+
+<span class="fc" id="L279">    String refreshOpaco = gerarRefreshOpaco();</span>
+<span class="fc" id="L280">    String refreshHash = sha256(refreshOpaco);</span>
+
+<span class="fc" id="L282">    RefreshToken novoRefresh =</span>
+        new RefreshToken(
+<span class="fc" id="L284">            novoTokenId, usuario.getId(), refreshHash, familiaId, Instant.now().plus(TTL_REFRESH));</span>
+<span class="fc" id="L285">    refreshTokenRepository.save(novoRefresh);</span>
+
+<span class="fc" id="L287">    return new LoginResponse(accessToken, refreshOpaco, &quot;Bearer&quot;, ttlAccess.getSeconds());</span>
+  }
+
+  private void revogarFamilia(UUID familiaId) {
+<span class="fc" id="L291">    List&lt;RefreshToken&gt; familia = refreshTokenRepository.findByFamiliaId(familiaId);</span>
+<span class="fc" id="L292">    familia.forEach(</span>
+        t -&gt; {
+<span class="fc bfc" id="L294" title="All 2 branches covered.">          if (t.getRevogadoEm() == null) t.revogar(null);</span>
+<span class="fc" id="L295">        });</span>
+<span class="fc" id="L296">    refreshTokenRepository.saveAll(familia);</span>
+<span class="fc" id="L297">  }</span>
+
+  private String gerarRefreshOpaco() {
+    // 256 bits de entropia via SecureRandom — imprevisível mesmo com estado do PRNG conhecido.
+<span class="fc" id="L301">    byte[] bytes = new byte[REFRESH_TOKEN_BYTES];</span>
+<span class="fc" id="L302">    secureRandom.nextBytes(bytes);</span>
+<span class="fc" id="L303">    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);</span>
+  }
+
+  private String sha256(String input) {
+    // Armazenamos apenas o hash: mesmo que o banco seja comprometido, tokens não são
+    // aproveitáveis sem a string original (que trafegou apenas no canal TLS).
+    try {
+<span class="fc" id="L310">      MessageDigest md = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L311">      return HexFormat.of().formatHex(md.digest(input.getBytes(StandardCharsets.UTF_8)));</span>
+<span class="nc" id="L312">    } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L313">      throw new IllegalStateException(&quot;SHA-256 não disponível&quot;, e);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

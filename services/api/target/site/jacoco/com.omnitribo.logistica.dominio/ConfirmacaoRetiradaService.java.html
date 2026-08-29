@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfirmacaoRetiradaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.dominio</a> &gt; <span class="el_source">ConfirmacaoRetiradaService.java</span></div><h1>ConfirmacaoRetiradaService.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.dominio;
+
+import com.omnitribo.compartilhado.api.RecursoAuditavel;
+import com.omnitribo.compartilhado.dominio.Auditavel;
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.logistica.infra.EntregaFalidaRepository;
+import com.omnitribo.missoes.api.ConfirmacaoRetirada;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * A transportadora confirma que a encomenda chegou ao destinatário.
+ *
+ * &lt;p&gt;Fecha a lacuna que fazia o executor esperar o prazo para receber: a missão de retirada tem o
+ * usuário-sistema como criador, e {@code AtorEsperado.CRIADOR} compara IDENTIDADE, não papel — nem
+ * um ADMIN conseguia chamar {@code /confirmar}. Sem este endpoint, o único caminho para CONCLUIDA
+ * era a varredura de {@code app.missoes.expiracao.prazo-confirmacao}, 72 horas depois.
+ *
+ * &lt;p&gt;A varredura CONTINUA existindo e não virou redundância: ela é a rede de segurança para quando
+ * a transportadora não confirma. Ver ADR 0026.
+ *
+ * &lt;h2&gt;Bean SEPARADO de {@link EntregaFalidaService}, e isso é obrigatório&lt;/h2&gt;
+ *
+ * &lt;p&gt;Este serviço chama {@code missoes}, e {@code missoes} chama de volta {@link
+ * BaixaCustodiaService} na conclusão. Se a confirmação morasse dentro de {@code
+ * EntregaFalidaService} — que já é alvo de {@code ConversaoEntregaFalida} — fecharia o ciclo de
+ * beans {@code EntregaFalidaService → MissaoService → EntregaFalidaService}. É a mesma razão pela
+ * qual a baixa da custódia foi extraída para um bean próprio; ver o javadoc de {@code
+ * BaixaCustodiaService}.
+ */
+@Service
+public class ConfirmacaoRetiradaService {
+
+<span class="fc" id="L37">  private static final Logger log = LoggerFactory.getLogger(ConfirmacaoRetiradaService.class);</span>
+
+  private final EntregaFalidaRepository entregaFalidaRepository;
+
+  /**
+   * Injetado pela INTERFACE: é o tipo declarado no campo que o ArchUnit inspeciona, e nomear {@code
+   * MissaoService} aqui faria {@code logistica} alcançar {@code missoes.dominio}.
+   */
+  private final ConfirmacaoRetirada confirmacaoRetirada;
+
+  public ConfirmacaoRetiradaService(
+<span class="fc" id="L48">      EntregaFalidaRepository entregaFalidaRepository, ConfirmacaoRetirada confirmacaoRetirada) {</span>
+<span class="fc" id="L49">    this.entregaFalidaRepository = entregaFalidaRepository;</span>
+<span class="fc" id="L50">    this.confirmacaoRetirada = confirmacaoRetirada;</span>
+<span class="fc" id="L51">  }</span>
+
+  /**
+   * O que a transportadora recebe de volta.
+   *
+   * @param tokensCreditados quanto o executor recebeu NESTA chamada. Zero num replay, e é o número
+   *     honesto: a segunda confirmação não move dinheiro. Quem quer a recompensa da missão consulta
+   *     a missão — atravessar a fronteira só para responder uma leitura gastaria um lock de
+   *     escrita.
+   */
+<span class="fc" id="L61">  public record Resultado(</span>
+      UUID entregaFalidaId, UUID missaoId, long tokensCreditados, boolean replay)
+      implements RecursoAuditavel {
+
+    /**
+     * A entrega falida é o recurso auditado — a mesma entidade do reporte, para que os dois atos
+     * apareçam na trilha sob o mesmo {@code entidade_id}. Sem isto o {@code AuditoriaAspecto}
+     * gravaria nulo, e o {@code RegrasArquiteturaTest} reprova o build por causa disso.
+     */
+    @Override
+    public UUID idAuditoria() {
+<span class="fc" id="L72">      return entregaFalidaId;</span>
+    }
+  }
+
+  /**
+   * Confirma a retirada de {@code (transportadora, codigoRastreio)}.
+   *
+   * &lt;p&gt;Idempotente em DUAS camadas, e nenhuma delas basta sozinha:
+   *
+   * &lt;ul&gt;
+   *   &lt;li&gt;&lt;b&gt;Cinta&lt;/b&gt; — {@code convertida_em} preenchido significa que a encomenda já saiu da
+   *       custódia, carimbo que {@code BaixaCustodia.darBaixa} põe na conclusão. É o sinal de &quot;já
+   *       concluiu&quot; que {@code logistica} possui sem cruzar fronteira nenhuma, e evita a chamada no
+   *       caso comum de retry.
+   *   &lt;li&gt;&lt;b&gt;Suspensório&lt;/b&gt; — duas confirmações SIMULTÂNEAS passariam as duas pela checagem acima,
+   *       porque nenhuma commitou ainda. Quem as separa é a sondagem da chave de idempotência sob
+   *       {@code SELECT ... FOR UPDATE}, lá dentro de {@code concluirComCredito}. Sem ela, a
+   *       corrida creditaria duas vezes.
+   * &lt;/ul&gt;
+   *
+   * &lt;p&gt;&lt;b&gt;Rastreio desconhecido e entrega sem missão são 404, não 200.&lt;/b&gt; Diverge do ponto de
+   * custódia lotado (ADR 0021) de propósito: lá o 200 existia porque havia um fato NOVO a gravar —
+   * a encomenda tinha chegado e a recusa precisava ficar registrada. Aqui não há nada a registrar,
+   * e a recusa da conversão já está gravada em {@code entrega_falida}. Um 200 diria &quot;confirmado&quot;
+   * para algo que não foi confirmado.
+   */
+  @Auditavel(acao = &quot;RETIRADA_CONFIRMADA&quot;, entidade = &quot;entrega_falida&quot;)
+  @Transactional
+  public Resultado confirmar(String transportadora, String codigoRastreio) {
+<span class="fc" id="L101">    EntregaFalida entrega =</span>
+        entregaFalidaRepository
+<span class="fc" id="L103">            .findByTransportadoraAndCodigoRastreio(transportadora, codigoRastreio)</span>
+<span class="fc" id="L104">            .orElseThrow(</span>
+                () -&gt;
+<span class="fc" id="L106">                    new RecursoNaoEncontradoException(</span>
+                        &quot;Nenhuma entrega registrada para este código de rastreio.&quot;));
+
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (entrega.getMissaoId() == null) {</span>
+      // Recusada por ponto lotado ou por falta de patrocínio: o fato já está gravado, e não existe
+      // missão para concluir. Reenviar não muda nada — a mensagem precisa deixar isso explícito.
+<span class="fc" id="L112">      throw new RecursoNaoEncontradoException(</span>
+          &quot;Não há missão de retirada para este código de rastreio: a encomenda não foi convertida.&quot;);
+    }
+
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (entrega.saiuDaCustodia()) {</span>
+<span class="fc" id="L117">      log.debug(&quot;Confirmação repetida da entrega {} — no-op.&quot;, entrega.getId());</span>
+<span class="fc" id="L118">      return new Resultado(entrega.getId(), entrega.getMissaoId(), 0L, true);</span>
+    }
+
+<span class="fc" id="L121">    long tokens = confirmacaoRetirada.confirmarRetirada(entrega.getMissaoId());</span>
+<span class="fc" id="L122">    return new Resultado(entrega.getId(), entrega.getMissaoId(), tokens, false);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConsultaSessaoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">ConsultaSessaoService.java</span></div><h1>ConsultaSessaoService.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.omnitribo.identidade.api.AutenticadoPrincipal;
+import com.omnitribo.identidade.api.ConsultaSessao;
+import com.omnitribo.identidade.infra.UsuarioRepository;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+
+/**
+ * Estado da conta por requisição, com cache curto.
+ *
+ * &lt;p&gt;&lt;b&gt;O trade-off, para ser defendido de viva voz.&lt;/b&gt; A janela em que uma conta anonimizada
+ * continua escrevendo cai de &lt;b&gt;15 minutos&lt;/b&gt; (o TTL do access token) para &lt;b&gt;no máximo 60
+ * segundos&lt;/b&gt; — e para ZERO pelos caminhos que chamam {@link #invalidar}. O custo é um {@code
+ * SELECT} por chave primária por usuário por MINUTO, não por requisição: com 100 usuários ativos
+ * são ~100 consultas/min, duas ordens de grandeza abaixo do tráfego que as gera.
+ *
+ * &lt;p&gt;&lt;b&gt;Isto parece contradizer o CLAUDE.md e não contradiz.&lt;/b&gt; A regra de lá diz para não
+ * enriquecer {@code GET /auth/me} com &quot;uma consulta com joins em toda abertura do app&quot;. O que ela
+ * proíbe é o JOIN do perfil (tribo, conquistas, nível), que é caro e é outra pergunta. O que entra
+ * aqui é uma leitura de cinco colunas por PK, sem join, servida do cache na esmagadora maioria das
+ * vezes. {@code /auth/me} continua se resolvendo dos claims.
+ *
+ * &lt;p&gt;&lt;b&gt;{@code expireAfterWrite}, nunca {@code expireAfterAccess}.&lt;/b&gt; O que importa é a IDADE do
+ * dado, não o uso: com expiração por acesso, um token quente nunca releria o banco e a janela
+ * voltaria a ser ilimitada — exatamente o defeito que este serviço existe para fechar.
+ *
+ * &lt;p&gt;&lt;b&gt;O cache guarda {@code Optional}, inclusive vazio.&lt;/b&gt; Cachear a AUSÊNCIA é o que impede o
+ * mecanismo de virar amplificador: sem isso, um token bem assinado cujo {@code sub} não existe (ou
+ * uma conta já apagada) forçaria uma consulta ao banco por requisição, e o controle antifraude
+ * seria o próprio vetor de carga.
+ */
+@Service
+public class ConsultaSessaoService implements ConsultaSessao {
+
+  /**
+   * 60 s é o TETO da janela para qualquer caminho que ESQUEÇA de invalidar — inclusive UPDATE
+   * manual no banco. Os caminhos que invalidam fecham em zero.
+   */
+<span class="fc" id="L44">  private static final Duration VALIDADE = Duration.ofSeconds(60);</span>
+
+  private static final int MAXIMO_ENTRADAS = 20_000;
+
+  private final UsuarioRepository usuarioRepository;
+
+<span class="fc" id="L50">  private final Cache&lt;UUID, Optional&lt;AutenticadoPrincipal&gt;&gt; cache =</span>
+<span class="fc" id="L51">      Caffeine.newBuilder().expireAfterWrite(VALIDADE).maximumSize(MAXIMO_ENTRADAS).build();</span>
+
+<span class="fc" id="L53">  public ConsultaSessaoService(UsuarioRepository usuarioRepository) {</span>
+<span class="fc" id="L54">    this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L55">  }</span>
+
+  @Override
+  public Optional&lt;AutenticadoPrincipal&gt; sessaoAtiva(UUID usuarioId) {
+<span class="fc" id="L59">    return cache.get(usuarioId, this::carregar);</span>
+  }
+
+  @Override
+  public void invalidar(UUID usuarioId) {
+<span class="fc" id="L64">    cache.invalidate(usuarioId);</span>
+<span class="fc" id="L65">  }</span>
+
+  /**
+   * O principal é montado a partir do BANCO, não dos claims — é isso que faz o papel ser
+   * reconferido. Reaproveitar o papel do token deixaria um ADMIN rebaixado com autoridade de ADMIN
+   * até o token expirar, que é metade do defeito.
+   */
+  private Optional&lt;AutenticadoPrincipal&gt; carregar(UUID usuarioId) {
+<span class="fc" id="L73">    return usuarioRepository</span>
+<span class="fc" id="L74">        .buscarEstadoDaConta(usuarioId)</span>
+<span class="fc" id="L75">        .filter(EstadoDaConta::ativa)</span>
+<span class="fc" id="L76">        .map(e -&gt; new AutenticadoPrincipal(e.id(), e.email(), e.papel()));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

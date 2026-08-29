@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResultadoCheckin.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.geolocalizacao.api</a> &gt; <span class="el_source">ResultadoCheckin.java</span></div><h1>ResultadoCheckin.java</h1><pre class="source lang-java linenums">package com.omnitribo.geolocalizacao.api;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+/**
+ * Veredito de um check-in já gravado.
+ *
+ * &lt;p&gt;A rejeição volta AQUI, como dado, em vez de subir como exceção. É o que permite ao chamador
+ * responder 422 e fazer rollback da própria transação sem apagar a linha de auditoria, que foi
+ * gravada numa transação separada e já commitada.
+ */
+<span class="fc" id="L13">public record ResultadoCheckin(</span>
+    UUID checkinId,
+    Veredito veredito,
+    BigDecimal distanciaM,
+    /**
+     * Acurácia REPORTADA pelo dispositivo, ecoada de volta. Existe para o chamador poder explicar a
+     * recusa por acurácia com o número que o próprio aparelho informou — inclusive num replay, em
+     * que ela vem da linha persistida e não de uma leitura nova.
+     */
+    BigDecimal acuraciaM,
+    BigDecimal velocidadeImplicitaKmh,
+    /** Causa estável da rejeição; null quando aceito. É ela que escolhe o `type`. Ver ADR 0010. */
+    MotivoRejeicaoCheckin codigoRejeicao,
+    String motivoRejeicao,
+    /** true quando a chave de idempotência já existia: nenhuma linha nova foi gravada. */
+    boolean replay) {
+
+<span class="fc" id="L30">  public enum Veredito {</span>
+<span class="fc" id="L31">    ACEITO,</span>
+    /**
+     * Aceito, porém com cinemática implausível. A missão transiciona normalmente e o cliente não é
+     * avisado — contar ao fraudador que ele foi sinalizado ensina exatamente quanto desacelerar.
+     */
+<span class="fc" id="L36">    ACEITO_SUSPEITO,</span>
+<span class="fc" id="L37">    REJEITADO</span>
+  }
+
+  public boolean aceito() {
+<span class="fc bfc" id="L41" title="All 2 branches covered.">    return veredito != Veredito.REJEITADO;</span>
+  }
+
+  public boolean suspeito() {
+<span class="fc bfc" id="L45" title="All 2 branches covered.">    return veredito == Veredito.ACEITO_SUSPEITO;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

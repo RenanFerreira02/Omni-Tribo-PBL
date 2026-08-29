@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CorrelationIdFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.infra</a> &gt; <span class="el_source">CorrelationIdFilter.java</span></div><h1>CorrelationIdFilter.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.infra;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.UUID;
+import java.util.regex.Pattern;
+import org.slf4j.MDC;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Propaga um identificador de correlação por requisição, aceitando o do cliente quando ele é
+ * utilizável.
+ *
+ * &lt;p&gt;&lt;b&gt;O header é entrada não confiável e passa por allowlist antes de chegar ao MDC.&lt;/b&gt; Aceitar
+ * qualquer coisa custava duas falhas concretas:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;Forja de log.&lt;/b&gt; O pattern de console é {@code [%X{correlationId}]}, então CR/LF no
+ *       header fabrica linhas de log inteiras — inclusive linhas falsas de bloqueio de login,
+ *       contra quem for reconstituir um incidente depois.
+ *   &lt;li&gt;&lt;b&gt;500 sem autenticação.&lt;/b&gt; {@code auditoria.correlation_id} era {@code VARCHAR(36)} e
+ *       ninguém truncava; um valor mais longo estourava com SQLState 22001 durante o flush da
+ *       transação de login, e o login inteiro respondia 500 em vez de 200 ou 401. Não exigia nem
+ *       má-fé: um {@code traceparent} do W3C tem 55 caracteres.
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;O formato aceito é o dos identificadores que a gente de fato quer correlacionar — UUID, {@code
+ * traceparent}, ids de APM — e o teto de 64 casa com a coluna alargada pela V20. Valor fora disso
+ * não é rejeitado com erro: seria transformar telemetria malformada em falha de requisição. Gera-se
+ * um id novo, e o cliente perde só a correlação que ele mesmo estragou.
+ */
+@Component
+<span class="fc" id="L37">public class CorrelationIdFilter extends OncePerRequestFilter {</span>
+
+  private static final String HEADER = &quot;X-Correlation-Id&quot;;
+  private static final String MDC_KEY = &quot;correlationId&quot;;
+
+  /** Sem espaço, sem controle, sem CR/LF. Cobre UUID, traceparent e ids de APM. */
+<span class="fc" id="L43">  private static final Pattern ACEITAVEL = Pattern.compile(&quot;[A-Za-z0-9._-]{1,64}&quot;);</span>
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+
+<span class="fc" id="L50">    String correlationId = sanitizar(request.getHeader(HEADER));</span>
+
+<span class="fc" id="L52">    MDC.put(MDC_KEY, correlationId);</span>
+<span class="fc" id="L53">    response.setHeader(HEADER, correlationId);</span>
+    try {
+<span class="fc" id="L55">      chain.doFilter(request, response);</span>
+    } finally {
+<span class="fc" id="L57">      MDC.remove(MDC_KEY);</span>
+    }
+<span class="fc" id="L59">  }</span>
+
+  private static String sanitizar(String recebido) {
+<span class="pc bpc" id="L62" title="3 of 4 branches missed.">    if (recebido != null &amp;&amp; ACEITAVEL.matcher(recebido).matches()) {</span>
+<span class="nc" id="L63">      return recebido;</span>
+    }
+<span class="fc" id="L65">    return UUID.randomUUID().toString();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

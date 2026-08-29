@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BloqueioLoginService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.infra</a> &gt; <span class="el_source">BloqueioLoginService.java</span></div><h1>BloqueioLoginService.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.infra;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.omnitribo.compartilhado.api.AuditoriaPersistencia;
+import com.omnitribo.compartilhado.api.ControleDeTentativasLogin;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HexFormat;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+/**
+ * Controla rate limiting e bloqueio progressivo de tentativas de login.
+ *
+ * &lt;p&gt;Dois mecanismos independentes: 1. Bucket4j token-bucket: 5 tokens/min por chave IP+email —
+ * bloqueia burst de credential stuffing. 2. BloqueioInfo counter: 10 falhas em 15 min → bloqueia
+ * por 15 min — para brute-force mais lento.
+ *
+ * &lt;p&gt;In-memory — single instance MVP. Em múltiplas instâncias, migrar para Bucket4j + Redis
+ * (bucket4j-redis module). Ver CLAUDE.md seção Escopo.
+ *
+ * &lt;p&gt;&lt;b&gt;Caffeine com expiração, e não ConcurrentHashMap.&lt;/b&gt; A chave inclui o EMAIL, e {@code POST
+ * /auth/login} é público: um script mandando logins com endereços aleatórios criava uma entrada
+ * permanente por endereço, sem jamais acertar senha e sem jamais ser bloqueado — cada email novo é
+ * uma chave nova, então o contador de falhas nunca acumulava. Mapa sem despejo transformava o
+ * próprio mecanismo antifraude em vetor de exaustão de memória, liberada só reiniciando o processo.
+ * Nenhum dos dois mapas tinha despejo: {@code buckets} nunca era limpo, e {@code bloqueios} só saía
+ * por login bem-sucedido ou por bloqueio já expirado — quem falha uma vez e some fica lá para
+ * sempre.
+ */
+@Component
+public class BloqueioLoginService implements ControleDeTentativasLogin {
+
+  private final AuditoriaPersistencia auditoriaPersistencia;
+
+  @Value(&quot;${app.rate-limit.login-por-minuto:5}&quot;)
+  private int loginPorMinuto;
+
+  @Value(&quot;${app.rate-limit.falhas-para-bloqueio:10}&quot;)
+  private int falhasParaBloqueio;
+
+  @Value(&quot;${app.rate-limit.janela-falhas-minutos:15}&quot;)
+  private int janelaFalhasMinutos;
+
+  @Value(&quot;${app.rate-limit.duracao-bloqueio-minutos:15}&quot;)
+  private int duracaoBloqueioMinutos;
+
+  // Caches com chave = sha256(ip:email) para não expor PII em estruturas de memória.
+  private Cache&lt;String, Bucket&gt; buckets;
+  private Cache&lt;String, BloqueioInfo&gt; bloqueios;
+
+<span class="fc" id="L60">  public BloqueioLoginService(AuditoriaPersistencia auditoriaPersistencia) {</span>
+<span class="fc" id="L61">    this.auditoriaPersistencia = auditoriaPersistencia;</span>
+<span class="fc" id="L62">  }</span>
+
+  /**
+   * Construído aqui, e não em inicializador de campo, porque as janelas vêm de {@code @Value} — que
+   * só é populado depois do construtor.
+   */
+  @PostConstruct
+  void construirCaches() {
+    // expireAfterAccess: descartar bucket ocioso é matematicamente IDÊNTICO a mantê-lo. O
+    // refillGreedy repõe a capacidade inteira em 1 minuto, então qualquer bucket parado há mais que
+    // isso já está cheio, e recriá-lo devolve exatamente o mesmo estado. Não é um trade-off de
+    // precisão — é liberar memória que não carrega informação nenhuma.
+<span class="fc" id="L74">    buckets = Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(10)).build();</span>
+
+    // expireAfterWrite, não afterAccess: o que importa é quando a última FALHA foi registrada, não
+    // quando alguém consultou. E a entrada precisa sobreviver às duas janelas que a governam — a de
+    // observação e a do bloqueio —, ambas contadas a partir da última escrita. O dobro do maior
+    // valor é margem para que expiração jamais liberte alguém de um bloqueio ainda vigente.
+<span class="fc" id="L80">    long minutos = 2L * Math.max(janelaFalhasMinutos, duracaoBloqueioMinutos);</span>
+<span class="fc" id="L81">    bloqueios = Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(minutos)).build();</span>
+<span class="fc" id="L82">  }</span>
+
+  /**
+   * Verifica se a tentativa de login está permitida.
+   *
+   * @return {@code null} se permitida; {@link BloqueioAtivo} com tempo restante se bloqueada
+   */
+  @Override
+  public BloqueioAtivo verificar(String ip, String email) {
+<span class="fc" id="L91">    String chave = chave(ip, email);</span>
+
+    // 1. Verifica bloqueio progressivo (10 falhas em 15 min)
+<span class="fc" id="L94">    BloqueioInfo info = bloqueios.getIfPresent(chave);</span>
+<span class="fc bfc" id="L95" title="All 4 branches covered.">    if (info != null &amp;&amp; info.bloqueadoAte() != null) {</span>
+<span class="fc" id="L96">      Instant agora = Instant.now();</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">      if (agora.isBefore(info.bloqueadoAte())) {</span>
+<span class="fc" id="L98">        long segundosRestantes = Duration.between(agora, info.bloqueadoAte()).getSeconds();</span>
+<span class="fc" id="L99">        return new BloqueioAtivo(segundosRestantes);</span>
+      } else {
+        // Bloqueio expirado: limpa o estado
+<span class="nc" id="L102">        bloqueios.invalidate(chave);</span>
+      }
+    }
+
+    // 2. Verifica bucket Bucket4j (5/min)
+<span class="fc" id="L107">    Bucket bucket = buckets.get(chave, k -&gt; criarBucket());</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">    if (!bucket.tryConsume(1)) {</span>
+<span class="fc" id="L109">      return new BloqueioAtivo(60L); // bucket tem janela de 1 minuto</span>
+    }
+
+<span class="fc" id="L112">    return null; // Permitido</span>
+  }
+
+  /** Registra falha de login. Se atingir o limiar, aplica bloqueio progressivo. */
+  @Override
+  public void registrarFalha(String ip, String email) {
+<span class="fc" id="L118">    String chave = chave(ip, email);</span>
+<span class="fc" id="L119">    Instant agora = Instant.now();</span>
+
+<span class="fc" id="L121">    bloqueios</span>
+<span class="fc" id="L122">        .asMap()</span>
+<span class="fc" id="L123">        .merge(</span>
+            chave,
+            new BloqueioInfo(1, agora, null),
+            (existente, novo) -&gt; {
+              // Reseta contador se a última falha foi fora da janela de observação
+<span class="fc" id="L128">              boolean dentroJanela =</span>
+                  existente
+<span class="fc" id="L130">                      .ultimaFalha()</span>
+<span class="fc" id="L131">                      .isAfter(agora.minus(Duration.ofMinutes(janelaFalhasMinutos)));</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">              int novasFalhas = dentroJanela ? existente.falhas() + 1 : 1;</span>
+              Instant bloqueioAte =
+<span class="fc bfc" id="L134" title="All 2 branches covered.">                  novasFalhas &gt;= falhasParaBloqueio</span>
+<span class="fc" id="L135">                      ? agora.plus(Duration.ofMinutes(duracaoBloqueioMinutos))</span>
+<span class="fc" id="L136">                      : null;</span>
+<span class="fc" id="L137">              return new BloqueioInfo(novasFalhas, agora, bloqueioAte);</span>
+            });
+
+<span class="fc" id="L140">    BloqueioInfo atualizado = bloqueios.getIfPresent(chave);</span>
+<span class="pc bpc" id="L141" title="1 of 4 branches missed.">    if (atualizado != null &amp;&amp; atualizado.bloqueadoAte() != null) {</span>
+      // Registra evento de bloqueio na trilha de auditoria
+<span class="fc" id="L143">      auditoriaPersistencia.gravar(</span>
+          null, // atorId null: ação anônima pré-autenticação
+          &quot;LOGIN_BLOQUEADO&quot;,
+          &quot;usuario&quot;,
+          null,
+          ip,
+          null,
+<span class="fc" id="L150">          MDC.get(&quot;correlationId&quot;));</span>
+    }
+<span class="fc" id="L152">  }</span>
+
+  /** Limpa o contador de falhas após login bem-sucedido. */
+  @Override
+  public void registrarSucesso(String ip, String email) {
+<span class="fc" id="L157">    bloqueios.invalidate(chave(ip, email));</span>
+<span class="fc" id="L158">  }</span>
+
+  private Bucket criarBucket() {
+    // Token bucket: reabastece loginPorMinuto tokens a cada 60 segundos (janela deslizante).
+<span class="fc" id="L162">    return Bucket.builder()</span>
+<span class="fc" id="L163">        .addLimit(</span>
+<span class="fc" id="L164">            Bandwidth.builder()</span>
+<span class="fc" id="L165">                .capacity(loginPorMinuto)</span>
+<span class="fc" id="L166">                .refillGreedy(loginPorMinuto, Duration.ofMinutes(1))</span>
+<span class="fc" id="L167">                .build())</span>
+<span class="fc" id="L168">        .build();</span>
+  }
+
+  /** Chave é SHA-256(ip:email) — evita armazenar PII em plaintext na memória do processo. */
+  private String chave(String ip, String email) {
+    try {
+<span class="fc" id="L174">      MessageDigest md = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L175">      byte[] hash = md.digest((ip + &quot;:&quot; + email.toLowerCase()).getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L176">      return HexFormat.of().formatHex(hash);</span>
+<span class="nc" id="L177">    } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L178">      throw new IllegalStateException(&quot;SHA-256 não disponível&quot;, e);</span>
+    }
+  }
+
+<span class="fc" id="L182">  record BloqueioInfo(int falhas, Instant ultimaFalha, Instant bloqueadoAte) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

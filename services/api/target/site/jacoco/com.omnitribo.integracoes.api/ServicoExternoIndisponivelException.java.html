@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServicoExternoIndisponivelException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.integracoes.api</a> &gt; <span class="el_source">ServicoExternoIndisponivelException.java</span></div><h1>ServicoExternoIndisponivelException.java</h1><pre class="source lang-java linenums">package com.omnitribo.integracoes.api;
+
+import com.omnitribo.compartilhado.api.TipoProblema;
+import com.omnitribo.compartilhado.dominio.DominioException;
+import java.net.URI;
+import org.springframework.http.HttpStatus;
+
+/**
+ * Um provedor EXTERNO não respondeu a tempo, ou respondeu de forma que não conseguimos usar.
+ *
+ * &lt;p&gt;503, e não 500, porque a causa não é um defeito nosso e a resposta certa do cliente é outra:
+ * 500 pede &quot;reporte o erro&quot;, 503 pede &quot;siga sem isso, e talvez tente de novo depois&quot;. O card de
+ * clima some da tela; o campo de endereço continua editável à mão. Ver ADR 0011.
+ *
+ * &lt;p&gt;A mensagem NUNCA repassa o corpo, o status ou o host do provedor. Isso vazaria a topologia das
+ * nossas dependências para qualquer cliente e, no caso de um provedor que ecoa a requisição, os
+ * nossos próprios parâmetros de volta.
+ */
+public class ServicoExternoIndisponivelException extends DominioException {
+
+  public ServicoExternoIndisponivelException(String mensagem) {
+<span class="fc" id="L22">    super(HttpStatus.SERVICE_UNAVAILABLE, mensagem);</span>
+<span class="fc" id="L23">  }</span>
+
+  @Override
+  public URI getTipo() {
+<span class="fc" id="L27">    return TipoProblema.SERVICO_EXTERNO_INDISPONIVEL;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

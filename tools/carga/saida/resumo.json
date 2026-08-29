@@ -1,0 +1,207 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "radar 200 ou 429": {
+                    "path": "::radar 200 ou 429",
+                    "id": "5a5e97cd2c25edf7697e9a48544b074c",
+                    "passes": 10349,
+                    "fails": 0,
+                    "name": "radar 200 ou 429"
+                },
+                "transferência 201/422/429": {
+                    "name": "transferência 201/422/429",
+                    "path": "::transferência 201/422/429",
+                    "id": "76b50a7dc9fe28456ea1636be2e18bca",
+                    "passes": 2549,
+                    "fails": 0
+                },
+                "webhook 200 ou 429": {
+                    "passes": 2069,
+                    "fails": 0,
+                    "name": "webhook 200 ou 429",
+                    "path": "::webhook 200 ou 429",
+                    "id": "d46196d09006e1e0534e87bf1919cc19"
+                }
+            }
+    },
+    "metrics": {
+        "radar_cache_quente_ms": {
+            "avg": 2.5452288782608834,
+            "min": 1.519372,
+            "med": 2.012007,
+            "max": 414.670579,
+            "p(90)": 3.0444154,
+            "p(95)": 6.688441100000002
+        },
+        "http_req_duration": {
+            "avg": 3.8115628210470085,
+            "min": 0.360153,
+            "med": 2.4829675,
+            "max": 1267.622192,
+            "p(90)": 8.423992,
+            "p(95)": 10.075841
+        },
+        "checks": {
+            "passes": 14967,
+            "fails": 0,
+            "value": 1
+        },
+        "webhook_convertida": {
+            "count": 57,
+            "rate": 0.05932068660523928
+        },
+        "http_reqs": {
+            "count": 14976,
+            "rate": 15.585729870176552
+        },
+        "http_req_connecting": {
+            "avg": 0.0030242907318376046,
+            "min": 0,
+            "med": 0,
+            "max": 1.987252,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "vus_max": {
+            "value": 60,
+            "min": 60,
+            "max": 60
+        },
+        "http_req_receiving": {
+            "min": 0.017187,
+            "med": 0.039634,
+            "max": 0.532545,
+            "p(90)": 0.06328,
+            "p(95)": 0.08587375,
+            "avg": 0.04509917367788473
+        },
+        "vus": {
+            "value": 0,
+            "min": 0,
+            "max": 2
+        },
+        "iteration_duration": {
+            "min": 0.483646,
+            "med": 2.617168,
+            "max": 1268.898014,
+            "p(90)": 8.660531,
+            "p(95)": 10.30020369999999,
+            "avg": 3.926072302398604
+        },
+        "iterations": {
+            "count": 14967,
+            "rate": 15.576363445975725
+        },
+        "http_req_blocked": {
+            "avg": 0.008499984642094014,
+            "min": 0.001527,
+            "med": 0.003972,
+            "max": 2.053252,
+            "p(90)": 0.006370499999999999,
+            "p(95)": 0.01043175
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "webhook_ms": {
+            "avg": 10.618618297965114,
+            "min": 4.447454,
+            "med": 7.9549385,
+            "max": 1267.622192,
+            "p(90)": 9.992532800000001,
+            "p(95)": 13.17220115
+        },
+        "webhook_recusada": {
+            "count": 631,
+            "rate": 0.6566904078579997
+        },
+        "http_req_waiting": {
+            "avg": 3.751083662927332,
+            "min": 0.312409,
+            "med": 2.432048,
+            "max": 1267.428732,
+            "p(90)": 8.3527805,
+            "p(95)": 9.968163
+        },
+        "data_received": {
+            "count": 49811893,
+            "rate": 51839.92445380197
+        },
+        "http_req_failed": {
+            "passes": 2725,
+            "fails": 12251,
+            "value": 0.18195779914529914
+        },
+        "respostas_429": {
+            "count": 2456,
+            "rate": 2.5559930930257484
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(95)": 10.5997475,
+            "avg": 4.365733191821077,
+            "min": 1.519372,
+            "med": 2.883925,
+            "max": 1267.622192,
+            "p(90)": 8.833803
+        },
+        "radar_cache_frio_ms": {
+            "avg": 3.975061104368001,
+            "min": 1.766209,
+            "med": 3.431673,
+            "max": 68.239261,
+            "p(90)": 5.1223659999999995,
+            "p(95)": 8.797394849999996
+        },
+        "respostas_422": {
+            "count": 269,
+            "rate": 0.2799520122247257
+        },
+        "http_req_sending": {
+            "avg": 0.015379984441773431,
+            "min": 0.004783,
+            "med": 0.012789499999999999,
+            "max": 0.392863,
+            "p(90)": 0.022074999999999997,
+            "p(95)": 0.0316405
+        },
+        "data_sent": {
+            "count": 12963665,
+            "rate": 13491.465065268583
+        },
+        "transferencia_ms": {
+            "med": 9.246434,
+            "max": 105.58045,
+            "p(90)": 11.5889792,
+            "p(95)": 12.252925999999999,
+            "avg": 9.598269712033213,
+            "min": 6.176587
+        },
+        "erros_inesperados": {
+            "passes": 0,
+            "fails": 14967,
+            "value": 0
+        }
+    },
+    "setup_data": {
+        "tokens": {
+            "admin@omnitribo.dev": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJiYmJiYmJiYi0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJqdGkiOiJlY2VlYTFhNi1iY2UwLTRhN2QtODA0NS1kZmYyMDE3NWVlMjkiLCJlbWFpbCI6ImFkbWluQG9tbml0cmliby5kZXYiLCJwYXBlbCI6IkFETUlOIiwiaXNzIjoib21uaXRyaWJvIiwiYXVkIjpbIm9tbml0cmliby1hcHAiXSwiaWF0IjoxNzg3NjQzMDQ2LCJleHAiOjE3ODc2NDM5NDZ9.jcsnqhzNzONmf_Bx_M2YZUY_cTeyYYSMXDPs1PT5jwHR9UcxL11_A_CXwl6b55bDpvrjgMvw5STABBuPoA3ZaP2PU8vSOQBUwrePg3IxsgJJhR0HzhHRJKehqFMEJpnzwUEimhsvlSD1vb1dRC5279PZoGj4ZC0qEKwyWy3ifUWFBtlDX5ZHtx9nDqZFmLyu0NtUjWH3X58aPyXIahUW4jr_etIaYoEViB3Cp5vK-aVvDadvmP2gKgquP7b9ym4x-whMrtaqvN639qj-UMJah2cZHFSmfzEmmjQ6rT7WbaEJ23OwlOBlSdhE6o5j71dv_tBWsR7QSPIgK-vtTu1WcQ",
+            "alice@omnitribo.dev": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJiYmJiYmJiYi0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDIiLCJqdGkiOiI5ZjQzYWJlZC01OTRiLTRlYWYtODM2MC1iMzYzODQ1ZjI0MTciLCJlbWFpbCI6ImFsaWNlQG9tbml0cmliby5kZXYiLCJwYXBlbCI6IlVTVUFSSU8iLCJpc3MiOiJvbW5pdHJpYm8iLCJhdWQiOlsib21uaXRyaWJvLWFwcCJdLCJpYXQiOjE3ODc2NDMwNDYsImV4cCI6MTc4NzY0Mzk0Nn0.LbYQ9pCaE611YpCf1X5W6GASqgOInfatTVDbYrlPYJ4G1gAuUX58kEN3DlhHgIhjUIWO7ukuRSwN7dWcVtD1VDbKxpFtm1xUHLTVR7-jZCQz2UhKpT_faXO7UK6INX6qnSOwkr7IBKqtvF5DcnYOWOBYaFqY1dA2283Oen1rZ46uSgukSH7L_8I2oiF22Isjzyrw-GgM2au4D0Wa_8WsaydpJiep10ev1lEi2xC4S-n6oHx-3ShPmlKVHPbqKHcVxHD7oXiqwg1T6JaqXHftGJYWv1f2dUS_k9lYIPVMeuoHoMyQl4g8F5skgTb7RUwsQ1ISIjyjIRHaUeAGQnsSgQ",
+            "carol@omnitribo.dev": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJiYmJiYmJiYi0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJqdGkiOiI3NjY3NTlhZi05MWQ2LTRmZTEtYTYwYy1mODY3MmY5ZjhhN2YiLCJlbWFpbCI6ImNhcm9sQG9tbml0cmliby5kZXYiLCJwYXBlbCI6IlVTVUFSSU8iLCJpc3MiOiJvbW5pdHJpYm8iLCJhdWQiOlsib21uaXRyaWJvLWFwcCJdLCJpYXQiOjE3ODc2NDMwNDYsImV4cCI6MTc4NzY0Mzk0Nn0.MYDktGVVal4dXq48C0frWMtTFbYDxLQ0zwFo-FG0VWl3KyXKOVti1MemOC0MULLBGbdJ5JhoEWYnmBzgDBYh3u54eRo4CHrDbP4dauWtf6Khok43K3AQYvMA24Mdvu36NWlC6FFgi17mhfuru13bU35DyQXhYu18OWL6IQLjg75_6hXGaAhcyhhuDzVdyAoJg9uK_YvBUhTX-x_7XU7i_CgLWn4YUnFbqKDNzz1o-zh3_8cwNGgMGn1VM01WtgnYtSgcQy9T9w-9qhTAj9suwRrZ1b8BWn6hCWPPKheVmTn0-LZpy6EOpBVzCm4hnlyyi-QpJ7n6pTjKqlgEtb20jw",
+            "diana@omnitribo.dev": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJiYmJiYmJiYi0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDUiLCJqdGkiOiIzZDUzNDFiMi00YWNlLTQ5ZGItOTg0MS01NjA3NWVhNTg4OTciLCJlbWFpbCI6ImRpYW5hQG9tbml0cmliby5kZXYiLCJwYXBlbCI6IlVTVUFSSU8iLCJpc3MiOiJvbW5pdHJpYm8iLCJhdWQiOlsib21uaXRyaWJvLWFwcCJdLCJpYXQiOjE3ODc2NDMwNDYsImV4cCI6MTc4NzY0Mzk0Nn0.oYzCWcNjLkqpyb9Fqn2wZro60qIPI_gcutA3JRGiZGoe9g2KX-PnUsI4upc8oirjTRseBR2MyDLA-FB_AHpAZuDPosfW5gk0l6yq3ynZZMUnR1GoWaLGW9RcM3clkb96tVuCji9uFDVKiTOMwWhCQ5sY5_pYVDuZTrte2v0K4TRv3mNynFtCN3km4VobCqTjDZ5kcY7iEUi0VZsw8OELSwbbgaI1-5sdIRqqY4OXaVrrbsEt5z10cqw0Q14oejmnWm4pgKT2TobOEaaDNJrxASOT3xK8mqPQuBCn4nZg-sBMlGqiWg_-cHYjHWbFe2DusPvF_uGI8B2jC3sBGjZdNA",
+            "erik@omnitribo.dev": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJiYmJiYmJiYi0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDYiLCJqdGkiOiJkZWEyMzlhYS01YjFhLTRjYmQtYWEyNS0xMGUzYzU2N2I0NWMiLCJlbWFpbCI6ImVyaWtAb21uaXRyaWJvLmRldiIsInBhcGVsIjoiVVNVQVJJTyIsImlzcyI6Im9tbml0cmlibyIsImF1ZCI6WyJvbW5pdHJpYm8tYXBwIl0sImlhdCI6MTc4NzY0MzA0NiwiZXhwIjoxNzg3NjQzOTQ2fQ.dJbkEwA-6WzELlhCWQsH7As7x4pt_KteAZ_NHYEb15imvXtdH4c8z0qVYCquLPi6rNAztxNbtFHS2aBit0ve0eN--wOvfB5QDoLKs4moBQ6Bc4fT9y4hZoXNp7X-7reNpD4ymARnrfgyW-8vkhmiI11CSmRGQOOMbSEBThC40-CnUS9xWtrdHR-Xtktfv1LeCJJJU8Fi5S3MmgNbcn7FaH7JCQXSkx8B9Yt3Ot89iqac2w40mU_xXkzQz-Pm9Cp9BZNt-7lSf7IIsVokLg6VlKu6FyBjV2NLDH83LT4e_JgmgsJzPvbrH-TwCir8_nFqpsECPxNGuWk-QHdqy9K14w",
+            "jonas@omnitribo.dev": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJiYmJiYmJiYi0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDA5MDMiLCJqdGkiOiIyZWI2NzBmMC04ZTA0LTQ0OTktOWY1ZC1jYmExYmQ2YWJkOTMiLCJlbWFpbCI6ImpvbmFzQG9tbml0cmliby5kZXYiLCJwYXBlbCI6IlVTVUFSSU8iLCJpc3MiOiJvbW5pdHJpYm8iLCJhdWQiOlsib21uaXRyaWJvLWFwcCJdLCJpYXQiOjE3ODc2NDMwNDcsImV4cCI6MTc4NzY0Mzk0N30.Mcqzh93cC6340NZLS_O6_wGsa2DqVUMyCtK7Srn9Pdy-YA1Q8quQw8I1-ysT0vlBqijcHNQ351cEXsN_BleS_uHHieUn1qKboOr8fv6is0fjr7wpuEdywCiyrSKCclRrHszhT6bXmog64kqxEFkrwpmHoIhSK2_DUaWgOtbIUfIluoFooT_aM7ty3TXr1r-7obsO80lHrLeXGD51u2hsIphn4u_pb4in6T-fKe6WGC4gs7ULw8mqRyqifI8I8ncGztSm2LlRxBich1bNgXcxhTUZFiI-VDswbd7_njiTbZhuir5ymSGHCI6CnNufy9YjfLda7wtj3_itnaH1eRBMGg",
+            "bob@omnitribo.dev": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJiYmJiYmJiYi0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDMiLCJqdGkiOiJmODE3YjY2Zi0wNTE4LTQ2NjAtYWJlNi02YjNlMmVmMTgzYWUiLCJlbWFpbCI6ImJvYkBvbW5pdHJpYm8uZGV2IiwicGFwZWwiOiJVU1VBUklPIiwiaXNzIjoib21uaXRyaWJvIiwiYXVkIjpbIm9tbml0cmliby1hcHAiXSwiaWF0IjoxNzg3NjQzMDQ2LCJleHAiOjE3ODc2NDM5NDZ9.bS3EMNgPmrgaxl19ZEKC0-GYuTY3rWKuLVf4XkXE6GHSUqurjzYFU0LbWQThLHnBy2CFiFO7zXgad-0i7zn2dlBrXeohKf-Io0xSKxBPNkV_Is6Zm4XLJrCsFip7_BsuK3y3T2Y7n_3dKO305I8iF8D9nOppp9hNx5MN-CTe2nYuH79931PdeiG0NoiMv4_GHpoIQjqIYu8lmKzq-cgnABr5AQYGtkfjsfNvgwWIuR3rXwLM8cpeSLn_pfcy8p8ORGNrXJTqeQ2xEmKmEPnw4Z2h3TLHAefjizHZaGQ1ikJQGanAcPjKqAysP3DA6QXjVuD_RDVIIHcLPxa2_Ti4-g",
+            "marlene@omnitribo.dev": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJiYmJiYmJiYi0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDA5MDIiLCJqdGkiOiI2YjUwZjgzMS1mNDRjLTQ1N2EtOTZjZi01ZWUxMTYxNWVlN2UiLCJlbWFpbCI6Im1hcmxlbmVAb21uaXRyaWJvLmRldiIsInBhcGVsIjoiVVNVQVJJTyIsImlzcyI6Im9tbml0cmlibyIsImF1ZCI6WyJvbW5pdHJpYm8tYXBwIl0sImlhdCI6MTc4NzY0MzA0NywiZXhwIjoxNzg3NjQzOTQ3fQ.FrnWju7ul0SouQK73tZYUSD0VjK1btl3hJK7eg45_1fdpKRQOo7DYuVq-eHcPGwc9QeaZI_r3Vy8ELSgfPJal9w-vF56UHvufwf7XT_Y0Rsqdeqi13ym5bz8U3Nei7WtVdmwpr0UH0rWpeLFRa8XRoY1wtkBLKXENG6JU1y2HVW85LL0gnfKP-TyXrPek_b3G3xRN8nJbh4WjqbNdU3naoI3R5AeGHBGQoafH861vpqIauNerw2n-DuXqoBb-qfvjgWHi85WvEiChRVP95fyFp8r1MsQtgXo-gRqzxnup3yy49MTKn7JiMmATPny_wiVBgEp0uBkKll0TNLFDw4k_w",
+            "renan@omnitribo.dev": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJiYmJiYmJiYi0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDA5MDEiLCJqdGkiOiJlYThmN2Y2Mi04OWY5LTRlNGEtYmZhNS1jY2NmMzZiMDc3NmMiLCJlbWFpbCI6InJlbmFuQG9tbml0cmliby5kZXYiLCJwYXBlbCI6IlVTVUFSSU8iLCJpc3MiOiJvbW5pdHJpYm8iLCJhdWQiOlsib21uaXRyaWJvLWFwcCJdLCJpYXQiOjE3ODc2NDMwNDYsImV4cCI6MTc4NzY0Mzk0Nn0.QOAtJqqPNyGji6tPo4aTOBASzbUm0x4llKj4LeyDeki1HqrHakHUIBkB6IJwppGiVqtE5y5lseCn52YK5tmJfv7RHo9ND2tZ5PhUztVDh3Ozhv7HkF6fQOvNVeT0ltPHWu1go5aSZuvYjGVcSJ-16xkiNd0iiZoOoxK8YZ6yvPulL5mC9OirVd-j8eRxK59w8PhVDyOzhw43d9d0-RJ1ANsUKAukOCkgDgMyiNBj8fHw3kaE7Bm76HSg19tfeJFCF8NZyeRV1acqZDvfxHw5bpRthtyI6M7cAtJbHLXhJFaMTMwoLwv3JkNcFc_zVqqhWbiPc2C_diXG4u0lhPe4_w"
+        }
+    }
+}

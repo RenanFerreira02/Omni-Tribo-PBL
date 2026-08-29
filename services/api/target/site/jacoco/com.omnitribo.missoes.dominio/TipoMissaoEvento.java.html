@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TipoMissaoEvento.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">TipoMissaoEvento.java</span></div><h1>TipoMissaoEvento.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+/**
+ * Tipos gravados na trilha append-only {@code missao_evento}. Espelha o CHECK reescrito pela V20.
+ *
+ * &lt;p&gt;Saíram duas constantes que nenhum caminho produzia: {@code CHECK_IN_REJEITADO} — a rejeição de
+ * check-in grava na tabela {@code checkin}, nunca aqui — e {@code CONCLUIDA}, reservada para uma F7
+ * que já foi entregue gravando {@code CONFIRMADA}/{@code DISPUTA_RESOLVIDA}. Um tipo declarado e
+ * inalcançável é falsa promessa de estado atingível para quem lê a trilha.
+ */
+<span class="fc" id="L11">public enum TipoMissaoEvento {</span>
+<span class="fc" id="L12">  PUBLICADA,</span>
+<span class="fc" id="L13">  ACEITA,</span>
+<span class="fc" id="L14">  DESISTIDA,</span>
+<span class="fc" id="L15">  INICIADA,</span>
+<span class="fc" id="L16">  CHECK_IN_REGISTRADO,</span>
+<span class="fc" id="L17">  CONFIRMADA,</span>
+<span class="fc" id="L18">  CONTESTADA,</span>
+<span class="fc" id="L19">  DISPUTA_RESOLVIDA,</span>
+<span class="fc" id="L20">  CANCELADA,</span>
+
+  /** Janela de OFERTA venceu: ninguém aceitou a missão a tempo. */
+<span class="fc" id="L23">  EXPIRADA,</span>
+
+  /**
+   * Executor aceitou, iniciou e ABANDONOU — passou do prazo sem check-in.
+   *
+   * &lt;p&gt;Tipo distinto de {@link #EXPIRADA} de propósito. Um único tipo genérico faria a trilha dizer
+   * &quot;expirou&quot; para três causas com desfechos econômicos diferentes, e a reconciliação perderia a
+   * capacidade de explicar POR QUE um pote voltou aos financiadores.
+   */
+<span class="fc" id="L32">  EXECUCAO_EXPIRADA,</span>
+
+  /** Executor cumpriu e fez check-in; o CRIADOR sumiu sem confirmar nem contestar. */
+<span class="fc" id="L35">  CONFIRMACAO_EXPIRADA,</span>
+
+  /** ADMIN destravou manualmente uma missão parada, com justificativa. */
+<span class="fc" id="L38">  DESTRAVADA_POR_ADMIN</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

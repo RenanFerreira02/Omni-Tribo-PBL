@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MotivoRejeicaoCheckin.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.geolocalizacao.api</a> &gt; <span class="el_source">MotivoRejeicaoCheckin.java</span></div><h1>MotivoRejeicaoCheckin.java</h1><pre class="source lang-java linenums">package com.omnitribo.geolocalizacao.api;
+
+/**
+ * Causa da rejeição de um check-in, em forma estável e legível por máquina.
+ *
+ * &lt;p&gt;Existe porque {@code motivoRejeicao} é texto em português para humano, e o app precisa
+ * ramificar entre as causas: &quot;desligue a localização simulada&quot;, &quot;aproxime-se do local&quot; e &quot;tente a
+ * céu aberto&quot; são três instruções diferentes, e nenhuma delas se deduz do status 422. O caminho
+ * proibido — e o motivo deste enum — é o app parsear o {@code detail}. Ver ADR 0010.
+ *
+ * &lt;p&gt;Vive em {@code api/} porque {@code missoes} o consome: é o módulo que expõe o endpoint de
+ * check-in e traduz o veredito em resposta HTTP. A regra do ArchUnit permite atravessar módulo por
+ * {@code api/}, nunca por {@code dominio/}.
+ *
+ * &lt;p&gt;Só as causas que REJEITAM entram aqui. Cinemática implausível não rejeita — marca o check-in
+ * como suspeito e deixa passar, e o cliente não é avisado de propósito (contar ao fraudador que ele
+ * foi sinalizado ensina exatamente quanto desacelerar).
+ */
+<span class="fc" id="L19">public enum MotivoRejeicaoCheckin {</span>
+  /** O dispositivo reportou que a posição é simulada. */
+<span class="fc" id="L21">  LOCALIZACAO_SIMULADA,</span>
+  /** O raio de erro do fix é grande demais para sustentar afirmação de presença. */
+<span class="fc" id="L23">  ACURACIA_INSUFICIENTE,</span>
+  /** A distância medida pelo PostGIS excede o raio de check-in da missão. */
+<span class="fc" id="L25">  FORA_DO_RAIO</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

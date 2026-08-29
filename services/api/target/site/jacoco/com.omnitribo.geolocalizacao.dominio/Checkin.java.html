@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Checkin.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.geolocalizacao.dominio</a> &gt; <span class="el_source">Checkin.java</span></div><h1>Checkin.java</h1><pre class="source lang-java linenums">package com.omnitribo.geolocalizacao.dominio;
+
+import com.omnitribo.geolocalizacao.api.MotivoRejeicaoCheckin;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+import org.hibernate.annotations.Immutable;
+import org.locationtech.jts.geom.Point;
+
+// APPEND-ONLY — grava check-ins válidos e rejeitados para análise de fraude.
+// @Immutable previne UPDATE acidental; REVOKE no banco é a proteção definitiva (V4).
+@Immutable
+@Entity
+@Table(name = &quot;checkin&quot;)
+public class Checkin {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  // UUID puro, sem FK — fronteira geolocalizacao→missoes; ver V4__geolocalizacao.sql
+  @Column(name = &quot;missao_id&quot;, nullable = false, updatable = false)
+  private UUID missaoId;
+
+  // usuarioId: FK para usuario — módulo→identidade é permitido
+  @Column(name = &quot;usuario_id&quot;, nullable = false, updatable = false)
+  private UUID usuarioId;
+
+  @Column(nullable = false, updatable = false, columnDefinition = &quot;geography(POINT,4326)&quot;)
+  private Point ponto;
+
+  @Column(name = &quot;acuracia_m&quot;, nullable = false, updatable = false, precision = 10, scale = 2)
+  private BigDecimal acuraciaM;
+
+  @Column(name = &quot;distancia_alvo_m&quot;, nullable = false, updatable = false, precision = 10, scale = 2)
+  private BigDecimal distanciaAlvoM;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, updatable = false, length = 5)
+  private MetodoCheckin metodo;
+
+  @Column(name = &quot;mock_detectado&quot;, nullable = false, updatable = false)
+  private boolean mockDetectado;
+
+  // null no primeiro check-in ou quando não há check-in anterior próximo
+  @Column(name = &quot;velocidade_implicita_kmh&quot;, updatable = false, precision = 10, scale = 2)
+  private BigDecimal velocidadeImplicitaKmh;
+
+  @Column(nullable = false, updatable = false)
+  private boolean valido;
+
+  // null quando valido=true; preenchido quando valido=false
+  @Column(name = &quot;motivo_rejeicao&quot;, updatable = false, length = 500)
+  private String motivoRejeicao;
+
+  // Mesma decisão de motivoRejeicao, em forma estável — é o código que escolhe o `type` da resposta
+  // RFC 9457. Persistido, e não derivado, porque o replay pela chave de idempotência reconstrói o
+  // veredito a partir desta linha. Ver V17 e ADR 0010. ck_checkin_rejeicao_coerente garante no
+  // banco que ele existe exatamente quando valido=false.
+  @Enumerated(EnumType.STRING)
+  @Column(name = &quot;codigo_rejeicao&quot;, updatable = false, length = 40)
+  private MotivoRejeicaoCheckin codigoRejeicao;
+
+  // Cinemática implausível: aceito, porém marcado. Ver V12 e AvaliacaoAntifraude.
+  // Não confundir com valido=false — suspeito=true transiciona a missão normalmente.
+  @Column(nullable = false, updatable = false)
+  private boolean suspeito;
+
+  // sha256(usuario_id|missao_id|chave_do_cliente) — nunca a chave crua do cliente. Ver V12.
+  @Column(name = &quot;chave_idempotencia&quot;, updatable = false, length = 100)
+  private String chaveIdempotencia;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+<span class="fc" id="L83">  protected Checkin() {}</span>
+
+  @SuppressFBWarnings(
+      value = &quot;EI_EXPOSE_REP2&quot;,
+      justification = &quot;Point de JTS é imutável após construção; cópia defensiva sem benefício&quot;)
+  public Checkin(
+      UUID id,
+      UUID missaoId,
+      UUID usuarioId,
+      Point ponto,
+      BigDecimal acuraciaM,
+      BigDecimal distanciaAlvoM,
+      MetodoCheckin metodo,
+      boolean mockDetectado,
+      BigDecimal velocidadeImplicitaKmh,
+      boolean valido,
+      MotivoRejeicaoCheckin codigoRejeicao,
+      String motivoRejeicao,
+      boolean suspeito,
+      String chaveIdempotencia,
+<span class="fc" id="L103">      Instant criadoEm) {</span>
+<span class="fc" id="L104">    this.id = id;</span>
+<span class="fc" id="L105">    this.missaoId = missaoId;</span>
+<span class="fc" id="L106">    this.usuarioId = usuarioId;</span>
+<span class="fc" id="L107">    this.ponto = ponto;</span>
+<span class="fc" id="L108">    this.acuraciaM = acuraciaM;</span>
+<span class="fc" id="L109">    this.distanciaAlvoM = distanciaAlvoM;</span>
+<span class="fc" id="L110">    this.metodo = metodo;</span>
+<span class="fc" id="L111">    this.mockDetectado = mockDetectado;</span>
+<span class="fc" id="L112">    this.velocidadeImplicitaKmh = velocidadeImplicitaKmh;</span>
+<span class="fc" id="L113">    this.valido = valido;</span>
+<span class="fc" id="L114">    this.codigoRejeicao = codigoRejeicao;</span>
+<span class="fc" id="L115">    this.motivoRejeicao = motivoRejeicao;</span>
+<span class="fc" id="L116">    this.suspeito = suspeito;</span>
+<span class="fc" id="L117">    this.chaveIdempotencia = chaveIdempotencia;</span>
+<span class="fc" id="L118">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L119">  }</span>
+
+  public UUID getId() {
+<span class="fc" id="L122">    return id;</span>
+  }
+
+  public UUID getMissaoId() {
+<span class="nc" id="L126">    return missaoId;</span>
+  }
+
+  public UUID getUsuarioId() {
+<span class="nc" id="L130">    return usuarioId;</span>
+  }
+
+  @SuppressFBWarnings(
+      value = &quot;EI_EXPOSE_REP&quot;,
+      justification = &quot;Point de JTS é imutável após construção; cópia defensiva sem benefício&quot;)
+  public Point getPonto() {
+<span class="fc" id="L137">    return ponto;</span>
+  }
+
+  public BigDecimal getAcuraciaM() {
+<span class="fc" id="L141">    return acuraciaM;</span>
+  }
+
+  public BigDecimal getDistanciaAlvoM() {
+<span class="fc" id="L145">    return distanciaAlvoM;</span>
+  }
+
+  public BigDecimal getVelocidadeImplicitaKmh() {
+<span class="fc" id="L149">    return velocidadeImplicitaKmh;</span>
+  }
+
+  public boolean isValido() {
+<span class="fc" id="L153">    return valido;</span>
+  }
+
+  public String getMotivoRejeicao() {
+<span class="fc" id="L157">    return motivoRejeicao;</span>
+  }
+
+  public MotivoRejeicaoCheckin getCodigoRejeicao() {
+<span class="fc" id="L161">    return codigoRejeicao;</span>
+  }
+
+  public boolean isSuspeito() {
+<span class="fc" id="L165">    return suspeito;</span>
+  }
+
+  public String getChaveIdempotencia() {
+<span class="nc" id="L169">    return chaveIdempotencia;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="fc" id="L173">    return criadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

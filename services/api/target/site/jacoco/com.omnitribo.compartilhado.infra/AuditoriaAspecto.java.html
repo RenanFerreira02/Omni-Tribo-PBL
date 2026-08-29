@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditoriaAspecto.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.infra</a> &gt; <span class="el_source">AuditoriaAspecto.java</span></div><h1>AuditoriaAspecto.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.infra;
+
+import com.omnitribo.compartilhado.api.AuditoriaPersistencia;
+import com.omnitribo.compartilhado.api.EnderecoDoCliente;
+import com.omnitribo.compartilhado.api.RecursoAuditavel;
+import com.omnitribo.compartilhado.dominio.Auditavel;
+import com.omnitribo.identidade.api.AutenticadoPrincipal;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.annotation.Aspect;
+import org.slf4j.MDC;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+/**
+ * Intercepta métodos anotados com @Auditavel após execução bem-sucedida e persiste o registro.
+ * Extrai ator do SecurityContext, IP e User-Agent do request, correlationId do MDC.
+ *
+ * &lt;p&gt;Ordem em relação ao @Transactional: LOWEST_PRECEDENCE - 1 coloca este aspecto POR FORA do
+ * interceptor transacional (menor valor = mais externo), então o @AfterReturning roda depois do
+ * commit. A trilha registra apenas escrita que de fato persistiu, nunca uma que deu rollback.
+ * Sem @Order explícito haveria empate com o advisor de transação, cuja ordem default também é
+ * LOWEST_PRECEDENCE — e ordem indefinida em código de auditoria não é defensável.
+ *
+ * &lt;p&gt;Contrapartida aceita: se a gravação da auditoria falhar, o cliente recebe 500 com a mudança de
+ * negócio já commitada. Tolerável porque o histórico canônico da missão é missao_evento, gravado na
+ * MESMA transação da mudança de status; a linha em auditoria é o complemento de segurança (quem, de
+ * qual IP, com qual user-agent, sob qual correlation-id).
+ *
+ * &lt;p&gt;Só grava sucesso (@AfterReturning, não @Around). Tentativa negada já produz 403/409
+ * ProblemDetail com traceId igual ao correlationId, correlacionável no log; auditar toda negativa
+ * multiplicaria uma tabela append-only que nunca é purgada. Auditar tentativas negadas de escrita
+ * (@AfterThrowing) está previsto para F12.
+ */
+@Aspect
+@Component
+@Order(Ordered.LOWEST_PRECEDENCE - 1)
+public class AuditoriaAspecto {
+
+  private final AuditoriaPersistencia auditoriaPersistencia;
+
+<span class="fc" id="L49">  public AuditoriaAspecto(AuditoriaPersistencia auditoriaPersistencia) {</span>
+<span class="fc" id="L50">    this.auditoriaPersistencia = auditoriaPersistencia;</span>
+<span class="fc" id="L51">  }</span>
+
+  @AfterReturning(value = &quot;@annotation(auditavel)&quot;, returning = &quot;retorno&quot;)
+  public void registrar(JoinPoint joinPoint, Auditavel auditavel, Object retorno) {
+<span class="fc" id="L55">    UUID atorId = extrairAtorId();</span>
+<span class="fc" id="L56">    String ip = null;</span>
+<span class="fc" id="L57">    String userAgent = null;</span>
+
+<span class="fc" id="L59">    var attrs = RequestContextHolder.getRequestAttributes();</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">    if (attrs instanceof ServletRequestAttributes sra) {</span>
+<span class="fc" id="L61">      HttpServletRequest req = sra.getRequest();</span>
+<span class="fc" id="L62">      ip = EnderecoDoCliente.de(req);</span>
+<span class="fc" id="L63">      userAgent = req.getHeader(&quot;User-Agent&quot;);</span>
+    }
+
+<span class="fc" id="L66">    auditoriaPersistencia.gravar(</span>
+        atorId,
+<span class="fc" id="L68">        auditavel.acao(),</span>
+<span class="fc" id="L69">        auditavel.entidade(),</span>
+<span class="fc" id="L70">        extrairEntidadeId(retorno),</span>
+        ip,
+        userAgent,
+<span class="fc" id="L73">        MDC.get(&quot;correlationId&quot;));</span>
+<span class="fc" id="L74">  }</span>
+
+  /**
+   * Deriva o id do recurso afetado quando o retorno declara RecursoAuditavel. Sem isso a trilha
+   * diria &quot;alguém publicou uma missão&quot; sem dizer qual — inútil para reconstruir um incidente.
+   * Retorno que não implementa o contrato grava nulo, que é o comportamento antigo.
+   */
+  private String extrairEntidadeId(Object retorno) {
+<span class="pc bpc" id="L82" title="2 of 4 branches missed.">    if (retorno instanceof RecursoAuditavel recurso &amp;&amp; recurso.idAuditoria() != null) {</span>
+<span class="fc" id="L83">      return recurso.idAuditoria().toString();</span>
+    }
+<span class="nc" id="L85">    return null;</span>
+  }
+
+  private UUID extrairAtorId() {
+<span class="fc" id="L89">    Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="pc bpc" id="L90" title="1 of 4 branches missed.">    if (auth != null &amp;&amp; auth.getPrincipal() instanceof AutenticadoPrincipal principal) {</span>
+<span class="fc" id="L91">      return principal.id();</span>
+    }
+<span class="fc" id="L93">    return null; // Ação anônima ou chamada fora de contexto HTTP</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

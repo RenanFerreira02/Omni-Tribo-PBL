@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegistroCheckinService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.geolocalizacao.dominio</a> &gt; <span class="el_source">RegistroCheckinService.java</span></div><h1>RegistroCheckinService.java</h1><pre class="source lang-java linenums">package com.omnitribo.geolocalizacao.dominio;
+
+import com.omnitribo.compartilhado.api.ConsultasGeoespaciais;
+import com.omnitribo.compartilhado.dominio.Coordenadas;
+import com.omnitribo.geolocalizacao.api.ComandoCheckin;
+import com.omnitribo.geolocalizacao.api.RegistroCheckin;
+import com.omnitribo.geolocalizacao.api.ResultadoCheckin;
+import com.omnitribo.geolocalizacao.infra.CheckinRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Avalia e grava check-ins. Implementação da porta {@link RegistroCheckin}.
+ *
+ * &lt;p&gt;Roda na transação do CHAMADOR ({@code REQUIRED}), de propósito, e isso já foi diferente: a
+ * primeira versão usava {@code REQUIRES_NEW} para que a linha de auditoria de uma rejeição
+ * sobrevivesse ao rollback do 422. Funcionava, e criava um defeito grave — a transação externa
+ * segura {@code SELECT ... FOR UPDATE} sobre a missão enquanto a interna pede uma SEGUNDA conexão.
+ * Com N requisições simultâneas e pool de tamanho P, bastava N ≥ P para todas as conexões estarem
+ * presas em transações externas esperando por internas que nunca viriam: deadlock de pool, 30 s de
+ * timeout e 500 para todo mundo — inclusive para quem só queria fazer login. {@code
+ * CheckinConcorrenteTest} reproduzia isso com 50 threads.
+ *
+ * &lt;p&gt;A rejeição continua sendo gravada. O que mudou é ONDE o 422 é lançado: fora da transação, no
+ * controller, depois do commit. Ver {@code MissaoService.registrarCheckin} e {@code
+ * MissaoController.checkin}. O caminho aceito ficou de quebra genuinamente atômico — linha de
+ * check-in, transição e trilha no mesmo commit —, o que eliminou a janela de check-in órfão que a
+ * versão anterior assumia como custo.
+ *
+ * &lt;p&gt;Este serviço não toca a tabela {@code missao}, nem por leitura. Não é mais por deadlock, e sim
+ * por fronteira de módulo: a regra do ArchUnit proíbe geolocalizacao de acessar missoes.dominio.
+ * Ver {@link ComandoCheckin}.
+ */
+@Service
+public class RegistroCheckinService implements RegistroCheckin {
+
+  private final CheckinRepository checkinRepository;
+  private final ConsultasGeoespaciais consultasGeoespaciais;
+
+  public RegistroCheckinService(
+<span class="fc" id="L45">      CheckinRepository checkinRepository, ConsultasGeoespaciais consultasGeoespaciais) {</span>
+<span class="fc" id="L46">    this.checkinRepository = checkinRepository;</span>
+<span class="fc" id="L47">    this.consultasGeoespaciais = consultasGeoespaciais;</span>
+<span class="fc" id="L48">  }</span>
+
+  /**
+   * Leitura pura, sem REQUIRES_NEW: participa da transação do chamador porque só toca {@code
+   * checkin}, tabela que a transação externa não bloqueia. Abrir transação nova aqui custaria uma
+   * conexão a mais por requisição sem isolar nada.
+   */
+  @Override
+  @Transactional(readOnly = true)
+  public Optional&lt;ResultadoCheckin&gt; consultar(String chaveIdempotencia) {
+<span class="fc" id="L58">    return checkinRepository.findByChaveIdempotencia(chaveIdempotencia).map(this::replayDe);</span>
+  }
+
+  @Override
+  @Transactional
+  public ResultadoCheckin registrar(ComandoCheckin comando) {
+<span class="fc" id="L64">    Optional&lt;Checkin&gt; jaRegistrado =</span>
+<span class="fc" id="L65">        checkinRepository.findByChaveIdempotencia(comando.chaveIdempotencia());</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">    if (jaRegistrado.isPresent()) {</span>
+<span class="nc" id="L67">      return replayDe(jaRegistrado.get());</span>
+    }
+
+    // Distância medida no servidor. O cliente informa apenas onde diz estar; a régua é nossa.
+<span class="fc" id="L71">    BigDecimal distanciaM =</span>
+<span class="fc" id="L72">        BigDecimal.valueOf(</span>
+<span class="fc" id="L73">                consultasGeoespaciais.distanciaMetros(</span>
+<span class="fc" id="L74">                    comando.lat(), comando.lon(), comando.origemLat(), comando.origemLon()))</span>
+<span class="fc" id="L75">            .setScale(2, RoundingMode.HALF_UP);</span>
+
+<span class="fc" id="L77">    Checkin anterior =</span>
+<span class="fc" id="L78">        checkinRepository.findFirstByUsuarioIdOrderByCriadoEmDesc(comando.usuarioId()).orElse(null);</span>
+
+<span class="fc" id="L80">    BigDecimal distanciaDoAnterior = null;</span>
+<span class="fc" id="L81">    BigDecimal latAnterior = null;</span>
+<span class="fc" id="L82">    BigDecimal lonAnterior = null;</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">    if (anterior != null) {</span>
+<span class="fc" id="L84">      latAnterior = Coordenadas.latitude(anterior.getPonto());</span>
+<span class="fc" id="L85">      lonAnterior = Coordenadas.longitude(anterior.getPonto());</span>
+<span class="fc" id="L86">      distanciaDoAnterior =</span>
+<span class="fc" id="L87">          BigDecimal.valueOf(</span>
+<span class="fc" id="L88">              consultasGeoespaciais.distanciaMetros(</span>
+<span class="fc" id="L89">                  latAnterior, lonAnterior, comando.lat(), comando.lon()));</span>
+    }
+
+<span class="fc" id="L92">    AvaliacaoAntifraude.Avaliacao avaliacao =</span>
+<span class="fc" id="L93">        AvaliacaoAntifraude.avaliar(</span>
+            distanciaM,
+<span class="fc" id="L95">            comando.acuraciaM(),</span>
+<span class="fc" id="L96">            comando.mocked(),</span>
+<span class="fc" id="L97">            comando.raioCheckinM(),</span>
+            latAnterior,
+            lonAnterior,
+            distanciaDoAnterior,
+<span class="fc bfc" id="L101" title="All 2 branches covered.">            anterior == null ? null : anterior.getCriadoEm(),</span>
+<span class="fc" id="L102">            comando.agora());</span>
+
+<span class="fc" id="L104">    Checkin checkin =</span>
+        new Checkin(
+<span class="fc" id="L106">            UUID.randomUUID(),</span>
+<span class="fc" id="L107">            comando.missaoId(),</span>
+<span class="fc" id="L108">            comando.usuarioId(),</span>
+<span class="fc" id="L109">            Coordenadas.ponto(comando.lat(), comando.lon()),</span>
+<span class="fc" id="L110">            comando.acuraciaM(),</span>
+            distanciaM,
+            MetodoCheckin.GPS,
+<span class="fc" id="L113">            comando.mocked(),</span>
+<span class="fc" id="L114">            avaliacao.velocidadeImplicitaKmh(),</span>
+<span class="fc" id="L115">            avaliacao.aceito(),</span>
+<span class="fc" id="L116">            avaliacao.codigoRejeicao(),</span>
+<span class="fc" id="L117">            avaliacao.motivoRejeicao(),</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">            avaliacao.veredito() == ResultadoCheckin.Veredito.ACEITO_SUSPEITO,</span>
+<span class="fc" id="L119">            comando.chaveIdempotencia(),</span>
+<span class="fc" id="L120">            comando.agora());</span>
+
+    // saveAndFlush, e não save: força o INSERT agora, dentro da transação do chamador, em vez de
+    // adiar para o commit. uk_checkin_idempotencia é a garantia final de unicidade — mas duas
+    // requisições com a mesma chave são, por construção, da mesma missão (o missaoId entra no
+    // material do hash), e o SELECT ... FOR UPDATE que o chamador segura sobre a linha da missão as
+    // serializa antes de qualquer uma chegar aqui. Não há recuperação em catch porque não há
+    // corrida a recuperar; se a constraint algum dia disparar, é sinal de que essa serialização
+    // deixou de valer, e falhar alto é melhor do que mascarar. Provado por CheckinConcorrenteTest.
+<span class="fc" id="L129">    checkinRepository.saveAndFlush(checkin);</span>
+
+<span class="fc" id="L131">    return new ResultadoCheckin(</span>
+<span class="fc" id="L132">        checkin.getId(),</span>
+<span class="fc" id="L133">        avaliacao.veredito(),</span>
+        distanciaM,
+<span class="fc" id="L135">        comando.acuraciaM(),</span>
+<span class="fc" id="L136">        avaliacao.velocidadeImplicitaKmh(),</span>
+<span class="fc" id="L137">        avaliacao.codigoRejeicao(),</span>
+<span class="fc" id="L138">        avaliacao.motivoRejeicao(),</span>
+        false);
+  }
+
+  private ResultadoCheckin replayDe(Checkin checkin) {
+    ResultadoCheckin.Veredito veredito;
+<span class="fc bfc" id="L144" title="All 2 branches covered.">    if (!checkin.isValido()) {</span>
+<span class="fc" id="L145">      veredito = ResultadoCheckin.Veredito.REJEITADO;</span>
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">    } else if (checkin.isSuspeito()) {</span>
+<span class="nc" id="L147">      veredito = ResultadoCheckin.Veredito.ACEITO_SUSPEITO;</span>
+    } else {
+<span class="fc" id="L149">      veredito = ResultadoCheckin.Veredito.ACEITO;</span>
+    }
+
+<span class="fc" id="L152">    return new ResultadoCheckin(</span>
+<span class="fc" id="L153">        checkin.getId(),</span>
+        veredito,
+<span class="fc" id="L155">        checkin.getDistanciaAlvoM(),</span>
+<span class="fc" id="L156">        checkin.getAcuraciaM(),</span>
+<span class="fc" id="L157">        checkin.getVelocidadeImplicitaKmh(),</span>
+        // Vem da linha persistida, não de um novo cálculo: é o que faz o replay de uma rejeição
+        // responder o MESMO `type` da primeira tentativa. Ver V17.
+<span class="fc" id="L160">        checkin.getCodigoRejeicao(),</span>
+<span class="fc" id="L161">        checkin.getMotivoRejeicao(),</span>
+        true);
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

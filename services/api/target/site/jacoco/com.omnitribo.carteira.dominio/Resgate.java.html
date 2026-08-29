@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Resgate.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">Resgate.java</span></div><h1>Resgate.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * O registro de uma QUEIMA de token.
+ *
+ * &lt;p&gt;Cada linha aqui tem um lançamento correspondente com motivo {@link MotivoLancamento#RESGATE},
+ * que debita e não credita ninguém. É o único caminho pelo qual token sai da economia.
+ */
+@Entity
+@Table(name = &quot;resgate&quot;)
+public class Resgate {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  @Column(name = &quot;usuario_id&quot;, nullable = false, updatable = false)
+  private UUID usuarioId;
+
+  @Column(name = &quot;beneficio_id&quot;, nullable = false, updatable = false)
+  private UUID beneficioId;
+
+  /** O custo COBRADO, congelado. Ver o javadoc de {@link Beneficio#getCustoTokens()}. */
+  @Column(name = &quot;custo_tokens&quot;, nullable = false, updatable = false)
+  private long custoTokens;
+
+  @Column(name = &quot;codigo_retirada&quot;, nullable = false, updatable = false, length = 8)
+  private String codigoRetirada;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 10)
+  private StatusResgate status;
+
+  @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+  private Instant criadoEm;
+
+  @Column(name = &quot;utilizado_em&quot;)
+  private Instant utilizadoEm;
+
+<span class="fc" id="L49">  protected Resgate() {}</span>
+
+  public Resgate(
+      UUID id,
+      UUID usuarioId,
+      UUID beneficioId,
+      long custoTokens,
+      String codigoRetirada,
+<span class="fc" id="L57">      Instant criadoEm) {</span>
+<span class="fc" id="L58">    this.id = id;</span>
+<span class="fc" id="L59">    this.usuarioId = usuarioId;</span>
+<span class="fc" id="L60">    this.beneficioId = beneficioId;</span>
+<span class="fc" id="L61">    this.custoTokens = custoTokens;</span>
+<span class="fc" id="L62">    this.codigoRetirada = codigoRetirada;</span>
+<span class="fc" id="L63">    this.status = StatusResgate.PENDENTE;</span>
+<span class="fc" id="L64">    this.criadoEm = criadoEm;</span>
+<span class="fc" id="L65">  }</span>
+
+  /**
+   * O parceiro entregou o benefício.
+   *
+   * &lt;p&gt;Idempotente: dar baixa num resgate já utilizado não é erro, é o retry de quem não recebeu a
+   * resposta. Devolve {@code false} quando nada mudou, para o serviço distinguir os dois casos sem
+   * precisar reler o estado.
+   *
+   * &lt;p&gt;Status e carimbo mudam SEMPRE juntos — {@code ck_resgate_utilizado_coerente} (V25) recusa
+   * uma metade sem a outra.
+   */
+  public boolean darBaixa(Instant quando) {
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    if (this.status == StatusResgate.UTILIZADO) {</span>
+<span class="fc" id="L79">      return false;</span>
+    }
+<span class="fc" id="L81">    this.status = StatusResgate.UTILIZADO;</span>
+<span class="fc" id="L82">    this.utilizadoEm = quando;</span>
+<span class="fc" id="L83">    return true;</span>
+  }
+
+  public UUID getId() {
+<span class="fc" id="L87">    return id;</span>
+  }
+
+  public UUID getUsuarioId() {
+<span class="fc" id="L91">    return usuarioId;</span>
+  }
+
+  public UUID getBeneficioId() {
+<span class="fc" id="L95">    return beneficioId;</span>
+  }
+
+  public long getCustoTokens() {
+<span class="fc" id="L99">    return custoTokens;</span>
+  }
+
+  public String getCodigoRetirada() {
+<span class="fc" id="L103">    return codigoRetirada;</span>
+  }
+
+  public StatusResgate getStatus() {
+<span class="fc" id="L107">    return status;</span>
+  }
+
+  public Instant getCriadoEm() {
+<span class="fc" id="L111">    return criadoEm;</span>
+  }
+
+  public Instant getUtilizadoEm() {
+<span class="fc" id="L115">    return utilizadoEm;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

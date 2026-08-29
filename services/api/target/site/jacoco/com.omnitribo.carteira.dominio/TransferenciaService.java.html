@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransferenciaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">TransferenciaService.java</span></div><h1>TransferenciaService.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+import com.omnitribo.carteira.api.TransferenciaResponse;
+import com.omnitribo.carteira.infra.CarteiraRepository;
+import com.omnitribo.carteira.infra.LancamentoRepository;
+import com.omnitribo.compartilhado.dominio.Auditavel;
+import com.omnitribo.compartilhado.dominio.ChaveIdempotencia;
+import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import com.omnitribo.identidade.api.ConsultaAfiliacao;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Transferência de tokens entre membros da mesma tribo.
+ *
+ * &lt;p&gt;É a operação que exige mais cuidado do módulo, por dois motivos que se somam: ela toca DUAS
+ * linhas de carteira na mesma transação, e as duas pontas podem se inverter entre requisições
+ * concorrentes. Ver {@link #ordenarELocar} para a prova de ausência de deadlock.
+ */
+@Service
+public class TransferenciaService {
+
+  private static final String CARTEIRA_AUSENTE = &quot;Carteira não encontrada.&quot;;
+
+  private final CarteiraRepository carteiraRepository;
+  private final LancamentoRepository lancamentoRepository;
+  private final LivroRazaoService livroRazaoService;
+  private final ConsultaAfiliacao consultaAfiliacao;
+  private final PoliticaCarteira politica;
+
+  public TransferenciaService(
+      CarteiraRepository carteiraRepository,
+      LancamentoRepository lancamentoRepository,
+      LivroRazaoService livroRazaoService,
+      ConsultaAfiliacao consultaAfiliacao,
+<span class="fc" id="L40">      PoliticaCarteira politica) {</span>
+<span class="fc" id="L41">    this.carteiraRepository = carteiraRepository;</span>
+<span class="fc" id="L42">    this.lancamentoRepository = lancamentoRepository;</span>
+<span class="fc" id="L43">    this.livroRazaoService = livroRazaoService;</span>
+<span class="fc" id="L44">    this.consultaAfiliacao = consultaAfiliacao;</span>
+<span class="fc" id="L45">    this.politica = politica;</span>
+<span class="fc" id="L46">  }</span>
+
+  @Auditavel(acao = &quot;TOKENS_TRANSFERIDOS&quot;, entidade = &quot;carteira&quot;)
+  @Transactional
+  public TransferenciaResponse transferir(
+      UUID remetenteId, UUID destinatarioId, long tokens, String mensagem, String chaveDoCliente) {
+
+<span class="fc" id="L53">    Instant agora = Instant.now();</span>
+
+    // Regras que não dependem de saldo vêm antes do lock: não faz sentido travar duas linhas para
+    // descobrir que o usuário está transferindo para si mesmo.
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    if (remetenteId.equals(destinatarioId)) {</span>
+<span class="fc" id="L58">      throw new RegraNegocioVioladaException(&quot;Não é possível transferir para a própria carteira.&quot;);</span>
+    }
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (tokens &gt; politica.transferenciaTetoPorTransacao()) {</span>
+<span class="fc" id="L61">      throw new RegraNegocioVioladaException(</span>
+          &quot;Transferência de &quot;
+              + tokens
+              + &quot; tokens excede o teto de &quot;
+<span class="fc" id="L65">              + politica.transferenciaTetoPorTransacao()</span>
+              + &quot; por transação.&quot;);
+    }
+    // Regra de domínio da moeda comunitária: TOKEN só circula dentro da tribo (ADR 0004). Sem isto,
+    // &quot;comunitária&quot; não significaria nada — o token seria uma moeda global com outro nome.
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (!consultaAfiliacao.mesmaTribo(remetenteId, destinatarioId)) {</span>
+<span class="fc" id="L71">      throw new RegraNegocioVioladaException(</span>
+          &quot;Tokens só podem ser transferidos entre membros da mesma tribo.&quot;);
+    }
+
+<span class="fc" id="L75">    UUID carteiraOrigemId =</span>
+        carteiraRepository
+<span class="fc" id="L77">            .buscarIdPorUsuario(remetenteId)</span>
+<span class="pc" id="L78">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+<span class="fc" id="L79">    UUID carteiraDestinoId =</span>
+        carteiraRepository
+<span class="fc" id="L81">            .buscarIdPorUsuario(destinatarioId)</span>
+<span class="pc" id="L82">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+
+<span class="fc" id="L84">    ParTravado par = ordenarELocar(carteiraOrigemId, carteiraDestinoId);</span>
+<span class="fc" id="L85">    Carteira origem = par.origem();</span>
+<span class="fc" id="L86">    Carteira destino = par.destino();</span>
+
+<span class="fc" id="L88">    String chaveEnvio = ChaveIdempotencia.transferenciaEnviada(remetenteId, chaveDoCliente);</span>
+<span class="fc" id="L89">    String chaveRecebimento = ChaveIdempotencia.transferenciaRecebida(remetenteId, chaveDoCliente);</span>
+
+    // SONDAR DEPOIS DO LOCK — é o que fecha a corrida entre sondar e inserir. A carteira do
+    // remetente está travada em qualquer ordem, então duas requisições com a mesma chave estão
+    // serializadas por ela e a segunda enxerga o lançamento da primeira.
+<span class="fc" id="L94">    Optional&lt;Lancamento&gt; jaEnviado = livroRazaoService.consultar(chaveEnvio);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (jaEnviado.isPresent()) {</span>
+<span class="fc" id="L96">      return new TransferenciaResponse(</span>
+<span class="fc" id="L97">          jaEnviado.get().getId(), null, origem.getSaldoTokens(), true);</span>
+    }
+
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (origem.getSaldoTokens() &lt; tokens) {</span>
+      // 422 ANTES de qualquer escrita. Nada foi gravado até aqui, então a recusa é literalmente
+      // sem efeito colateral — é o que o teste verifica.
+<span class="fc" id="L103">      throw new RegraNegocioVioladaException(</span>
+          &quot;Saldo de &quot;
+<span class="fc" id="L105">              + origem.getSaldoTokens()</span>
+              + &quot; tokens é insuficiente para transferir &quot;
+              + tokens
+              + &quot;.&quot;);
+    }
+
+<span class="fc" id="L111">    validarTetoDaJanela(origem.getId(), tokens, agora);</span>
+
+<span class="fc" id="L113">    Lancamento saida =</span>
+<span class="fc" id="L114">        livroRazaoService.registrar(</span>
+            origem,
+<span class="fc" id="L116">            Movimento.deTokens(</span>
+                SinalLancamento.DEBITO,
+                MotivoLancamento.TRANSFERENCIA_ENVIADA,
+                tokens,
+                null,
+<span class="fc" id="L121">                destino.getId(),</span>
+                chaveEnvio,
+                mensagem,
+                agora));
+
+<span class="fc" id="L126">    Lancamento entrada =</span>
+<span class="fc" id="L127">        livroRazaoService.registrar(</span>
+            destino,
+<span class="fc" id="L129">            Movimento.deTokens(</span>
+                SinalLancamento.CREDITO,
+                MotivoLancamento.TRANSFERENCIA_RECEBIDA,
+                tokens,
+                null,
+<span class="fc" id="L134">                origem.getId(),</span>
+                chaveRecebimento,
+                mensagem,
+                agora));
+
+<span class="fc" id="L139">    return new TransferenciaResponse(</span>
+<span class="fc" id="L140">        saida.getId(), entrada.getId(), origem.getSaldoTokens(), false);</span>
+  }
+
+  /**
+   * Trava as duas carteiras em ORDEM DETERMINÍSTICA CRESCENTE DE id.
+   *
+   * &lt;p&gt;É esta ordenação, e nada mais, que impede o deadlock A→B / B→A. Sem ela: duas transferências
+   * simultâneas em sentidos opostos entre as MESMAS carteiras pediriam os mesmos dois locks em
+   * ordens opostas — cada transação seguraria um e esperaria pelo outro, e o PostgreSQL mataria uma
+   * com {@code 40P01} depois de {@code deadlock_timeout} (1 s por padrão). O usuário veria 500, e
+   * de forma intermitente, que é o pior modo de falhar.
+   *
+   * &lt;p&gt;Por que ordenar funciona: deadlock exige um CICLO no grafo de espera. Travando sempre do
+   * menor id para o maior, uma transação só pode esperar por outra que segura um id ESTRITAMENTE
+   * MENOR do que o próximo que ela quer. A espera portanto sempre anda numa direção só, e um ciclo
+   * exigiria voltar. Não é probabilidade reduzida — é impossibilidade por construção.
+   *
+   * &lt;p&gt;Duas notas que parecem bug a quem revisa:
+   *
+   * &lt;ul&gt;
+   *   &lt;li&gt;{@code UUID.compareTo} compara os dois {@code long} internos COM SINAL, e essa ordem NÃO
+   *       é a mesma do tipo {@code uuid} do PostgreSQL. É irrelevante: a prova exige UMA ordem
+   *       total consistente entre todos os call sites, não concordância com a do banco.
+   *   &lt;li&gt;Ordenamos por {@code carteira.id} — a PK da linha efetivamente travada — e não por {@code
+   *       usuario_id}, para que a propriedade seja verificável lendo o SQL emitido.
+   * &lt;/ul&gt;
+   *
+   * &lt;p&gt;Duas idas ao banco em vez de um {@code where id in (:a, :b) order by id}: nessa forma o nó
+   * {@code LockRows} do PostgreSQL fica ACIMA do nó de acesso que o planner escolher, e com bitmap
+   * scan ou índice não ordenado a ordem de emissão das linhas — logo a de aquisição dos locks — não
+   * é a do {@code ORDER BY}. O round-trip extra compra uma garantia; a query única compra uma
+   * suposição sobre o planner.
+   */
+  private ParTravado ordenarELocar(UUID carteiraOrigemId, UUID carteiraDestinoId) {
+<span class="fc bfc" id="L174" title="All 2 branches covered.">    boolean origemPrimeiro = carteiraOrigemId.compareTo(carteiraDestinoId) &lt; 0;</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">    UUID primeira = origemPrimeiro ? carteiraOrigemId : carteiraDestinoId;</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">    UUID segunda = origemPrimeiro ? carteiraDestinoId : carteiraOrigemId;</span>
+
+<span class="fc" id="L178">    Carteira a =</span>
+        carteiraRepository
+<span class="fc" id="L180">            .buscarParaAtualizar(primeira)</span>
+<span class="pc" id="L181">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+<span class="fc" id="L182">    Carteira b =</span>
+        carteiraRepository
+<span class="fc" id="L184">            .buscarParaAtualizar(segunda)</span>
+<span class="pc" id="L185">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(CARTEIRA_AUSENTE));</span>
+
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    return origemPrimeiro ? new ParTravado(a, b) : new ParTravado(b, a);</span>
+  }
+
+  /**
+   * Teto acumulado numa janela deslizante.
+   *
+   * &lt;p&gt;Sozinho, o teto por transação não limita nada: quem controla a conta faz N transferências de
+   * valor abaixo do teto. Este é o que fecha isso.
+   *
+   * &lt;p&gt;A consulta é racy em tese e correta na prática pelo mesmo motivo da verificação de saldo:
+   * roda DEPOIS do lock da carteira de origem, então duas transferências do mesmo remetente estão
+   * serializadas e a segunda enxerga o lançamento da primeira.
+   */
+  private void validarTetoDaJanela(UUID carteiraOrigemId, long tokens, Instant agora) {
+<span class="fc" id="L201">    Instant inicioDaJanela = agora.minus(politica.transferenciaJanela());</span>
+<span class="fc" id="L202">    long jaEnviado =</span>
+<span class="fc" id="L203">        lancamentoRepository.somarTransferenciasEnviadasDesde(carteiraOrigemId, inicioDaJanela);</span>
+
+<span class="fc bfc" id="L205" title="All 2 branches covered.">    if (jaEnviado + tokens &gt; politica.transferenciaTetoPorJanela()) {</span>
+<span class="fc" id="L206">      throw new RegraNegocioVioladaException(</span>
+          &quot;Transferência excede o teto de &quot;
+<span class="fc" id="L208">              + politica.transferenciaTetoPorJanela()</span>
+              + &quot; tokens por janela de &quot;
+<span class="fc" id="L210">              + politica.transferenciaJanela().toHours()</span>
+              + &quot;h. Já enviados na janela: &quot;
+              + jaEnviado
+              + &quot;.&quot;);
+    }
+<span class="fc" id="L215">  }</span>
+
+  /** Par já travado, devolvido nos papéis de negócio para o chamador não reordenar por engano. */
+<span class="fc" id="L218">  private record ParTravado(Carteira origem, Carteira destino) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

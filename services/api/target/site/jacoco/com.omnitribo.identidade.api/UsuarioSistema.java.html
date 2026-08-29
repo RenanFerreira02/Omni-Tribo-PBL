@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioSistema.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.api</a> &gt; <span class="el_source">UsuarioSistema.java</span></div><h1>UsuarioSistema.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.api;
+
+import java.util.UUID;
+
+/**
+ * A identidade que o próprio Omni-Tribo usa quando cria conteúdo sem humano no caminho.
+ *
+ * &lt;p&gt;Existe porque {@code missao.criador_id} é {@code NOT NULL REFERENCES usuario(id)} e porque
+ * publicar exige {@code AtorEsperado.CRIADOR}, que compara IDENTIDADE e não papel — nem um ADMIN
+ * publica missão alheia. {@code AtorMissao.sistema()} tem {@code usuarioId} nulo e por isso não
+ * satisfaz nenhum dos dois. A linha correspondente é inserida pela V21, no schema e não no seed,
+ * porque produção também precisa dela.
+ *
+ * &lt;p&gt;A conta é {@code status = 'INATIVO'}, e é o que a torna inofensiva: {@code
+ * AutenticacaoService} recusa qualquer status diferente de ATIVO, então nenhuma senha autentica e
+ * nenhum token é emitido para ela. Não é backdoor — é alvo de chave estrangeira e um nome para a
+ * interface exibir.
+ *
+ * &lt;p&gt;Porta em {@code identidade/api} pelo motivo de sempre: quem precisa da constante é {@code
+ * missoes.dominio}, e o ArchUnit proíbe alcançar {@code identidade.dominio}.
+ */
+public final class UsuarioSistema {
+
+  private UsuarioSistema() {}
+
+  /** Mesmo UUID gravado pela V21. Mudar aqui sem migration deixa a FK órfã no primeiro webhook. */
+<span class="fc" id="L27">  public static final UUID ID = UUID.fromString(&quot;00000000-0000-0000-0000-000000000001&quot;);</span>
+
+  public static boolean ehSistema(UUID usuarioId) {
+<span class="nc" id="L30">    return ID.equals(usuarioId);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

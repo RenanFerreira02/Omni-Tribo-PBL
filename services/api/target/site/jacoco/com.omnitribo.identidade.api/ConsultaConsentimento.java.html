@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConsultaConsentimento.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.api</a> &gt; <span class="el_source">ConsultaConsentimento.java</span></div><h1>ConsultaConsentimento.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.api;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Porta para descobrir, em massa, quem pode ser notificado.
+ *
+ * &lt;p&gt;Existe porque o consentimento vive em {@code identidade.dominio} e quem precisa dele é {@code
+ * notificacoes}, que o ArchUnit impede de alcançar o domínio alheio. Mesmo molde de {@link
+ * ConsultaSessao} e {@link ConsultaAfiliacao}.
+ *
+ * &lt;p&gt;&lt;b&gt;Os tipos entram como String, não como {@code TipoConsentimento}.&lt;/b&gt; Não é desleixo: esta
+ * interface é ORIGEM na regra direcional do ArchUnit, e expor o enum faria todo chamador importar
+ * {@code identidade.dominio}. É a mesma razão pela qual {@code ConsultasGeoespaciais} recebe status
+ * e categoria como String. Os valores vêm sempre de {@code .name()} de um enum já validado, nunca
+ * de texto livre.
+ */
+public interface ConsultaConsentimento {
+
+  /**
+   * Nomes dos tipos, para quem está FORA de {@code identidade} montar a chamada.
+   *
+   * &lt;p&gt;Derivados de {@code TipoConsentimento.name()} e não escritos como literal: o compilador
+   * passa a garantir que renomear a constante do enum quebre aqui, em vez de produzir
+   * silenciosamente uma consulta que não casa com nada e não notifica ninguém. A importação do enum
+   * é legal neste arquivo porque ele também mora em {@code identidade} — o que o ArchUnit proíbe é
+   * o CHAMADOR de fora alcançar {@code identidade.dominio}, e ele só enxerga estas Strings.
+   */
+<span class="fc" id="L31">  String NOTIFICACAO = com.omnitribo.identidade.dominio.TipoConsentimento.NOTIFICACAO.name();</span>
+
+<span class="fc" id="L33">  String LOCALIZACAO = com.omnitribo.identidade.dominio.TipoConsentimento.LOCALIZACAO.name();</span>
+
+  /**
+   * Usuários ATIVOS das tribos dadas que concederam TODOS os tipos listados, e não revogaram
+   * depois.
+   *
+   * &lt;p&gt;Uma consulta só, e não N chamadas a {@code ConsentimentoService.listar}. Aquele método traz
+   * o histórico inteiro de um usuário e resolve o estado atual em Java — correto para uma tela de
+   * perfil, inviável para o fan-out de uma notificação de bairro, onde N é a população da tribo.
+   *
+   * &lt;p&gt;&quot;Não revogaram depois&quot; é o ponto delicado: {@code consentimento} é append-only, então o
+   * estado atual é a linha MAIS RECENTE de cada tipo. Uma consulta ingênua por {@code concedido =
+   * true} notificaria exatamente quem revogou, porque a linha antiga de concessão continua lá.
+   *
+   * @param triboIds tribos alvo; lista vazia devolve lista vazia.
+   * @param tipos nomes de {@code TipoConsentimento}. Exigidos em conjunção — quem concedeu só um
+   *     dos dois não entra.
+   */
+  List&lt;UUID&gt; usuariosComConsentimento(Collection&lt;UUID&gt; triboIds, Collection&lt;String&gt; tipos);
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

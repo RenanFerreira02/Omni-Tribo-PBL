@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FatorRisco.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.dominio</a> &gt; <span class="el_source">FatorRisco.java</span></div><h1>FatorRisco.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.dominio;
+
+/**
+ * Uma característica e quanto ela empurrou o log-odds desta entrega.
+ *
+ * &lt;p&gt;É a unidade da explicabilidade: sem isso o endpoint devolveria um número mágico, e &quot;78% de
+ * risco&quot; não seria acionável. Com isso, dá para dizer QUAL condição mudar.
+ *
+ * @param contribuicao {@code coeficiente × valor CODIFICADO} (z-score para numéricas, 0/1 para
+ *     indicadores) — nunca {@code coeficiente × valor bruto}. Somando as contribuições de todas as
+ *     características ao intercepto recupera-se exatamente o log-odds, e é essa identidade que
+ *     torna a explicação verificável em vez de decorativa.
+ * @param pesoRelativo fração de {@code |contribuicao|} sobre a soma dos valores absolutos de todas
+ *     as contribuições. &lt;b&gt;É a fração do DESVIO em relação à entrega média, não da
+ *     probabilidade.&lt;/b&gt; A sigmoide não é linear e uma probabilidade não se decompõe aditivamente:
+ *     &quot;a chuva é 30% do risco&quot; é errado; &quot;a chuva responde por 30% do que afasta esta entrega da
+ *     média&quot; é certo.
+ * @param valorObservado o valor BRUTO em texto ({@code &quot;2 tentativas&quot;}, {@code &quot;18 mm&quot;}), porque é
+ *     o que faz a explicação virar português. O z-score não significa nada para quem lê.
+ */
+<span class="fc" id="L21">public record FatorRisco(</span>
+    CaracteristicaRisco caracteristica,
+    String rotulo,
+    double contribuicao,
+    DirecaoDoFator direcao,
+    double pesoRelativo,
+    String valorObservado) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

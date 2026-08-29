@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegraNivel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.identidade.dominio</a> &gt; <span class="el_source">RegraNivel.java</span></div><h1>RegraNivel.java</h1><pre class="source lang-java linenums">package com.omnitribo.identidade.dominio;
+
+/**
+ * Converte XP acumulado em nível.
+ *
+ * &lt;p&gt;Curva quadrática: o nível N começa em {@code (N-1)² × 100} de XP. Nível 2 em 100, nível 3 em
+ * 400, nível 4 em 900, nível 5 em 1600. A escolha é deliberada — uma curva LINEAR daria nível
+ * infinito a quem só acumula tempo, e uma EXPONENCIAL tornaria o segundo nível inalcançável para
+ * quem acabou de entrar. A quadrática dá progresso rápido no começo, quando o usuário está
+ * decidindo se o app vale a pena, e desacelera depois.
+ *
+ * &lt;p&gt;Puro e sem Spring, no mesmo molde de {@code MissaoStateMachine}: é regra de domínio, testável
+ * sem subir contexto nenhum.
+ *
+ * &lt;p&gt;Monotônica por construção — {@code sqrt} é crescente e XP nunca diminui (ADR 0004: XP não tem
+ * ledger nem estorno). Logo o nível também nunca diminui, e não existe caminho por onde um usuário
+ * perca nível.
+ */
+public final class RegraNivel {
+
+  /** XP que separa dois níveis consecutivos no início da curva. */
+  private static final double XP_POR_DEGRAU = 100.0;
+
+  private RegraNivel() {}
+
+  /**
+   * Nível correspondente ao XP acumulado. Nível mínimo é 1, inclusive para XP zero — usuário novo
+   * nasce no nível 1, nunca no 0.
+   */
+  public static int nivelPara(long xp) {
+<span class="fc bfc" id="L31" title="All 2 branches covered.">    if (xp &lt; 0) {</span>
+<span class="fc" id="L32">      throw new IllegalArgumentException(&quot;XP não pode ser negativo.&quot;);</span>
+    }
+<span class="fc" id="L34">    return 1 + (int) Math.floor(Math.sqrt(xp / XP_POR_DEGRAU));</span>
+  }
+
+  /**
+   * XP necessário para alcançar um nível. Inverso de {@link #nivelPara}, usado na UI de progresso.
+   */
+  public static long xpParaNivel(int nivel) {
+<span class="fc bfc" id="L41" title="All 2 branches covered.">    if (nivel &lt; 1) {</span>
+<span class="fc" id="L42">      throw new IllegalArgumentException(&quot;Nível mínimo é 1.&quot;);</span>
+    }
+<span class="fc" id="L44">    long degraus = nivel - 1L;</span>
+<span class="fc" id="L45">    return (long) (degraus * degraus * XP_POR_DEGRAU);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ComandoCreditoConclusao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.api</a> &gt; <span class="el_source">ComandoCreditoConclusao.java</span></div><h1>ComandoCreditoConclusao.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.api;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Entrada de {@link CreditoRecompensa#creditarConclusao}.
+ *
+ * &lt;p&gt;Só tipos da JDK cruzam a fronteira do módulo — é o que permite a {@code missoes} depender
+ * desta porta sem que o bytecode dela nomeie {@code carteira.dominio} ou {@code carteira.infra}, o
+ * que a regra do ArchUnit proíbe.
+ *
+ * &lt;p&gt;Não existe flag de pote aqui, de propósito. {@code missoes} é dona de {@code
+ * missao.pote_tokens} e debita o pote sob o lock da missão que já segura, informando a {@code
+ * carteira} apenas QUANTO creditar. A carteira nunca toca a tabela {@code missao}. Isso mantém a
+ * dependência em uma direção só e evita o ciclo {@code missoes.api} ⇄ {@code carteira.api}.
+ *
+ * @param missaoId gravado em {@code lancamento.missao_id} como UUID puro, sem FK
+ * @param executorId dono da carteira a creditar
+ * @param chaveIdempotencia já derivada por {@code ChaveIdempotencia.conclusaoMissao}
+ */
+<span class="fc" id="L23">public record ComandoCreditoConclusao(</span>
+    UUID missaoId,
+    UUID executorId,
+    BigDecimal valorBrl,
+    long tokens,
+    String chaveIdempotencia,
+    Instant agora) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

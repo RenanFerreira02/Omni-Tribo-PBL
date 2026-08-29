@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TipoBeneficio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.dominio</a> &gt; <span class="el_source">TipoBeneficio.java</span></div><h1>TipoBeneficio.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.dominio;
+
+/**
+ * Como o benefício se expressa. Espelhado num {@code CHECK} da V24.
+ *
+ * &lt;p&gt;&lt;b&gt;Não existe um terceiro valor &quot;VALOR&quot; ou &quot;REAIS&quot;, e não pode existir.&lt;/b&gt; Preço de benefício
+ * em moeda corrente publica uma cotação token→real implícita: quem lê &quot;R$ 10 por 30 tokens&quot; sabe
+ * quanto vale um token, e a partir daí o catálogo inteiro é uma tabela de câmbio. Token conversível
+ * é dinheiro, com KYC e enquadramento regulatório junto — ADR 0009 §6.
+ */
+<span class="fc" id="L11">public enum TipoBeneficio {</span>
+  /** Um objeto ou serviço: &quot;um café coado&quot;, &quot;um remendo de câmara de ar&quot;. */
+<span class="fc" id="L13">  BEM,</span>
+
+  /** Um desconto proporcional: &quot;20% na revisão&quot;. Proporção, nunca o valor absoluto descontado. */
+<span class="fc" id="L16">  PERCENTUAL</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

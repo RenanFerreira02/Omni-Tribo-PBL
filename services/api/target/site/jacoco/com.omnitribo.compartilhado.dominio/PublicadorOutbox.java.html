@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PublicadorOutbox.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.dominio</a> &gt; <span class="el_source">PublicadorOutbox.java</span></div><h1>PublicadorOutbox.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.dominio;
+
+import com.omnitribo.compartilhado.api.PublicadorEventos;
+import com.omnitribo.compartilhado.infra.OutboxRepository;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
+
+/** Implementação de {@link PublicadorEventos}. Ver o javadoc da porta para o porquê da outbox. */
+@Service
+public class PublicadorOutbox implements PublicadorEventos {
+
+  /**
+   * Mapper próprio, não injetado, no mesmo padrão de {@code MissaoService.MAPPER_TRILHA}.
+   *
+   * &lt;p&gt;Técnico: o Spring Boot 4.1 autoconfigura o mapper do Jackson 3 (tools.jackson) e não existe
+   * bean de {@code com.fasterxml.jackson.databind.ObjectMapper} para injetar.
+   *
+   * &lt;p&gt;De projeto: o payload gravado na outbox é registro histórico de um evento que já aconteceu.
+   * Ele não pode mudar de formato porque alguém ajustou a serialização da API meses depois — o
+   * consumidor que ler esta linha amanhã precisa do mesmo JSON que o produtor escreveu hoje.
+   */
+<span class="fc" id="L27">  private static final JsonMapper MAPPER_EVENTO = JsonMapper.builder().build();</span>
+
+  private final OutboxRepository outboxRepository;
+
+<span class="fc" id="L31">  public PublicadorOutbox(OutboxRepository outboxRepository) {</span>
+<span class="fc" id="L32">    this.outboxRepository = outboxRepository;</span>
+<span class="fc" id="L33">  }</span>
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void publicar(String tipoEvento, UUID agregadoId, Map&lt;String, Object&gt; payload) {
+<span class="fc" id="L38">    Outbox evento =</span>
+        new Outbox(
+<span class="fc" id="L40">            UUID.randomUUID(),</span>
+            tipoEvento,
+            agregadoId,
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">            MAPPER_EVENTO.writeValueAsString(payload == null ? Map.of() : payload),</span>
+<span class="fc" id="L44">            Instant.now());</span>
+<span class="fc" id="L45">    outboxRepository.save(evento);</span>
+<span class="fc" id="L46">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

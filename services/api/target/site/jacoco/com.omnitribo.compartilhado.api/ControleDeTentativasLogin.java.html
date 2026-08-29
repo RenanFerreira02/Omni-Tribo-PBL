@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ControleDeTentativasLogin.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.api</a> &gt; <span class="el_source">ControleDeTentativasLogin.java</span></div><h1>ControleDeTentativasLogin.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.api;
+
+/**
+ * PORTA do bloqueio progressivo de login: 5 tentativas/min por (IP, e-mail), e 15 min de bloqueio
+ * após 10 falhas.
+ *
+ * &lt;p&gt;Existe pelo mesmo motivo de {@link EmissorDeToken}: {@code AutenticacaoService}, em {@code
+ * identidade/dominio}, chamava direto a implementação em {@code compartilhado/infra}.
+ *
+ * &lt;p&gt;A chave é {@code sha256(ip + &quot;:&quot; + email)}, e vale saber de onde vem o {@code ip} que chega
+ * aqui: {@code EnderecoDoCliente}, que devolve o peer TCP real e &lt;b&gt;ignora {@code
+ * X-Forwarded-For}&lt;/b&gt;. Enquanto o IP saía desse header, cada tentativa podia trazer uma chave nova
+ * e este controle inteiro era contornável com uma linha de curl.
+ */
+public interface ControleDeTentativasLogin {
+
+  /** Bloqueio em vigor para esta chave, ou {@code null} quando pode tentar. */
+  BloqueioAtivo verificar(String ip, String email);
+
+  /** Conta mais uma falha e, no limiar, abre o bloqueio — gravando na trilha de auditoria. */
+  void registrarFalha(String ip, String email);
+
+  /** Zera o contador de falhas. Só o login bem-sucedido chama. */
+  void registrarSucesso(String ip, String email);
+
+  /** Quanto falta para poder tentar de novo, em segundos. Vira o header {@code Retry-After}. */
+<span class="fc" id="L27">  record BloqueioAtivo(long segundosRestantes) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

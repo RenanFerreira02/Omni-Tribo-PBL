@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>ParametrosEntregaFalida.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package com.omnitribo.missoes.dominio;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.time.Duration;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.boot.context.properties.ConfigurationProperties;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Calibra&#231;&#227;o da miss&#227;o gerada automaticamente a partir de uma entrega falida.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;&#60;b&#62;Separado de {@link ParametrosRecompensa} de prop&#243;sito, e a separa&#231;&#227;o &#233; importante.&#60;/b&#62; L&#225;,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * mudar um n&#250;mero reescreve o significado de miss&#245;es j&#225; criadas, e por isso existe {@code versao} e</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * um teste dourado que falha para for&#231;ar a decis&#227;o. Aqui n&#227;o: estes valores s&#243; afetam miss&#245;es</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * futuras, e nenhuma linha em banco depende deles para ser explicada depois. Misturar os dois faria</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * ajustar um prazo de retirada exigir subir a vers&#227;o da f&#243;rmula.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>@ConfigurationProperties(prefix = &#34;app.missoes.entrega-falida&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>public record ParametrosEntregaFalida(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /** N&#237;vel m&#237;nimo para aceitar. Ver {@code Missao.nivelMinimo}. */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    int nivelMinimo,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /** Raio de check-in da entrega, em metros. */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    int raioCheckinM,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    /** Janela entre a publica&#231;&#227;o e o fim do prazo de retirada. */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    Duration prazoRetirada) {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  public ParametrosEntregaFalida {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_27'/>
+27
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_27'>2</a>
+<span>
+1. &#60;init&#62; : changed conditional boundary &rarr; KILLED<br/>
+2. &#60;init&#62; : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (nivelMinimo &#60; 1) {</span></pre></td></tr>
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>      throw new IllegalArgumentException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;app.missoes.entrega-falida.nivel-minimo deve ser ao menos 1&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_31'/>
+31
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_31'>2</a>
+<span>
+1. &#60;init&#62; : negated conditional &rarr; SURVIVED<br/>
+2. &#60;init&#62; : changed conditional boundary &rarr; SURVIVED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>    if (raioCheckinM &#60; 10) {</span></pre></td></tr>
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>      throw new IllegalArgumentException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;app.missoes.entrega-falida.raio-checkin-m deve ser ao menos 10&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_35'/>
+35
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_35'>3</a>
+<span>
+1. &#60;init&#62; : negated conditional &rarr; SURVIVED<br/>
+2. &#60;init&#62; : negated conditional &rarr; SURVIVED<br/>
+3. &#60;init&#62; : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>    if (prazoRetirada == null || prazoRetirada.isNegative() || prazoRetirada.isZero()) {</span></pre></td></tr>
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>      throw new IllegalArgumentException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;app.missoes.entrega-falida.prazo-retirada deve ser positivo&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_27'>27</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_27'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.identidade.api.EnumeracaoUsuarioTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.EnumeracaoUsuarioTest]/[method:emailExistenteComSenhaErrada_devolveMensagemIdenticaAoInexistente()]</span></span> changed conditional boundary &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.identidade.api.EnumeracaoUsuarioTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.EnumeracaoUsuarioTest]/[method:emailExistenteComSenhaErrada_devolveMensagemIdenticaAoInexistente()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_31'>31</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_31'/> 
+
+<p class='SURVIVED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>none</span></span> negated conditional &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[22],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[22],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[22],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>com.omnitribo.compartilhado.api.PingControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.PingControllerTest]/[method:ping_retorna_pong()]</li> <li>com.omnitribo.integracoes.api.IntegracoesControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.integracoes.api.IntegracoesControllerTest]/[method:cep_malformado_responde_400_sem_chamar_o_provedor()]</li> <li>com.omnitribo.carteira.api.SaqueDesabilitadoTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.SaqueDesabilitadoTest]/[method:saqueComFlagDesligada_responde422ComTipoProprioDeSaqueDesabilitado()]</li> <li>com.omnitribo.missoes.api.MissoesProximasCacheTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasCacheTest]/[method:raio_diferente_nao_reaproveita_a_entrada()]</li> <li>com.omnitribo.compartilhado.api.ActuatorSegurancaTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ActuatorSegurancaTest]/[method:info_respondeSemAutenticacao()]</li> <li>com.omnitribo.identidade.api.EnumeracaoUsuarioTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.EnumeracaoUsuarioTest]/[method:emailExistenteComSenhaErrada_devolveMensagemIdenticaAoInexistente()]</li> <li>com.omnitribo.identidade.api.RegistroRateLimitTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.RegistroRateLimitTest]/[method:registro_acimaDoLimite_retorna429ComRetryAfter()]</li> <li>com.omnitribo.carteira.api.ConclusaoRollbackTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoRollbackTest]/[method:falhaAntesDoCommitNaoDeixaResiduoEmTabelaNenhuma()]</li> <li>com.omnitribo.compartilhado.api.ContratoOpenApiTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ContratoOpenApiTest]/[method:toda_operacao_protegida_declara_autenticacao_no_schema()]</li> <li>com.omnitribo.MigracaoCicloVidaTest.[engine:junit-jupiter]/[class:com.omnitribo.MigracaoCicloVidaTest]/[method:status_novo_de_22_caracteres_cabe_na_coluna()]</li> <li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()]</li> 
+</ul>
+</div></div> <p class='SURVIVED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>none</span></span> changed conditional boundary &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[22],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[22],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[22],-mutator=org.pitest.mutationtest.engine.gregor.mutators.ConditionalsBoundaryMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>com.omnitribo.compartilhado.api.PingControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.PingControllerTest]/[method:ping_retorna_pong()]</li> <li>com.omnitribo.integracoes.api.IntegracoesControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.integracoes.api.IntegracoesControllerTest]/[method:cep_malformado_responde_400_sem_chamar_o_provedor()]</li> <li>com.omnitribo.carteira.api.SaqueDesabilitadoTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.SaqueDesabilitadoTest]/[method:saqueComFlagDesligada_responde422ComTipoProprioDeSaqueDesabilitado()]</li> <li>com.omnitribo.missoes.api.MissoesProximasCacheTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasCacheTest]/[method:raio_diferente_nao_reaproveita_a_entrada()]</li> <li>com.omnitribo.compartilhado.api.ActuatorSegurancaTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ActuatorSegurancaTest]/[method:info_respondeSemAutenticacao()]</li> <li>com.omnitribo.identidade.api.EnumeracaoUsuarioTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.EnumeracaoUsuarioTest]/[method:emailExistenteComSenhaErrada_devolveMensagemIdenticaAoInexistente()]</li> <li>com.omnitribo.identidade.api.RegistroRateLimitTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.RegistroRateLimitTest]/[method:registro_acimaDoLimite_retorna429ComRetryAfter()]</li> <li>com.omnitribo.carteira.api.ConclusaoRollbackTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoRollbackTest]/[method:falhaAntesDoCommitNaoDeixaResiduoEmTabelaNenhuma()]</li> <li>com.omnitribo.compartilhado.api.ContratoOpenApiTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ContratoOpenApiTest]/[method:toda_operacao_protegida_declara_autenticacao_no_schema()]</li> <li>com.omnitribo.MigracaoCicloVidaTest.[engine:junit-jupiter]/[class:com.omnitribo.MigracaoCicloVidaTest]/[method:status_novo_de_22_caracteres_cabe_na_coluna()]</li> <li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()]</li> 
+</ul>
+</div></div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@19d0d1ab_35'>35</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@19d0d1ab_35'/> 
+
+<p class='SURVIVED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>none</span></span> negated conditional &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[37],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[37],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[37],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>com.omnitribo.compartilhado.api.PingControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.PingControllerTest]/[method:ping_retorna_pong()]</li> <li>com.omnitribo.integracoes.api.IntegracoesControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.integracoes.api.IntegracoesControllerTest]/[method:cep_malformado_responde_400_sem_chamar_o_provedor()]</li> <li>com.omnitribo.carteira.api.SaqueDesabilitadoTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.SaqueDesabilitadoTest]/[method:saqueComFlagDesligada_responde422ComTipoProprioDeSaqueDesabilitado()]</li> <li>com.omnitribo.missoes.api.MissoesProximasCacheTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasCacheTest]/[method:raio_diferente_nao_reaproveita_a_entrada()]</li> <li>com.omnitribo.compartilhado.api.ActuatorSegurancaTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ActuatorSegurancaTest]/[method:info_respondeSemAutenticacao()]</li> <li>com.omnitribo.identidade.api.EnumeracaoUsuarioTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.EnumeracaoUsuarioTest]/[method:emailExistenteComSenhaErrada_devolveMensagemIdenticaAoInexistente()]</li> <li>com.omnitribo.identidade.api.RegistroRateLimitTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.RegistroRateLimitTest]/[method:registro_acimaDoLimite_retorna429ComRetryAfter()]</li> <li>com.omnitribo.carteira.api.ConclusaoRollbackTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoRollbackTest]/[method:falhaAntesDoCommitNaoDeixaResiduoEmTabelaNenhuma()]</li> <li>com.omnitribo.compartilhado.api.ContratoOpenApiTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ContratoOpenApiTest]/[method:toda_operacao_protegida_declara_autenticacao_no_schema()]</li> <li>com.omnitribo.MigracaoCicloVidaTest.[engine:junit-jupiter]/[class:com.omnitribo.MigracaoCicloVidaTest]/[method:status_novo_de_22_caracteres_cabe_na_coluna()]</li> <li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()]</li> 
+</ul>
+</div></div> <p class='SURVIVED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>none</span></span> negated conditional &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[34],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[34],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=com.omnitribo.missoes.dominio.ParametrosEntregaFalida,-method=<init>,-methodDesc=(IILjava/time/Duration;)V],-indexes=[34],-mutator=org.pitest.mutationtest.engine.gregor.mutators.NegateConditionalsMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>com.omnitribo.compartilhado.api.PingControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.PingControllerTest]/[method:ping_retorna_pong()]</li> <li>com.omnitribo.integracoes.api.IntegracoesControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.integracoes.api.IntegracoesControllerTest]/[method:cep_malformado_responde_400_sem_chamar_o_provedor()]</li> <li>com.omnitribo.carteira.api.SaqueDesabilitadoTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.SaqueDesabilitadoTest]/[method:saqueComFlagDesligada_responde422ComTipoProprioDeSaqueDesabilitado()]</li> <li>com.omnitribo.missoes.api.MissoesProximasCacheTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasCacheTest]/[method:raio_diferente_nao_reaproveita_a_entrada()]</li> <li>com.omnitribo.compartilhado.api.ActuatorSegurancaTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ActuatorSegurancaTest]/[method:info_respondeSemAutenticacao()]</li> <li>com.omnitribo.identidade.api.EnumeracaoUsuarioTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.EnumeracaoUsuarioTest]/[method:emailExistenteComSenhaErrada_devolveMensagemIdenticaAoInexistente()]</li> <li>com.omnitribo.identidade.api.RegistroRateLimitTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.RegistroRateLimitTest]/[method:registro_acimaDoLimite_retorna429ComRetryAfter()]</li> <li>com.omnitribo.carteira.api.ConclusaoRollbackTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoRollbackTest]/[method:falhaAntesDoCommitNaoDeixaResiduoEmTabelaNenhuma()]</li> <li>com.omnitribo.compartilhado.api.ContratoOpenApiTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ContratoOpenApiTest]/[method:toda_operacao_protegida_declara_autenticacao_no_schema()]</li> <li>com.omnitribo.MigracaoCicloVidaTest.[engine:junit-jupiter]/[class:com.omnitribo.MigracaoCicloVidaTest]/[method:status_novo_de_22_caracteres_cabe_na_coluna()]</li> <li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()]</li> 
+</ul>
+</div></div> <p class='KILLED'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.omnitribo.identidade.api.EnumeracaoUsuarioTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.EnumeracaoUsuarioTest]/[method:emailExistenteComSenhaErrada_devolveMensagemIdenticaAoInexistente()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>com.omnitribo.compartilhado.api.PingControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.PingControllerTest]/[method:ping_retorna_pong()] (11 ms)</li><li>com.omnitribo.integracoes.api.IntegracoesControllerTest.[engine:junit-jupiter]/[class:com.omnitribo.integracoes.api.IntegracoesControllerTest]/[method:cep_malformado_responde_400_sem_chamar_o_provedor()] (15 ms)</li><li>com.omnitribo.carteira.api.SaqueDesabilitadoTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.SaqueDesabilitadoTest]/[method:saqueComFlagDesligada_responde422ComTipoProprioDeSaqueDesabilitado()] (27 ms)</li><li>com.omnitribo.missoes.api.MissoesProximasCacheTest.[engine:junit-jupiter]/[class:com.omnitribo.missoes.api.MissoesProximasCacheTest]/[method:raio_diferente_nao_reaproveita_a_entrada()] (36 ms)</li><li>com.omnitribo.compartilhado.api.ActuatorSegurancaTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ActuatorSegurancaTest]/[method:info_respondeSemAutenticacao()] (77 ms)</li><li>com.omnitribo.identidade.api.EnumeracaoUsuarioTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.EnumeracaoUsuarioTest]/[method:emailExistenteComSenhaErrada_devolveMensagemIdenticaAoInexistente()] (137 ms)</li><li>com.omnitribo.identidade.api.RegistroRateLimitTest.[engine:junit-jupiter]/[class:com.omnitribo.identidade.api.RegistroRateLimitTest]/[method:registro_acimaDoLimite_retorna429ComRetryAfter()] (143 ms)</li><li>com.omnitribo.carteira.api.ConclusaoRollbackTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.ConclusaoRollbackTest]/[method:falhaAntesDoCommitNaoDeixaResiduoEmTabelaNenhuma()] (129 ms)</li><li>com.omnitribo.compartilhado.api.ContratoOpenApiTest.[engine:junit-jupiter]/[class:com.omnitribo.compartilhado.api.ContratoOpenApiTest]/[method:toda_operacao_protegida_declara_autenticacao_no_schema()] (227 ms)</li><li>com.omnitribo.MigracaoCicloVidaTest.[engine:junit-jupiter]/[class:com.omnitribo.MigracaoCicloVidaTest]/[method:status_novo_de_22_caracteres_cabe_na_coluna()] (312 ms)</li><li>com.omnitribo.carteira.api.CarteiraConcorrenteTest.[engine:junit-jupiter]/[class:com.omnitribo.carteira.api.CarteiraConcorrenteTest]/[method:cinquentaThreadsCreditandoEDebitando_saldoFinalIgualASomaDoLedger()] (1549 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.25.9 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

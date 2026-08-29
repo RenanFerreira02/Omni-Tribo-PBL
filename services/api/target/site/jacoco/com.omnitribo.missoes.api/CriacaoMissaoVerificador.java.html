@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CriacaoMissaoVerificador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.api</a> &gt; <span class="el_source">CriacaoMissaoVerificador.java</span></div><h1>CriacaoMissaoVerificador.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.api;
+
+import com.omnitribo.missoes.dominio.CategoriaMissao;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Payload;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ * Regras de criação de missão que dependem de mais de um campo.
+ *
+ * &lt;p&gt;Toda violação é ancorada num campo com addPropertyNode: uma constraint em nível de classe
+ * produz um ObjectError, não um FieldError, e o GlobalExceptionHandler só lê getFieldErrors(). Sem
+ * a âncora, o erro sumiria da lista &quot;errors&quot; da resposta e o cliente receberia um 400 sem saber o
+ * que corrigir.
+ */
+<span class="fc" id="L21">public class CriacaoMissaoVerificador</span>
+    implements ConstraintValidator&lt;
+        CriacaoMissaoVerificador.MissaoCriacaoConsistente, CriarMissaoRequest&gt; {
+
+  @Override
+  public boolean isValid(CriarMissaoRequest req, ConstraintValidatorContext contexto) {
+<span class="pc bpc" id="L27" title="1 of 2 branches missed.">    if (req == null) {</span>
+<span class="nc" id="L28">      return true;</span>
+    }
+
+<span class="fc" id="L31">    boolean valido = true;</span>
+<span class="fc" id="L32">    contexto.disableDefaultConstraintViolation();</span>
+
+<span class="fc bfc" id="L34" title="All 2 branches covered.">    if (req.janelaInicio() != null</span>
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">        &amp;&amp; req.janelaFim() != null</span>
+<span class="fc bfc" id="L36" title="All 2 branches covered.">        &amp;&amp; !req.janelaFim().isAfter(req.janelaInicio())) {</span>
+<span class="fc" id="L37">      violacao(contexto, &quot;janelaFim&quot;, &quot;Fim da janela deve ser posterior ao início&quot;);</span>
+<span class="fc" id="L38">      valido = false;</span>
+    }
+
+<span class="pc bpc" id="L41" title="3 of 6 branches missed.">    if ((req.destinoLat() == null) != (req.destinoLon() == null)) {</span>
+<span class="nc" id="L42">      violacao(</span>
+          contexto, &quot;destinoLat&quot;, &quot;Latitude e longitude de destino devem ser informadas juntas&quot;);
+<span class="nc" id="L44">      valido = false;</span>
+    }
+
+    // A recusa de `valorBrl &gt; 0` saiu daqui e virou @DecimalMax(&quot;0.00&quot;) no próprio campo: é regra
+    // de
+    // UM campo só, e não precisava de validador de classe. Continua sendo 400 com o campo apontado,
+    // e não um 500 vindo da ck_missao_economia (V15) no INSERT.
+
+    // ─── Insumos da fórmula de recompensa (ADR 0009) ────────────────────────────────────────
+    //
+    // A recompensa deixou de ser escolhida pelo criador e passou a ser derivada. Estas três regras
+    // garantem que a derivação tem de que se alimentar, e que ninguém escolhe o multiplicador
+    // quando existe dado objetivo para medi-lo.
+
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    boolean temPeso = req.pesoKg() != null;</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    boolean temVolume = req.volumeL() != null;</span>
+<span class="fc" id="L60">    boolean carregaCoisa =</span>
+<span class="fc bfc" id="L61" title="All 4 branches covered.">        req.categoria() == CategoriaMissao.ENTREGA || req.categoria() == CategoriaMissao.COLETA;</span>
+
+    // (1) ENTREGA e COLETA movem objeto físico: sem peso e volume não há como dimensionar o
+    // esforço, e a alternativa seria o criador declarar a complexidade — que é justamente o
+    // arbítrio que esta mudança fecha.
+<span class="fc bfc" id="L66" title="All 4 branches covered.">    if (carregaCoisa &amp;&amp; !temPeso) {</span>
+<span class="fc" id="L67">      violacao(contexto, &quot;pesoKg&quot;, &quot;Peso é obrigatório em missões ENTREGA e COLETA&quot;);</span>
+<span class="fc" id="L68">      valido = false;</span>
+    }
+<span class="fc bfc" id="L70" title="All 4 branches covered.">    if (carregaCoisa &amp;&amp; !temVolume) {</span>
+<span class="fc" id="L71">      violacao(contexto, &quot;volumeL&quot;, &quot;Volume é obrigatório em missões ENTREGA e COLETA&quot;);</span>
+<span class="fc" id="L72">      valido = false;</span>
+    }
+
+    // (2) Sem peso e volume (mutirão, ajuda sem carga), declarar é a única opção honesta.
+<span class="pc bpc" id="L76" title="1 of 6 branches missed.">    if (!temPeso &amp;&amp; !temVolume &amp;&amp; req.complexidade() == null) {</span>
+<span class="fc" id="L77">      violacao(</span>
+          contexto,
+          &quot;complexidade&quot;,
+          &quot;Complexidade é obrigatória quando a missão não tem peso e volume&quot;);
+<span class="fc" id="L81">      valido = false;</span>
+    }
+
+    // (3) Com peso e volume, o servidor deriva — e a declaração é RECUSADA, não ignorada.
+    // Ignorar em silêncio faria o app acreditar que declarou algo que não teve efeito, e o usuário
+    // veria uma recompensa que não bate com a complexidade que ele escolheu na tela.
+<span class="pc bpc" id="L87" title="1 of 6 branches missed.">    if (temPeso &amp;&amp; temVolume &amp;&amp; req.complexidade() != null) {</span>
+<span class="fc" id="L88">      violacao(</span>
+          contexto,
+          &quot;complexidade&quot;,
+          &quot;Complexidade é derivada de peso e volume — não informe junto com eles&quot;);
+<span class="fc" id="L92">      valido = false;</span>
+    }
+
+<span class="fc" id="L95">    return valido;</span>
+  }
+
+  private static void violacao(ConstraintValidatorContext contexto, String campo, String mensagem) {
+<span class="fc" id="L99">    contexto</span>
+<span class="fc" id="L100">        .buildConstraintViolationWithTemplate(mensagem)</span>
+<span class="fc" id="L101">        .addPropertyNode(campo)</span>
+<span class="fc" id="L102">        .addConstraintViolation();</span>
+<span class="fc" id="L103">  }</span>
+
+  /** Anotação de classe aplicada em {@link CriarMissaoRequest}. */
+  @Target(ElementType.TYPE)
+  @Retention(RetentionPolicy.RUNTIME)
+  @Constraint(validatedBy = CriacaoMissaoVerificador.class)
+  public @interface MissaoCriacaoConsistente {
+    String message() default &quot;Dados da missão inconsistentes&quot;;
+
+    Class&lt;?&gt;[] groups() default {};
+
+    Class&lt;? extends Payload&gt;[] payload() default {};
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

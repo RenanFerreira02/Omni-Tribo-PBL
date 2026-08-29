@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProtecoesExternas.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.integracoes.infra</a> &gt; <span class="el_source">ProtecoesExternas.java</span></div><h1>ProtecoesExternas.java</h1><pre class="source lang-java linenums">package com.omnitribo.integracoes.infra;
+
+import com.omnitribo.integracoes.api.ServicoExternoIndisponivelException;
+import java.time.Clock;
+import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
+
+/**
+ * Fábrica das proteções, e o único lugar onde a calibração é lida.
+ *
+ * &lt;p&gt;Um disjuntor e um bulkhead POR PROVEDOR — o CEP fora do ar não pode abrir o circuito do clima
+ * nem consumir as permissões dele. A política de retry, ao contrário, é COMPARTILHADA: ela não
+ * depende do formato do tráfego de cada provedor, só do que é transitório em HTTP, e duplicá-la por
+ * provedor seria calibração que ninguém faria.
+ *
+ * &lt;p&gt;&lt;b&gt;A política usa lista BRANCA, e os três mecanismos juntos.&lt;/b&gt; {@code includes} admite
+ * timeout e qualquer resposta de erro; {@code excludes} tira os 4xx de status padrão e a recusa do
+ * nosso próprio bulkhead; e o {@code predicate} fecha o buraco que os dois deixam — um status 4xx
+ * NÃO padronizado (499, que alguns proxies devolvem) não vira {@code HttpClientErrorException},
+ * vira {@code UnknownHttpStatusCodeException}, que passaria pelo {@code includes}. Sem o predicado,
+ * &quot;nunca repetir em 4xx&quot; seria falso justamente na borda.
+ */
+@Component
+class ProtecoesExternas {
+
+  private final int falhasParaAbrir;
+  private final Duration esperaAberto;
+  private final RetryTemplate repeticao;
+  private final Clock relogio;
+
+  ProtecoesExternas(
+      @Value(&quot;${app.integracoes.disjuntor.falhas-para-abrir:5}&quot;) int falhasParaAbrir,
+      @Value(&quot;${app.integracoes.disjuntor.espera-aberto:PT30S}&quot;) Duration esperaAberto,
+      @Value(&quot;${app.integracoes.retry.repeticoes:1}&quot;) int repeticoes,
+      @Value(&quot;${app.integracoes.retry.espera:PT0.2S}&quot;) Duration espera,
+      @Value(&quot;${app.integracoes.retry.jitter:PT0.05S}&quot;) Duration jitter,
+<span class="fc" id="L43">      Clock relogio) {</span>
+<span class="fc" id="L44">    this.falhasParaAbrir = falhasParaAbrir;</span>
+<span class="fc" id="L45">    this.esperaAberto = esperaAberto;</span>
+<span class="fc" id="L46">    this.relogio = relogio;</span>
+<span class="fc" id="L47">    this.repeticao = new RetryTemplate(politica(repeticoes, espera, jitter));</span>
+<span class="fc" id="L48">  }</span>
+
+  ProtecaoDeChamadasExternas para(String provedor, int chamadasSimultaneas) {
+<span class="fc" id="L51">    return new ProtecaoDeChamadasExternas(</span>
+        new DisjuntorDeChamadasExternas(provedor, falhasParaAbrir, esperaAberto, relogio),
+        new LimiteDeChamadasExternas(provedor, chamadasSimultaneas),
+        repeticao);
+  }
+
+  /**
+   * {@code maxRetries} conta REPETIÇÕES, não tentativas: 1 aqui significa 2 idas ao provedor. Mais
+   * que isso, com timeout de 2 s cada, faria a espera do usuário passar de 6 s antes do 503.
+   *
+   * &lt;p&gt;A espera precisa ser declarada: o default do Framework é 1 s, e herdá-lo dobraria o pior
+   * caso sem que ninguém tivesse decidido isso.
+   */
+  private static RetryPolicy politica(int repeticoes, Duration espera, Duration jitter) {
+<span class="fc" id="L65">    return RetryPolicy.builder()</span>
+<span class="fc" id="L66">        .maxRetries(repeticoes)</span>
+<span class="fc" id="L67">        .delay(espera)</span>
+        // Dessincroniza rajadas: sem jitter, N threads que falharam juntas repetem juntas e batem
+        // no
+        // provedor doente exatamente no mesmo instante.
+<span class="fc" id="L71">        .jitter(jitter)</span>
+<span class="fc" id="L72">        .includes(ResourceAccessException.class, RestClientResponseException.class)</span>
+<span class="fc" id="L73">        .excludes(HttpClientErrorException.class, ServicoExternoIndisponivelException.class)</span>
+<span class="fc" id="L74">        .predicate(ClassificacaoDeFalhaExterna::eTransitoria)</span>
+<span class="fc" id="L75">        .build();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,565 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Missao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.dominio</a> &gt; <span class="el_source">Missao.java</span></div><h1>Missao.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.dominio;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+import org.locationtech.jts.geom.Point;
+
+@Entity
+@Table(name = &quot;missao&quot;)
+public class Missao {
+
+  @Id
+  @Column(updatable = false, nullable = false)
+  private UUID id;
+
+  // criadorId/executorId: FK para usuario — missoes→identidade é permitido
+  @Column(name = &quot;criador_id&quot;, nullable = false, updatable = false)
+  private UUID criadorId;
+
+  @Column(name = &quot;executor_id&quot;)
+  private UUID executorId;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 10)
+  private CategoriaMissao categoria;
+
+  @Column(nullable = false, length = 200)
+  private String titulo;
+
+  @Column(nullable = false, columnDefinition = &quot;TEXT&quot;)
+  private String descricao;
+
+  // length = 30 acompanha a V11: 'AGUARDANDO_CONFIRMACAO' tem 22 caracteres.
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  private StatusMissao status;
+
+  @Column(name = &quot;xp_recompensa&quot;, nullable = false)
+  private int xpRecompensa;
+
+  // numeric(12,2) → BigDecimal; nunca double (erros de ponto flutuante em BRL)
+  @Column(name = &quot;valor_brl&quot;, nullable = false, precision = 12, scale = 2)
+  private BigDecimal valorBrl;
+
+  @Column(name = &quot;tokens_recompensa&quot;, nullable = false)
+  private long tokensRecompensa;
+
+  // length = 7 casa com o VARCHAR(7) da V16 — ddl-auto é validate e reprova divergência.
+  @Enumerated(EnumType.STRING)
+  @Column(length = 7)
+  private ComplexidadeMissao complexidade;
+
+  /**
+   * Versão da calibração que produziu xpRecompensa e tokensRecompensa.
+   *
+   * &lt;p&gt;Congelada na criação e NUNCA recalculada. É o que permite responder, meses depois, se um
+   * crédito estava certo quando foi feito — sem ela, mudar um parâmetro reinterpreta
+   * retroativamente toda missão já aceita. Nula em missões anteriores à V16, que não vieram de
+   * fórmula alguma.
+   */
+  @Column(name = &quot;versao_formula&quot;)
+  private Integer versaoFormula;
+
+  /**
+   * Reservado para a F11. Nenhum código lê ou escreve hoje; entrou junto para que o congelamento da
+   * recompensa já nascesse completo.
+   */
+  @Column(name = &quot;multiplicador_risco&quot;, precision = 4, scale = 2)
+  private BigDecimal multiplicadorRisco;
+
+  /**
+   * Faixa de risco congelada na criação. Nula em toda missão que não veio de entrega falida.
+   *
+   * &lt;p&gt;{@code String} e não enum, deliberadamente: o enum {@code FaixaRisco} vive em {@code
+   * logistica.dominio}, e a regra do ArchUnit proíbe {@code missoes} de importá-lo. É a mesma razão
+   * pela qual a porta {@code ConversaoEntregaFalida} recebe a faixa como {@code String} — sempre o
+   * {@code name()} de um enum já validado do outro lado, nunca texto livre.
+   */
+  @Column(name = &quot;faixa_risco&quot;, length = 5)
+  private String faixaRisco;
+
+  @Column(nullable = false, columnDefinition = &quot;geography(POINT,4326)&quot;)
+  private Point origem;
+
+  @Column(columnDefinition = &quot;geography(POINT,4326)&quot;)
+  private Point destino;
+
+  // UUID puro, sem FK: fronteira missoes→logistica; ver V3__missoes.sql
+  @Column(name = &quot;ponto_custodia_id&quot;)
+  private UUID pontoCustodiaId;
+
+  @Column(nullable = false, length = 8)
+  private String cep;
+
+  @Column(nullable = false, length = 200)
+  private String logradouro;
+
+  @Column(nullable = false, length = 100)
+  private String bairro;
+
+  @Column(nullable = false, length = 100)
+  private String cidade;
+
+  @Column(nullable = false, length = 2)
+  private String uf;
+
+  @Column(name = &quot;raio_checkin_m&quot;, nullable = false)
+  private int raioCheckinM;
+
+  // peso e volume informam recompensa e instruções de manuseio
+  @Column(name = &quot;peso_kg&quot;, precision = 6, scale = 2)
+  private BigDecimal pesoKg;
+
+  @Column(name = &quot;volume_l&quot;, precision = 8, scale = 2)
+  private BigDecimal volumeL;
+
+  @Column(name = &quot;janela_inicio&quot;, nullable = false)
+  private Instant janelaInicio;
+
+  @Column(name = &quot;janela_fim&quot;, nullable = false)
+  private Instant janelaFim;
+
+  @Column(name = &quot;criada_em&quot;, nullable = false, updatable = false)
+  private Instant criadaEm;
+
+  @Column(name = &quot;aceita_em&quot;)
+  private Instant aceitaEm;
+
+  @Column(name = &quot;concluida_em&quot;)
+  private Instant concluidaEm;
+
+  /**
+   * Desde quando a missão está no status ATUAL. Atualizado por {@code MissaoStateMachine} a cada
+   * transição, sem exceção.
+   *
+   * &lt;p&gt;Existe porque nenhum marco anterior responde &quot;há quanto tempo esta missão está parada AQUI&quot;.
+   * {@code janelaFim} é o prazo de OFERTA — vira passado assim que alguém aceita e não diz nada
+   * sobre execução; {@code aceitaEm} é zerado no DESISTIR; {@code criadaEm} é imóvel. Sem este
+   * campo, a varredura de {@code EM_ANDAMENTO} e {@code AGUARDANDO_CONFIRMACAO} teria de inferir o
+   * instante lendo a trilha {@code missao_evento}, o que faria o job depender de um JOIN por linha.
+   */
+  @Column(name = &quot;estado_desde&quot;, nullable = false)
+  private Instant estadoDesde;
+
+  // Tokens já financiados por membros da tribo, em custódia até a conclusão pagar o
+  // executor. NÃO é recompensa: `tokensRecompensa` é quanto a missão promete pagar,
+  // `poteTokens` é quanto de fato existe para pagar. Concluir uma missão TRIBO/COLETA
+  // debita daqui em vez de cunhar token novo — é o que conserva a oferta da moeda.
+  @Column(name = &quot;pote_tokens&quot;, nullable = false)
+  private long poteTokens;
+
+  /**
+   * Nível mínimo (derivado do XP por {@code RegraNivel}) exigido para ACEITAR esta missão.
+   *
+   * &lt;p&gt;1 significa &quot;sem restrição&quot;, e é o valor de toda missão criada por usuário — o DTO de
+   * criação não tem este campo, e não deve ter: quem publica não escolhe quem pode executar. Só a
+   * conversão de entrega falida grava valor maior, e o motivo é a Regra de Elegibilidade por
+   * Reputação do challenge: custódia de pacote de terceiro não fica visível para toda a base.
+   *
+   * &lt;p&gt;Coluna por missão, e não constante no serviço, para que a regra fique auditável junto com a
+   * missão que a aplicou — recalibrar o mínimo depois não reescreve o passado.
+   */
+<span class="fc" id="L171">  @Column(name = &quot;nivel_minimo&quot;, nullable = false)</span>
+  private int nivelMinimo = 1;
+
+  /**
+   * De onde sai o token da recompensa. Derivado da categoria no construtor e CONGELADO ali — ver
+   * {@link FontePote}.
+   *
+   * &lt;p&gt;Não há setter público: a única transição permitida é {@link #financiadaPeloPatrocinador()},
+   * chamada na conversão de entrega falida antes de a missão ser publicada. Depois de ABERTA, mudar
+   * a fonte alteraria de onde o executor vai ser pago, com a missão já contratada.
+   */
+  @Enumerated(EnumType.STRING)
+  @Column(name = &quot;fonte_pote&quot;, nullable = false, length = 12)
+  private FontePote fontePote;
+
+  @Version
+  @Column(nullable = false)
+  private int versao;
+
+<span class="fc" id="L190">  protected Missao() {}</span>
+
+  /**
+   * Construtor de criação. Recebe tudo de uma vez em vez de expor um setter por campo: um setter
+   * por campo reabriria o caminho de mass assignment que este módulo existe para fechar.
+   */
+  @SuppressFBWarnings(
+      value = &quot;EI_EXPOSE_REP2&quot;,
+      justification = &quot;Point de JTS é imutável após construção; cópia defensiva sem benefício&quot;)
+  public Missao(
+      UUID id,
+      UUID criadorId,
+      CategoriaMissao categoria,
+      String titulo,
+      String descricao,
+      StatusMissao status,
+      CalculadoraDeRecompensa.Recompensa recompensa,
+      BigDecimal valorBrl,
+      Point origem,
+      Point destino,
+      UUID pontoCustodiaId,
+      String cep,
+      String logradouro,
+      String bairro,
+      String cidade,
+      String uf,
+      int raioCheckinM,
+      BigDecimal pesoKg,
+      BigDecimal volumeL,
+      Instant janelaInicio,
+      Instant janelaFim,
+<span class="fc" id="L221">      Instant criadaEm) {</span>
+<span class="fc" id="L222">    this.id = id;</span>
+<span class="fc" id="L223">    this.criadorId = criadorId;</span>
+<span class="fc" id="L224">    this.categoria = categoria;</span>
+<span class="fc" id="L225">    this.titulo = titulo;</span>
+<span class="fc" id="L226">    this.descricao = descricao;</span>
+<span class="fc" id="L227">    this.status = status;</span>
+    // Recompensa chega como UM objeto, e não como três parâmetros soltos, de propósito: neste
+    // construtor de 20+ posições, xpRecompensa (int) e raioCheckinM (int) são intercambiáveis para
+    // o
+    // compilador, e uma inversão passaria silenciosa. O record torna a troca impossível.
+<span class="fc" id="L232">    this.xpRecompensa = recompensa.xp();</span>
+<span class="fc" id="L233">    this.tokensRecompensa = recompensa.tokens();</span>
+<span class="fc" id="L234">    this.complexidade = recompensa.complexidade();</span>
+<span class="fc" id="L235">    this.versaoFormula = recompensa.versaoFormula();</span>
+    // Congelado junto com versao_formula, e pela mesma razão: sem ele, um crédito antigo deixa de
+    // ser explicável assim que o modelo de risco for re-treinado. A coluna existe desde a V16,
+    // reservada exatamente para este momento.
+<span class="fc" id="L239">    this.multiplicadorRisco = recompensa.multiplicadorRisco();</span>
+<span class="fc" id="L240">    this.valorBrl = valorBrl;</span>
+<span class="fc" id="L241">    this.origem = origem;</span>
+<span class="fc" id="L242">    this.destino = destino;</span>
+<span class="fc" id="L243">    this.pontoCustodiaId = pontoCustodiaId;</span>
+<span class="fc" id="L244">    this.cep = cep;</span>
+<span class="fc" id="L245">    this.logradouro = logradouro;</span>
+<span class="fc" id="L246">    this.bairro = bairro;</span>
+<span class="fc" id="L247">    this.cidade = cidade;</span>
+<span class="fc" id="L248">    this.uf = uf;</span>
+<span class="fc" id="L249">    this.raioCheckinM = raioCheckinM;</span>
+<span class="fc" id="L250">    this.pesoKg = pesoKg;</span>
+<span class="fc" id="L251">    this.volumeL = volumeL;</span>
+<span class="fc" id="L252">    this.janelaInicio = janelaInicio;</span>
+<span class="fc" id="L253">    this.janelaFim = janelaFim;</span>
+<span class="fc" id="L254">    this.criadaEm = criadaEm;</span>
+    // A missão nasce RASCUNHO neste instante. A partir daqui quem mexe é a máquina de estados.
+<span class="fc" id="L256">    this.estadoDesde = criadaEm;</span>
+    // DERIVADA da categoria e congelada aqui, num ponto único. Este construtor é a razão pela qual
+    // a V23 não criou um CHECK de coerência entre fonte_pote e categoria no banco: aquele CHECK
+    // reprovaria os INSERTs dos próprios seeds, que rodam depois da migration e não podem ser
+    // editados. A garantia mora aqui, e todo caminho de criação passa por aqui.
+    // AJUDA entrou aqui em 2026-08-21 (ADR 0025) e a razão é que o argumento que a mantinha fora
+    // não
+    // era dela: &quot;exigir pote faria membros da tribo custearem a logística do varejista&quot; descreve
+    // ENTREGA, que tem um varejista do outro lado. AJUDA é missão entre vizinhos, como TRIBO, e em
+    // TRIBO quem financia NUNCA é o criador — são os outros membros. O ADR 0009 continua valendo.
+    //
+    // Sobra CUNHAGEM só para ENTREGA criada por humano, que é o caso onde o financiador correto
+    // (o patrocinador) existe mas não está ligado àquela missão.
+<span class="fc" id="L269">    this.fontePote =</span>
+<span class="fc bfc" id="L270" title="All 2 branches covered.">        categoria == CategoriaMissao.ENTREGA ? FontePote.CUNHAGEM : FontePote.COMUNIDADE;</span>
+<span class="fc" id="L271">  }</span>
+
+  /**
+   * Edição dos campos descritivos e logísticos (PATCH).
+   *
+   * &lt;p&gt;Recompensa (BRL, tokens, XP), categoria, criador, executor e status ficam deliberadamente de
+   * fora: alterar a recompensa com a missão já ABERTA mudaria o contrato sob os pés de quem está
+   * prestes a aceitar, e status/executor só mudam pela máquina de estados.
+   */
+  @SuppressFBWarnings(
+      value = &quot;EI_EXPOSE_REP2&quot;,
+      justification = &quot;Point de JTS é imutável após construção; cópia defensiva sem benefício&quot;)
+  public void editarRascunho(
+      String titulo,
+      String descricao,
+      String cep,
+      String logradouro,
+      String bairro,
+      String cidade,
+      String uf,
+      Point origem,
+      Point destino,
+      Instant janelaInicio,
+      Instant janelaFim,
+      int raioCheckinM,
+      BigDecimal pesoKg,
+      BigDecimal volumeL) {
+<span class="fc" id="L298">    this.titulo = titulo;</span>
+<span class="fc" id="L299">    this.descricao = descricao;</span>
+<span class="fc" id="L300">    this.cep = cep;</span>
+<span class="fc" id="L301">    this.logradouro = logradouro;</span>
+<span class="fc" id="L302">    this.bairro = bairro;</span>
+<span class="fc" id="L303">    this.cidade = cidade;</span>
+<span class="fc" id="L304">    this.uf = uf;</span>
+<span class="fc" id="L305">    this.origem = origem;</span>
+<span class="fc" id="L306">    this.destino = destino;</span>
+<span class="fc" id="L307">    this.janelaInicio = janelaInicio;</span>
+<span class="fc" id="L308">    this.janelaFim = janelaFim;</span>
+<span class="fc" id="L309">    this.raioCheckinM = raioCheckinM;</span>
+<span class="fc" id="L310">    this.pesoKg = pesoKg;</span>
+<span class="fc" id="L311">    this.volumeL = volumeL;</span>
+<span class="fc" id="L312">  }</span>
+
+  public UUID getId() {
+<span class="fc" id="L315">    return id;</span>
+  }
+
+  public UUID getCriadorId() {
+<span class="fc" id="L319">    return criadorId;</span>
+  }
+
+  public UUID getExecutorId() {
+<span class="fc" id="L323">    return executorId;</span>
+  }
+
+  public void setExecutorId(UUID executorId) {
+<span class="fc" id="L327">    this.executorId = executorId;</span>
+<span class="fc" id="L328">  }</span>
+
+  public CategoriaMissao getCategoria() {
+<span class="fc" id="L331">    return categoria;</span>
+  }
+
+  public String getTitulo() {
+<span class="fc" id="L335">    return titulo;</span>
+  }
+
+  public String getDescricao() {
+<span class="fc" id="L339">    return descricao;</span>
+  }
+
+  public StatusMissao getStatus() {
+<span class="fc" id="L343">    return status;</span>
+  }
+
+  /**
+   * Muda o status E carimba desde quando ele vale — as duas coisas juntas, sempre.
+   *
+   * &lt;p&gt;Um {@code setStatus} que não tocasse {@code estadoDesde} deixaria o carimbo envelhecer em
+   * silêncio: a missão mudaria de estado com um marco temporal do estado ANTERIOR, e a varredura
+   * expiraria uma missão recém-transicionada achando que ela está parada há horas. Como o único
+   * chamador é {@code MissaoStateMachine}, que já recebe o instante da transição, exigi-lo na
+   * assinatura torna o esquecimento impossível.
+   */
+  public void setStatus(StatusMissao status, Instant quando) {
+<span class="fc" id="L356">    this.status = status;</span>
+<span class="fc" id="L357">    this.estadoDesde = quando;</span>
+<span class="fc" id="L358">  }</span>
+
+  public Instant getEstadoDesde() {
+<span class="nc" id="L361">    return estadoDesde;</span>
+  }
+
+  public int getXpRecompensa() {
+<span class="fc" id="L365">    return xpRecompensa;</span>
+  }
+
+  public BigDecimal getValorBrl() {
+<span class="fc" id="L369">    return valorBrl;</span>
+  }
+
+  public long getTokensRecompensa() {
+<span class="fc" id="L373">    return tokensRecompensa;</span>
+  }
+
+  public ComplexidadeMissao getComplexidade() {
+<span class="fc" id="L377">    return complexidade;</span>
+  }
+
+  public Integer getVersaoFormula() {
+<span class="fc" id="L381">    return versaoFormula;</span>
+  }
+
+  public BigDecimal getMultiplicadorRisco() {
+<span class="fc" id="L385">    return multiplicadorRisco;</span>
+  }
+
+  public String getFaixaRisco() {
+<span class="fc" id="L389">    return faixaRisco;</span>
+  }
+
+  /**
+   * Registra a faixa de risco avaliada na criação.
+   *
+   * &lt;p&gt;Separado do construtor porque a faixa não faz parte de {@code CalculadoraDeRecompensa
+   * .Recompensa}: a calculadora conhece o multiplicador (que é insumo da fórmula) e não a faixa
+   * (que é rótulo de apresentação). Chamado uma única vez, na conversão de entrega falida, antes de
+   * publicar.
+   */
+  public void registrarFaixaRisco(String faixa) {
+<span class="fc" id="L401">    this.faixaRisco = faixa;</span>
+<span class="fc" id="L402">  }</span>
+
+  public FontePote getFontePote() {
+<span class="fc" id="L405">    return fontePote;</span>
+  }
+
+  /**
+   * Marca a missão como financiada pelo patrocinador. Chamada UMA vez, na conversão de entrega
+   * falida, antes de publicar.
+   *
+   * &lt;p&gt;Mesmo molde de {@link #registrarFaixaRisco}: fica fora do construtor porque só a conversão
+   * sabe se existe patrocinador com saldo, e essa resposta só aparece depois de a recompensa estar
+   * calculada e a carteira travada.
+   *
+   * &lt;p&gt;A guarda não é decorativa. Aceitar esta chamada numa missão COMUNIDADE trocaria a fonte de
+   * um pote que membros da tribo já financiaram, e o estorno passaria a procurar lançamentos do
+   * motivo errado — o dinheiro deles ficaria preso na missão. Estado impossível vira erro alto
+   * aqui, e não saldo perdido em silêncio depois.
+   */
+  public void financiadaPeloPatrocinador() {
+<span class="pc bpc" id="L422" title="1 of 2 branches missed.">    if (this.fontePote != FontePote.CUNHAGEM) {</span>
+<span class="nc" id="L423">      throw new IllegalStateException(</span>
+          &quot;Só missão de fonte CUNHAGEM pode passar a PATROCINADOR; esta é &quot; + this.fontePote + &quot;.&quot;);
+    }
+<span class="fc" id="L426">    this.fontePote = FontePote.PATROCINADOR;</span>
+<span class="fc" id="L427">  }</span>
+
+  @SuppressFBWarnings(
+      value = &quot;EI_EXPOSE_REP&quot;,
+      justification = &quot;Point de JTS é imutável após construção; cópia defensiva sem benefício&quot;)
+  public Point getOrigem() {
+<span class="fc" id="L433">    return origem;</span>
+  }
+
+  @SuppressFBWarnings(
+      value = &quot;EI_EXPOSE_REP&quot;,
+      justification = &quot;Point de JTS é imutável após construção; cópia defensiva sem benefício&quot;)
+  public Point getDestino() {
+<span class="fc" id="L440">    return destino;</span>
+  }
+
+  public UUID getPontoCustodiaId() {
+<span class="fc" id="L444">    return pontoCustodiaId;</span>
+  }
+
+  public String getCep() {
+<span class="fc" id="L448">    return cep;</span>
+  }
+
+  public String getLogradouro() {
+<span class="fc" id="L452">    return logradouro;</span>
+  }
+
+  public String getBairro() {
+<span class="fc" id="L456">    return bairro;</span>
+  }
+
+  public String getCidade() {
+<span class="fc" id="L460">    return cidade;</span>
+  }
+
+  public String getUf() {
+<span class="fc" id="L464">    return uf;</span>
+  }
+
+  public int getRaioCheckinM() {
+<span class="fc" id="L468">    return raioCheckinM;</span>
+  }
+
+  public BigDecimal getPesoKg() {
+<span class="fc" id="L472">    return pesoKg;</span>
+  }
+
+  public BigDecimal getVolumeL() {
+<span class="fc" id="L476">    return volumeL;</span>
+  }
+
+  public Instant getJanelaInicio() {
+<span class="fc" id="L480">    return janelaInicio;</span>
+  }
+
+  public Instant getJanelaFim() {
+<span class="fc" id="L484">    return janelaFim;</span>
+  }
+
+  public Instant getCriadaEm() {
+<span class="fc" id="L488">    return criadaEm;</span>
+  }
+
+  public Instant getAceitaEm() {
+<span class="fc" id="L492">    return aceitaEm;</span>
+  }
+
+  public void setAceitaEm(Instant aceitaEm) {
+<span class="fc" id="L496">    this.aceitaEm = aceitaEm;</span>
+<span class="fc" id="L497">  }</span>
+
+  public Instant getConcluidaEm() {
+<span class="fc" id="L500">    return concluidaEm;</span>
+  }
+
+  public void setConcluidaEm(Instant concluidaEm) {
+<span class="fc" id="L504">    this.concluidaEm = concluidaEm;</span>
+<span class="fc" id="L505">  }</span>
+
+  public long getPoteTokens() {
+<span class="fc" id="L508">    return poteTokens;</span>
+  }
+
+  /** Financiamento recebido de um membro da tribo. Chamado sob o lock da linha da missão. */
+  public void creditarPote(long tokens) {
+<span class="pc bpc" id="L513" title="1 of 2 branches missed.">    if (tokens &lt;= 0) {</span>
+<span class="nc" id="L514">      throw new IllegalArgumentException(&quot;Crédito no pote precisa ser positivo.&quot;);</span>
+    }
+<span class="fc" id="L516">    this.poteTokens += tokens;</span>
+<span class="fc" id="L517">  }</span>
+
+  /**
+   * Pagamento saindo do pote na conclusão.
+   *
+   * &lt;p&gt;A guarda é de erro de programação, não a recusa que o usuário vê: quem chama já verificou o
+   * saldo do pote sob o lock e respondeu 422 antes de escrever qualquer coisa. Se esta exceção
+   * subir, o invariante &quot;todo débito é precedido de verificação sob lock&quot; deixou de valer, e um 500
+   * alto é melhor que um pote negativo silencioso.
+   */
+  public void debitarPote(long tokens) {
+<span class="pc bpc" id="L528" title="1 of 2 branches missed.">    if (tokens &lt;= 0) {</span>
+<span class="nc" id="L529">      throw new IllegalArgumentException(&quot;Débito do pote precisa ser positivo.&quot;);</span>
+    }
+<span class="pc bpc" id="L531" title="1 of 2 branches missed.">    if (tokens &gt; this.poteTokens) {</span>
+<span class="nc" id="L532">      throw new IllegalStateException(</span>
+          &quot;Débito de &quot; + tokens + &quot; excede o pote de &quot; + this.poteTokens + &quot;.&quot;);
+    }
+<span class="fc" id="L535">    this.poteTokens -= tokens;</span>
+<span class="fc" id="L536">  }</span>
+
+  /** Zera o pote ao estornar todos os financiadores em CANCELADA/EXPIRADA. */
+  public void zerarPote() {
+<span class="fc" id="L540">    this.poteTokens = 0;</span>
+<span class="fc" id="L541">  }</span>
+
+  public int getVersao() {
+<span class="fc" id="L544">    return versao;</span>
+  }
+
+  public int getNivelMinimo() {
+<span class="fc" id="L548">    return nivelMinimo;</span>
+  }
+
+  /**
+   * Exige reputação para aceitar.
+   *
+   * &lt;p&gt;Fora do construtor de propósito, e ainda assim sem virar setter genérico: nenhum DTO de
+   * entrada alcança este método, então não reabre o mass assignment que o construtor de 22
+   * parâmetros fechou. Chamado só na conversão de entrega falida, antes do primeiro {@code save}.
+   */
+  void exigirNivelMinimo(int nivel) {
+<span class="pc bpc" id="L559" title="1 of 2 branches missed.">    if (nivel &lt; 1) {</span>
+<span class="nc" id="L560">      throw new IllegalArgumentException(&quot;Nível mínimo deve ser ao menos 1, veio &quot; + nivel);</span>
+    }
+<span class="fc" id="L562">    this.nivelMinimo = nivel;</span>
+<span class="fc" id="L563">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

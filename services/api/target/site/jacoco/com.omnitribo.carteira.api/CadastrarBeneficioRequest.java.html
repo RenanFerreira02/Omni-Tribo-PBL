@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CadastrarBeneficioRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.carteira.api</a> &gt; <span class="el_source">CadastrarBeneficioRequest.java</span></div><h1>CadastrarBeneficioRequest.java</h1><pre class="source lang-java linenums">package com.omnitribo.carteira.api;
+
+import com.omnitribo.carteira.dominio.TipoBeneficio;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import java.util.UUID;
+
+/**
+ * Corpo de {@code POST /api/v1/admin/beneficios}.
+ *
+ * &lt;h2&gt;Nenhum benefício se anuncia em reais&lt;/h2&gt;
+ *
+ * &lt;p&gt;É a regra do ADR 0009 §6 na borda HTTP, e o motivo não é estético. Um benefício anunciado como
+ * &quot;R$ 10 de desconto&quot; por 30 tokens publica uma &lt;b&gt;cotação implícita&lt;/b&gt;: quem lê descobre quantos
+ * tokens valem dez reais, e a partir daí o catálogo inteiro vira tabela de câmbio. Token
+ * conversível em moeda corrente É dinheiro, com KYC e enquadramento regulatório junto — e isso está
+ * declarado fora de escopo.
+ *
+ * &lt;p&gt;O benefício se expressa em {@link TipoBeneficio#BEM} (&quot;um café coado&quot;) ou {@link
+ * TipoBeneficio#PERCENTUAL} (&quot;20% na revisão&quot;). Percentual é proporção, não o valor absoluto
+ * descontado, e por isso não fixa cotação nenhuma.
+ *
+ * &lt;p&gt;&lt;b&gt;Duas camadas, no padrão do projeto:&lt;/b&gt; aqui a recusa amigável, com 400 e o campo apontado;
+ * e {@code ck_beneficio_sem_reais} (V24) como barreira final, para que um INSERT direto no banco
+ * não contorne a regra. A mesma dupla que o app já mantém em {@code
+ * src/features/beneficios/catalogo.ts} e no teste de catálogo.
+ *
+ * &lt;p&gt;A regex casa {@code R$}, {@code real} e {@code reais} como palavra inteira — {@code \b} evita
+ * reprovar &quot;realmente&quot; ou &quot;realeza&quot;. O {@code (?i)} torna a comparação insensível a caixa; o {@code
+ * (?s)} faz {@code .} casar quebra de linha, senão uma descrição multilinha escaparia da negação.
+ */
+<span class="fc" id="L35">public record CadastrarBeneficioRequest(</span>
+    @NotNull(message = &quot;Parceiro é obrigatório&quot;) UUID parceiroId,
+    @NotBlank(message = &quot;Título é obrigatório&quot;)
+        @Size(max = 120)
+        @Pattern(
+            regexp = &quot;(?is)^(?!.*(R\\$|\\breais?\\b)).*$&quot;,
+            message = &quot;Benefício não pode ser anunciado em reais: use um BEM ou um PERCENTUAL&quot;)
+        String titulo,
+    @NotBlank(message = &quot;Descrição é obrigatória&quot;)
+        @Size(max = 500)
+        @Pattern(
+            regexp = &quot;(?is)^(?!.*(R\\$|\\breais?\\b)).*$&quot;,
+            message = &quot;Benefício não pode ser anunciado em reais: use um BEM ou um PERCENTUAL&quot;)
+        String descricao,
+    @Positive(message = &quot;Custo em tokens deve ser positivo&quot;) long custoTokens,
+    @NotNull(message = &quot;Tipo é obrigatório&quot;) TipoBeneficio tipo) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

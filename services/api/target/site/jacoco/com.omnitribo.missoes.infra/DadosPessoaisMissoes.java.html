@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DadosPessoaisMissoes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.infra</a> &gt; <span class="el_source">DadosPessoaisMissoes.java</span></div><h1>DadosPessoaisMissoes.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.infra;
+
+import com.omnitribo.compartilhado.api.DadosPessoaisDoUsuario;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
+
+/**
+ * Seção &quot;missoes&quot; da exportação LGPD: o que a pessoa criou e o que executou.
+ *
+ * &lt;p&gt;O papel dela em cada missão vai explícito, em vez de duas seções. É a informação que o titular
+ * quer (&quot;eu pedi ou eu fiz?&quot;) e a que uma lista de títulos não responde.
+ *
+ * &lt;p&gt;&lt;b&gt;Sem coordenadas, por duas razões independentes.&lt;/b&gt; A regra do projeto é que toda função
+ * PostGIS vive numa única classe ({@code ConsultasGeoespaciais}, ADR 0007), e um {@code ST_Y} aqui
+ * a quebraria. E o endereço em texto — CEP, logradouro, bairro, cidade, UF — é o que uma PESSOA lê
+ * no próprio arquivo de exportação; um par de decimais não acrescenta nada a quem exerce um
+ * direito.
+ */
+@Component
+public class DadosPessoaisMissoes implements DadosPessoaisDoUsuario {
+
+  private final JdbcClient jdbc;
+
+<span class="fc" id="L27">  public DadosPessoaisMissoes(JdbcClient jdbc) {</span>
+<span class="fc" id="L28">    this.jdbc = jdbc;</span>
+<span class="fc" id="L29">  }</span>
+
+  @Override
+  public String secao() {
+<span class="fc" id="L33">    return &quot;missoes&quot;;</span>
+  }
+
+  @Override
+  public List&lt;Map&lt;String, Object&gt;&gt; exportar(UUID usuarioId) {
+<span class="fc" id="L38">    return jdbc.sql(</span>
+            &quot;&quot;&quot;
+            SELECT CASE WHEN m.criador_id = :usuario THEN 'CRIADOR' ELSE 'EXECUTOR' END AS papel,
+                   m.titulo, m.descricao, m.categoria, m.status, m.complexidade,
+                   m.xp_recompensa, m.tokens_recompensa,
+                   m.cep, m.logradouro, m.bairro, m.cidade, m.uf,
+                   m.janela_inicio, m.janela_fim,
+                   m.criada_em, m.aceita_em, m.concluida_em
+              FROM missao m
+             WHERE m.criador_id = :usuario OR m.executor_id = :usuario
+             ORDER BY m.criada_em DESC
+            &quot;&quot;&quot;)
+<span class="fc" id="L50">        .param(&quot;usuario&quot;, usuarioId)</span>
+<span class="fc" id="L51">        .query()</span>
+<span class="fc" id="L52">        .listOfRows();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>
