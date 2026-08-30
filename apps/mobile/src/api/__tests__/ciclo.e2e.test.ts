@@ -1,4 +1,5 @@
 import { login } from '../auth';
+import { cliente } from '../cliente';
 import { buscarCarteira, listarLancamentos, transferirTokens } from '../carteira';
 import { paraErroApi } from '../erros';
 import {
@@ -80,6 +81,8 @@ const RAIO_CHECKIN_M = 50;
  */
 const CAROL_ID = 'bbbbbbbb-0000-0000-0000-000000000004';
 const ALICE_ID = 'bbbbbbbb-0000-0000-0000-000000000002';
+/** Tribo Pinheiros, do seed. É a tribo da alice, e o path do financiamento é tribo-escopado. */
+const TRIBO_PINHEIROS = 'aaaaaaaa-0000-0000-0000-000000000001';
 
 descreve('ciclo completo da missão', () => {
   let alice: LoginResponse;
@@ -160,7 +163,42 @@ descreve('ciclo completo da missão', () => {
     expect(Number(missao.valorBrl)).toBe(0);
   }, 30_000);
 
-  it('3. publicar leva a ABERTA e a missão aparece no radar geoespacial', async () => {
+  /**
+   * O pote precisa cobrir a recompensa ANTES de publicar — e é aqui que o app tem uma lacuna.
+   *
+   * Desde o ADR 0025, AJUDA paga do pote como TRIBO e COLETA: `validarPoteSuficienteParaPublicar`
+   * recusa a publicação com 422 enquanto o pote não cobrir a recompensa. Este passo não existia
+   * quando o teste foi escrito, e por isso ele quebrou — a regra mudou no servidor e o teste
+   * continuou publicando direto.
+   *
+   * <b>A chamada é HTTP crua, com `cliente`, e não por uma função de `src/api/`.</b> Não é atalho:
+   * o app AINDA NÃO TEM tela nem cliente de financiamento, então não há função para importar. A
+   * consequência é real e vale registrar — hoje uma missão AJUDA/TRIBO/COLETA criada pelo app fica
+   * presa em RASCUNHO, porque nada na interface consegue formar o pote dela. Quando a tela existir,
+   * troque isto pela função dela.
+   *
+   * Quem financia é a própria alice, e isso não contradiz "quem cria a missão NÃO paga": a premissa
+   * é que o sistema não COBRA do criador, não que ele esteja proibido de contribuir — ver o
+   * comentário de `FinanciamentoService.validarEstado`. Ela é usada aqui por economia de LOGIN: é a
+   * única de Pinheiros com saldo no seed, e um terceiro login encostaria no teto de 5/min que o
+   * cabeçalho deste arquivo explica.
+   */
+  it('3. o pote é financiado ANTES de publicar — AJUDA paga do pote (ADR 0025)', async () => {
+    await comoUsuario(alice);
+
+    const { data } = await cliente.post(
+      `/tribos/${TRIBO_PINHEIROS}/financiamentos`,
+      { missaoId, tokens: tokensDaMissao },
+      { headers: { 'Idempotency-Key': `e2e-fin-${missaoId}` } },
+    );
+
+    // O pote passa a cobrir exatamente a recompensa: nem mais (validarTeto recusaria), nem menos
+    // (a publicação recusaria).
+    expect(data.poteTokens).toBe(tokensDaMissao);
+    expect(data.tokensRecompensa).toBe(tokensDaMissao);
+  }, 30_000);
+
+  it('4. publicar leva a ABERTA e a missão aparece no radar geoespacial', async () => {
     await comoUsuario(alice);
     const publicada = await aplicarAcao(missaoId, 'publicar');
     expect(publicada.status).toBe('ABERTA');
@@ -180,7 +218,7 @@ descreve('ciclo completo da missão', () => {
 
   // ─── 2. Execução, com OUTRO usuário ────────────────────────────────────────────────────────
 
-  it('4. bob aceita e inicia; o saldo dele NÃO se move', async () => {
+  it('5. bob aceita e inicia; o saldo dele NÃO se move', async () => {
     await comoUsuario(bob);
     saldoBobAntes = (await buscarCarteira()).saldoTokens;
 
@@ -195,7 +233,7 @@ descreve('ciclo completo da missão', () => {
     expect((await buscarCarteira()).saldoTokens).toBe(saldoBobAntes);
   }, 30_000);
 
-  it('5. check-in LONGE é recusado, com os números que a tela usa para orientar', async () => {
+  it('6. check-in LONGE é recusado, com os números que a tela usa para orientar', async () => {
     await comoUsuario(bob);
 
     try {
@@ -222,7 +260,7 @@ descreve('ciclo completo da missão', () => {
     expect((await buscarMissao(missaoId)).status).toBe('EM_ANDAMENTO');
   }, 30_000);
 
-  it('6. check-in NO LOCAL transiciona para AGUARDANDO_CONFIRMACAO — ainda sem crédito', async () => {
+  it('7. check-in NO LOCAL transiciona para AGUARDANDO_CONFIRMACAO — ainda sem crédito', async () => {
     await comoUsuario(bob);
 
     const missao = await registrarCheckin(
@@ -236,7 +274,7 @@ descreve('ciclo completo da missão', () => {
     expect((await buscarCarteira()).saldoTokens).toBe(saldoBobAntes);
   }, 30_000);
 
-  it('7. o mesmo check-in repetido é REPLAY, sem gravar nada novo', async () => {
+  it('8. o mesmo check-in repetido é REPLAY, sem gravar nada novo', async () => {
     await comoUsuario(bob);
 
     // Mesma chave: um retry de rede não pode virar um segundo check-in nem um 409.
@@ -250,7 +288,7 @@ descreve('ciclo completo da missão', () => {
 
   // ─── 3. Conclusão e crédito ────────────────────────────────────────────────────────────────
 
-  it('8. alice confirma: CONCLUIDA é o ÚNICO estado que credita', async () => {
+  it('9. alice confirma: CONCLUIDA é o ÚNICO estado que credita', async () => {
     await comoUsuario(alice);
     const concluida = await aplicarAcao(missaoId, 'confirmar');
     expect(concluida.status).toBe('CONCLUIDA');
@@ -263,7 +301,7 @@ descreve('ciclo completo da missão', () => {
     expect(Number(carteira.saldoBrl)).toBe(0);
   }, 30_000);
 
-  it('9. o crédito aparece no extrato, com motivo legível e saldo após', async () => {
+  it('10. o crédito aparece no extrato, com motivo legível e saldo após', async () => {
     await comoUsuario(bob);
     const extrato = await listarLancamentos(0, 10);
 
@@ -280,7 +318,7 @@ descreve('ciclo completo da missão', () => {
 
   // ─── 4. Transferência ──────────────────────────────────────────────────────────────────────
 
-  it('10. bob transfere tokens para carol, da mesma tribo', async () => {
+  it('11. bob transfere tokens para carol, da mesma tribo', async () => {
     await comoUsuario(bob);
     const antes = (await buscarCarteira()).saldoTokens;
     const quantia = 5;
@@ -292,7 +330,7 @@ descreve('ciclo completo da missão', () => {
     expect((await buscarCarteira()).saldoTokens).toBe(antes - quantia);
   }, 30_000);
 
-  it('11. repetir a transferência com a MESMA chave é replay, não um segundo débito', async () => {
+  it('12. repetir a transferência com a MESMA chave é replay, não um segundo débito', async () => {
     await comoUsuario(bob);
     const antes = (await buscarCarteira()).saldoTokens;
 
@@ -303,7 +341,7 @@ descreve('ciclo completo da missão', () => {
     expect((await buscarCarteira()).saldoTokens).toBe(antes);
   }, 30_000);
 
-  it('12. transferir para OUTRA tribo é recusado com 422', async () => {
+  it('13. transferir para OUTRA tribo é recusado com 422', async () => {
     await comoUsuario(bob);
     try {
       // alice é de Pinheiros; bob, de Vila Madalena. Token é moeda COMUNITÁRIA.

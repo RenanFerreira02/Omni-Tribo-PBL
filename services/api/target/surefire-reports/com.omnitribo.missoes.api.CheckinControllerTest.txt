@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.omnitribo.missoes.api.CheckinControllerTest
 -------------------------------------------------------------------------------
-Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.188 s -- in com.omnitribo.missoes.api.CheckinControllerTest
+Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.222 s -- in com.omnitribo.missoes.api.CheckinControllerTest

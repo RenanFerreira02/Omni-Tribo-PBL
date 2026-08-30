@@ -1,0 +1,27 @@
+# Ambiente local, gerado pelo Makefile a partir de .env.example.
+# Nunca versione: é o arquivo que carrega credencial de banco.
+.env
+
+# Chaves RSA de desenvolvimento, geradas por tools/gerar-chaves-dev.sh.
+#
+# ATENÇÃO: `services/api/keys/private.pem` e `public.pem` JÁ ESTÃO no índice do
+# git (foram commitados antes deste arquivo existir), e um .gitignore não remove
+# o que já está rastreado. Enquanto não forem removidos do índice, a chave
+# privada continua no repositório e no histórico — ver a seção "Clone e chaves"
+# do README.
+services/api/keys/
+
+# Build.
+#
+# `services/api/target/` também já está no índice (mais de mil arquivos), pela
+# mesma razão e com a mesma consequência: esta linha impede que ENTREM novos,
+# não remove os que já estão. Para limpar: `git rm -r --cached services/api/target`.
+target/
+dist/
+node_modules/
+.angular/
+
+# IDE e sistema operacional
+.idea/
+*.iml
+.DS_Store

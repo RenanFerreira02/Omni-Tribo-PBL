@@ -214,27 +214,33 @@ Diagramas em [`docs/diagramas/`](docs/diagramas/): [contexto e contêineres](doc
 
 ---
 
-# Do clone à execução em 5 comandos
+# Do clone à execução
+
+**Três terminais.** O primeiro prepara e sobe a API; os outros dois ficam com o app e o painel.
 
 ```bash
-bash tools/gerar-chaves-dev.sh                                    # 1. chaves RSA (obrigatório)
-make up                                                            # 2. banco (cria o .env sozinho)
-cd services/api && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev   # 3. API :8080
-cd apps/mobile && npm install                                      # 4. dependências do app
-npm start                                                          # 5. Metro — leia o QR no Expo Go
+# ── terminal 1 ────────────────────────────────────────────────────────────
+bash tools/gerar-chaves-dev.sh    # 1. chaves RSA — obrigatório, e é o erro nº 1 de quem clona
+make up                           # 2. banco (cria o .env a partir do .env.example sozinho)
+cd services/api && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev    # 3. API :8080
+
+# ── terminal 2 ────────────────────────────────────────────────────────────
+cd apps/mobile && npm install && npm start      # 4. Metro — leia o QR no Expo Go
+
+# ── terminal 3, opcional: o painel web ────────────────────────────────────
+cd apps/dashboard && npm install && npm start   # 5. Angular em :4200
 ```
 
-Os passos 3 e 5 ficam em terminais separados. **O `.env` não é passo manual** — o Makefile o cria a
-partir do `.env.example`. Este caminho foi executado do zero, com volume e chaves destruídos antes,
-e a saída real está em [`docs/evidencias/f13-execucao-do-zero.md`](docs/evidencias/f13-execucao-do-zero.md).
+O **passo 3 é o que popula o banco**: `make up` só sobe o container; quem aplica o schema (`V1`–`V28`)
+e o seed (`V900`+) é o Flyway, no boot da aplicação.
 
-Para rodar os testes: **`make test`** (backend + mobile). Detalhe na seção [Verificar](#6-verificar).
+Para rodar os testes: **`make test`** (backend + mobile). Detalhe na seção [Verificar](#7-verificar).
 
 O passo a passo comentado, com o que fazer quando algo falha, continua abaixo.
 
 ---
 
-# Os mesmos 5 passos, comentados
+# Os mesmos passos, comentados
 
 ## 1. Pré-requisitos
 
@@ -242,8 +248,18 @@ O passo a passo comentado, com o que fazer quando algo falha, continua abaixo.
 |---|---|---|
 | **JDK 21** | 21 | O `pom.xml` fixa `java.version=21`, e o CI usa Temurin 21 |
 | **Node** | 22 | Versão do CI do mobile |
-| **Docker** | qualquer recente | Sobe o PostgreSQL + PostGIS |
+| **Docker** ou **podman** | qualquer recente | Sobe o PostgreSQL + PostGIS |
 | Android SDK + AVD | opcional | Só para `npm run android`. **Não é preciso para testar no celular** |
+
+> **Se você usa podman em vez de Docker Desktop**, exporte o socket ANTES de qualquer `make up` ou
+> `./mvnw verify` — o `docker compose` e o Testcontainers procuram o socket do Docker e falham com
+> `failed to connect to the docker API at unix:///…/docker.sock`:
+> ```bash
+> export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
+> # se o socket não existir:  systemctl --user start podman.socket
+> ```
+> Vale a pena pôr essa linha no seu `~/.bashrc`: ela é necessária em toda sessão, e o sintoma sem
+> ela não menciona podman em lugar nenhum.
 
 > **Atenção ao JDK em distribuições Linux:** o `java` do PATH costuma ser JRE-only, e o Maven precisa
 > de um JDK. Se `./mvnw` reclamar, aponte o `JAVA_HOME`:
@@ -255,17 +271,25 @@ O passo a passo comentado, com o que fazer quando algo falha, continua abaixo.
 ## 2. Clone e chaves
 
 ```bash
-git clone https://github.com/RenanFerreira02/Omni-Tribo.git
-cd Omni-Tribo
+git clone https://github.com/RenanFerreira02/Omni-Tribo-PBL.git
+cd Omni-Tribo-PBL
 
 bash tools/gerar-chaves-dev.sh
 ```
 
-**O passo das chaves não é opcional.** `services/api/keys/` é gitignored, e sem os PEM o
-`@PostConstruct` do `JwtService` lança e **nenhum contexto Spring sobe** — nem para rodar testes. É
-o erro nº 1 de quem clona.
+**O passo das chaves não é opcional.** Sem os PEM em `services/api/keys/`, o `@PostConstruct` do
+`JwtService` lança e **nenhum contexto Spring sobe** — nem para rodar testes. É o erro nº 1 de quem
+clona. O script é idempotente: se as chaves já existirem, ele avisa e não sobrescreve.
 
-O `.env` **não** é passo manual: o Makefile o cria a partir do `.env.example` sozinho.
+> ⚠️ **As chaves de dev estão versionadas neste repositório, e não deveriam estar.**
+> `services/api/keys/private.pem` foi commitado antes de existir um `.gitignore` na raiz, e um
+> `.gitignore` **não remove o que já está rastreado**. Elas são chaves de DESENVOLVIMENTO e não
+> protegem nada em produção — onde a chave vem de variável de ambiente —, mas o repositório afirma
+> em vários lugares que o diretório é ignorado, e hoje isso é falso. Para corrigir de verdade:
+> `git rm --cached services/api/keys/*.pem` e, se o histórico importar, reescrevê-lo.
+
+O `.env` **não** é passo manual: o Makefile tem um alvo de arquivo `.env` do qual todo target que lê
+o compose depende, então `make up` o cria a partir do `.env.example` sozinho.
 
 ## 3. Banco
 
@@ -284,6 +308,11 @@ parceiros e benefícios prontos para uso.
 | `make reset` | **destrói o volume** e recria o banco vazio |
 | `make ps` · `make logs` · `make psql` | status · tail nos logs · abre um psql no banco |
 
+> **Se você tem MAIS DE UM clone deste projeto na máquina**, o `make up` do segundo falha com
+> `the container name "omnitribo-db" is already in use`. O nome do container é fixo no
+> `docker-compose.yml`, então os dois clones disputam o mesmo. Pare o outro (`make down` lá) antes
+> de subir este — ou renomeie o `container_name` num deles.
+
 ### Voltar o banco ao estado original
 
 Depois de aceitar missões, transferir tokens ou fazer check-in testando, o caminho para recomeçar do
@@ -300,8 +329,8 @@ cd services/api && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 **O passo 3 é o que costuma ser esquecido.** `make reset` apenas recria o container com as extensões
-do `docker/init/`; quem aplica o schema (`V1`–`V22`) e depois o seed (`V900`–`V904`) é o Flyway, no
-boot da aplicação. Sem subir o backend, o banco fica vazio. O seed só entra porque
+do `docker/init/`; quem aplica o schema (`V1`–`V28`) e depois o seed (`V900`, `V902`, `V903`, `V906`,
+`V907`) é o Flyway, no boot da aplicação. Sem subir o backend, o banco fica vazio. O seed só entra porque
 `application-dev.yml` inclui `classpath:db/seed` nas locations — o perfil de produção não inclui,
 então dado de demonstração não tem como vazar para lá.
 
@@ -320,9 +349,13 @@ no meio do uso.
 > completo custa poucos segundos porque o seed reconstrói tudo.
 
 **Migration nova também exige `make reset`** num banco de dev já existente. Como a `V900` do seed já
-está aplicada, qualquer `V23` nova tem versão *menor* que o topo do histórico, o Flyway a classifica
+está aplicada, qualquer `V29` nova tem versão *menor* que o topo do histórico, o Flyway a classifica
 como *out-of-order* — desligado no dev de propósito — e o boot morre com `Validate failed: Detected
 resolved migration not applied to database`, sem mencionar seed nem ordenação em lugar nenhum.
+
+O mesmo vale se um seed for **apagado** (a `V28` apagou três): o banco antigo tem a versão no
+histórico e o arquivo já não existe localmente, e o boot morre com `detected applied migration not
+resolved locally`. `make reset` resolve, e o custo é zero porque o seed reconstrói tudo.
 
 ## 4. Backend
 
@@ -407,7 +440,32 @@ acontece entre membros da mesma tribo. Lista completa em [`docs/INFRA.md`](docs/
 > **Login tem limite de 5 tentativas por minuto.** Se aparecer "Muitas tentativas", espere um
 > minuto: é o bloqueio antifraude funcionando, não um defeito.
 
-## 6. Verificar
+## 6. Painel web (opcional)
+
+O dashboard Angular é a **Parte 3 da entrega da Fase 5**, e roda separado do app. Em outro terminal,
+com o backend de pé:
+
+```bash
+cd apps/dashboard
+npm install
+npm start          # ng serve em http://localhost:4200
+```
+
+| Rota | O que mostra |
+|---|---|
+| `/login` | entrada — use `admin@omnitribo.dev` / `Senha@123` |
+| `/home` | cards por status de missão e a lista de missões recentes |
+| `/admin` | catálogo de benefícios de parceiro: listagem + **cadastro**; abaixo, a integridade do ledger |
+
+**A porta 4200 não é livre.** `http://localhost:4200` está em `app.cors.origens-permitidas` do perfil
+`dev`; subir o `ng serve` em outra porta faz o preflight ser recusado, e a falha aparece **só no
+console do browser** — o servidor responde e não loga nada.
+
+A seção da integridade do ledger só aparece para **ADMIN**: ela consome
+`GET /admin/carteiras/reconciliacao`, que responde 403 para usuário comum. Esconder não é proteger —
+quem protege é o `@PreAuthorize` no servidor; a tela apenas não desenha o que não conseguiu ler.
+
+## 7. Verificar
 
 ```bash
 make test                               # backend (mvnw verify) + mobile (npm test)
@@ -416,12 +474,17 @@ make test                               # backend (mvnw verify) + mobile (npm te
 Ou cada lado separadamente:
 
 ```bash
-cd services/api && ./mvnw verify        # testes + spotless + spotbugs + 2 gates jacoco
-cd apps/mobile  && npm run typecheck && npm run lint && npm test
+cd services/api   && ./mvnw verify      # 574 testes + spotless + spotbugs + 2 gates jacoco
+cd apps/mobile    && npm run typecheck && npm run lint && npm test    # 206 testes
+cd apps/dashboard && npm run build      # o painel compila
 
 # integração REAL contra a API em execução (fora do npm test de propósito)
-cd apps/mobile && E2E_API_URL=http://localhost:8080 npm run test:e2e
+cd apps/mobile && E2E_API_URL=http://localhost:8080 npm run test:e2e   # 20 testes
 ```
+
+> **O `test:e2e` exige o backend de pé** e faz quatro logins. O bloqueio antifraude é de **5
+> tentativas por minuto**, então rodar a suíte duas vezes seguidas estoura o balde e o `beforeAll`
+> falha com 429 — que se parece com defeito e não é. Espere um minuto entre execuções.
 
 **O `verify` barra por mais coisa que teste vermelho:** SpotBugs roda com `failOnError`, e o JaCoCo
 tem dois gates — 80% de instruções global e 85% nos pacotes `dominio`. Achado de análise estática ou
@@ -450,6 +513,12 @@ A saída real da última execução está em
 | App no celular não conecta | Firewall na 8080, ou celular em outra rede |
 | `Muitas tentativas. Aguarde 60 segundos` | Bloqueio de login, 5/min. Espere |
 | Mapa cinza ou sem tiles | O mapa exige internet (tiles do OpenStreetMap) |
+| `failed to connect to the docker API at unix:///…/docker.sock` | Você usa podman: exporte o `DOCKER_HOST` (ver [Pré-requisitos](#1-pré-requisitos)) |
+| `the container name "omnitribo-db" is already in use` | Outro clone do projeto está com o banco de pé. `make down` nele antes |
+| `cp: não foi possível obter estado de '.env.example'` | Está num commit anterior ao `.env.example`. Atualize, ou crie o `.env` à mão com `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD` |
+| `detected applied migration not resolved locally` | Um seed foi apagado (a `V28` apagou três). `make reset` |
+| `test:e2e` falha no `beforeAll` com `limiteRequisicoes` | Bloqueio de login, 5/min. Espere um minuto e rode de novo |
+| Painel em branco / preflight recusado no console | `ng serve` fora da porta 4200 — só ela está no CORS do perfil `dev` |
 
 Mais detalhes de rede e emulador em [`apps/mobile/README.md`](apps/mobile/README.md); containers e
 credenciais em [`docs/INFRA.md`](docs/INFRA.md).
@@ -497,14 +566,22 @@ Referência completa:
 | `CLAUDE.md` | memória do projeto: arquitetura, convenções, regras não negociáveis, pendências |
 | `services/api/CLAUDE.md` · `apps/mobile/CLAUDE.md` | convenções e armadilhas de cada camada |
 | [`docs/PROGRESSO.md`](docs/PROGRESSO.md) | tabela de fases e **notas de manutenção** — o log de por que cada correção estrutural foi feita |
-| [`docs/adr/`](docs/adr/) | 30 decisões com alternativas descartadas e o motivo real de cada recusa |
+| [`docs/adr/`](docs/adr/) | 31 decisões com alternativas descartadas e o motivo real de cada recusa |
 | [`docs/auditoria/`](docs/auditoria/) | 12 documentos de auditoria, com evidência executada (SQL, `curl`, `EXPLAIN`) |
 | [`docs/evidencias/`](docs/evidencias/) | saídas reais de medição — [índice](docs/evidencias/README.md) |
 | [`docs/qualidade/`](docs/qualidade/) | evidência de build, concorrência, mutação e a [matriz de rastreabilidade](docs/qualidade/matriz-rastreabilidade.md) requisito→teste→evidência |
 | [`docs/seguranca/`](docs/seguranca/) | modelo de ameaça de autenticação e limites do antifraude |
 | [`docs/COMPARATIVO-TECNOLOGIAS.md`](docs/COMPARATIVO-TECNOLOGIAS.md) | Flutter × Kotlin nativo × React Native, com o custo real de cada escolha |
 | [`docs/INFRA.md`](docs/INFRA.md) | containers, credenciais de dev, lista completa de usuários seed |
-| [`CHANGELOG.md`](CHANGELOG.md) | uma entrada por fase, de F0 até a v1.0 |
+| [`CHANGELOG.md`](CHANGELOG.md) | uma entrada por fase, de F0 até a v1.1 |
 | `CONTRIBUTING.md` | Conventional Commits e checklist pré-commit |
 | `tools/evidencias/` · `tools/carga/` | scripts de medição · teste de carga k6 (`tools/carrier-mock/` e `tools/dataset/` saíram com a extensão logística) |
 | `documentacao/` | PDF da entrega acadêmica. **Não é fonte de verdade técnica** — ver as divergências |
+
+**Os três apps do repositório**, e como cada um roda:
+
+| Diretório | O que é | Como sobe |
+|---|---|---|
+| `services/api/` | backend Spring Boot | `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` → `:8080` |
+| `apps/mobile/` | app Expo / React Native | `npm start` → QR no Expo Go |
+| `apps/dashboard/` | painel Angular (Parte 3 da F5) | `npm start` → `:4200` |
