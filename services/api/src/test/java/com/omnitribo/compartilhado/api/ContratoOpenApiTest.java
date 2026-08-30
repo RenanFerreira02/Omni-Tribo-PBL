@@ -46,9 +46,15 @@ class ContratoOpenApiTest extends TesteIntegracaoMvcBase {
    * Fora do contrato de negócio: infraestrutura da própria documentação e a página de erro do Boot.
    * Não é lista de conveniência para endpoint mal documentado — é o conjunto de caminhos que não
    * pertence à API versionada.
+   *
+   * <p>{@code /status} entrou aqui porque devolve <b>HTML renderizado no servidor</b>, não JSON: é
+   * a página de demonstração de Spring MVC + Thymeleaf, e o OpenAPI descreve a API REST contra a
+   * qual o app mobile e o dashboard integram. Descrevê-la no schema anunciaria como endpoint de API
+   * algo que nenhum cliente programático consome — e o gerador de cliente produziria um método que
+   * devolve {@code text/html}. Ela tem teste próprio em {@code StatusPaginaTest}.
    */
   private static final Set<String> PREFIXOS_FORA =
-      Set.of("/actuator", "/v3/api-docs", "/swagger-ui", "/error");
+      Set.of("/actuator", "/v3/api-docs", "/swagger-ui", "/error", "/status");
 
   @Autowired private MockMvc mockMvc;
 

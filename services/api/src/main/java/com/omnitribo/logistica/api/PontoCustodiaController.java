@@ -11,12 +11,17 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -73,5 +78,33 @@ public class PontoCustodiaController {
       @RequestParam(defaultValue = "2000") @Min(1) @Max(20000) int raioMetros,
       @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limite) {
     return pontoCustodiaService.proximos(filtro.lat(), filtro.lon(), raioMetros, limite);
+  }
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  @PreAuthorize("hasRole('ADMIN')")
+  @Operation(
+      summary = "Cadastrar ponto de custódia",
+      description =
+          """
+          Exclusivo de ADMIN. Até aqui um ponto de custódia só nascia por migration de seed, e o \
+          painel administrativo não tinha como abrir uma loja nova no bairro.
+
+          NÃO aceita `ocupacao` nem `ativo`: o ponto nasce vazio e ativo. Ocupação é movida só pelo \
+          webhook de entrega falida e pela baixa da missão, ambos sob `SELECT ... FOR UPDATE` — \
+          aceitá-la aqui abriria por fora do lock a corrida que ele fecha.
+
+          Código repetido e tribo inexistente respondem 422, não 409: são dados que não satisfazem \
+          a regra, e a reação da tela é corrigir o campo, não recarregar.
+          """)
+  @ApiResponses({
+    @ApiResponse(responseCode = "201", description = "Ponto cadastrado"),
+    @ApiResponse(responseCode = "400", ref = "#/components/responses/RequisicaoInvalida"),
+    @ApiResponse(responseCode = "401", ref = "#/components/responses/NaoAutenticado"),
+    @ApiResponse(responseCode = "403", ref = "#/components/responses/AcessoNegado"),
+    @ApiResponse(responseCode = "422", ref = "#/components/responses/RegraNegocioViolada")
+  })
+  public PontoCustodiaResponse cadastrar(@Valid @RequestBody CadastrarPontoCustodiaRequest pedido) {
+    return pontoCustodiaService.cadastrar(pedido);
   }
 }

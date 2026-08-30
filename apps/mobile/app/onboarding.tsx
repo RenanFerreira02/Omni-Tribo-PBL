@@ -34,9 +34,9 @@ const SLIDES: Slide[] = [
   {
     chave: 'perto',
     emoji: '📍',
-    titulo: 'Missões no seu bairro',
+    titulo: 'Ajuda a poucos quarteirões',
     texto:
-      'Entregas que falharam, coletas de recicláveis, mutirões e pedidos de ajuda — tudo a poucos quarteirões de você.',
+      'Pedidos de ajuda de vizinhos, mutirões de rua, coleta de recicláveis e entregas solidárias — tudo perto de você.',
   },
   {
     chave: 'checkin',

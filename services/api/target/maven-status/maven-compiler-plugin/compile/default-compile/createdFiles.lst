@@ -81,6 +81,7 @@ com/omnitribo/logistica/dominio/PontoCustodiaService.class
 com/omnitribo/compartilhado/infra/JwtProperties.class
 com/omnitribo/missoes/api/ResumoMissoesDoSistema.class
 com/omnitribo/identidade/api/RegistrarRequest.class
+com/omnitribo/identidade/api/ConsultaTribo.class
 com/omnitribo/logistica/dominio/ResultadoRisco.class
 com/omnitribo/missoes/api/ResultadoRegistroCheckin.class
 com/omnitribo/geolocalizacao/dominio/MetodoCheckin.class
@@ -327,6 +328,7 @@ com/omnitribo/compartilhado/api/ImpactoResponse$CustoEvitado.class
 com/omnitribo/integracoes/infra/ProtecaoDeChamadasExternas.class
 com/omnitribo/notificacoes/api/AlertaController.class
 com/omnitribo/missoes/api/ResolverDisputaRequest$Resultado.class
+com/omnitribo/logistica/api/CadastrarPontoCustodiaRequest.class
 com/omnitribo/logistica/dominio/PrevisorDeRisco.class
 com/omnitribo/compartilhado/api/ConsultasGeoespaciais$Centro.class
 com/omnitribo/identidade/api/AtualizarConsentimentoRequest.class
@@ -355,4 +357,5 @@ com/omnitribo/identidade/infra/UsuarioRepository.class
 com/omnitribo/missoes/dominio/TipoMissaoEvento.class
 com/omnitribo/compartilhado/api/AtributosWebhook.class
 com/omnitribo/notificacoes/dominio/Alerta.class
+com/omnitribo/compartilhado/api/StatusController.class
 com/omnitribo/missoes/infra/DadosPessoaisMissoes.class

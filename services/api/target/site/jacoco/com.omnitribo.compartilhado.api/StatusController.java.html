@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StatusController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.compartilhado.api</a> &gt; <span class="el_source">StatusController.java</span></div><h1>StatusController.java</h1><pre class="source lang-java linenums">package com.omnitribo.compartilhado.api;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+
+/**
+ * Página única de status, renderizada no SERVIDOR com Spring MVC + Thymeleaf.
+ *
+ * &lt;h2&gt;Por que esta página existe, e por que ela não cresce&lt;/h2&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;Ela existe para demonstrar Spring MVC com renderização no servidor — Parte 2 do enunciado —
+ * e nada mais.&lt;/b&gt; A interface administrativa deste projeto é o dashboard Angular em {@code
+ * apps/dashboard}, que consome a API REST: é lá que ficam listagem, cadastro de ponto de custódia e
+ * indicadores de impacto. Nada de administração deve ser acrescentado aqui.
+ *
+ * &lt;p&gt;Consequência prática para quem for mexer: se você veio adicionar um formulário, um menu ou uma
+ * segunda página, o lugar é o dashboard. Duas interfaces administrativas para o mesmo sistema
+ * divergem — e a que tiver menos uso é a que vai ficar mentindo primeiro.
+ *
+ * &lt;h2&gt;Três decisões que parecem arbitrárias e não são&lt;/h2&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;1. A contagem de migrations vem da API do Flyway, não de um {@code SELECT} na {@code
+ * flyway_schema_history}.&lt;/b&gt; A aplicação conecta como {@code omnitribo_app}, que &lt;b&gt;não tem
+ * permissão de leitura naquela tabela&lt;/b&gt; — {@code permission denied for table
+ * flyway_schema_history}, verificado. O Flyway tem datasource próprio, com credencial própria, e é
+ * ele quem consegue ler o histórico. A alternativa seria conceder {@code SELECT} ao usuário da
+ * aplicação, o que afrouxaria o isolamento que a verificação de 2026-08-11 introduziu de propósito.
+ *
+ * &lt;p&gt;&lt;b&gt;2. A página não tem CSS.&lt;/b&gt; A CSP da cadeia principal é {@code default-src 'none'}, que é
+ * a política certa para uma API que só devolve JSON. {@code style-src} recai sobre ela, então um
+ * bloco {@code &lt;style&gt;} seria recusado pelo browser e a página chegaria com 200 e sem estilo —
+ * sintoma que só aparece no console do DevTools. Foi o mesmo problema que obrigou o Swagger UI a
+ * ter cadeia própria. Uma página de status não vale uma exceção de CSP, então ela usa HTML
+ * semântico e o estilo default do browser.
+ *
+ * &lt;p&gt;&lt;b&gt;3. {@code @Profile(&quot;!prod&quot;)}.&lt;/b&gt; A página anuncia perfil ativo e versão sem exigir
+ * autenticação — em produção isso é reconhecimento de graça para quem estiver sondando, e ela não
+ * serve a nenhum operador, já que {@code /actuator/health} responde essa pergunta melhor. Mesma
+ * política do springdoc, que {@code application-prod.yml} desliga.
+ */
+@Controller
+@Profile(&quot;!prod&quot;)
+public class StatusController {
+
+<span class="fc" id="L54">  private static final Logger log = LoggerFactory.getLogger(StatusController.class);</span>
+
+  private final Environment ambiente;
+  private final JdbcTemplate jdbcTemplate;
+  private final Flyway flyway;
+
+  @Value(&quot;${app.info.nome}&quot;)
+  private String nome;
+
+  @Value(&quot;${app.info.versao}&quot;)
+  private String versao;
+
+  // EI_EXPOSE_REP2: JdbcTemplate e Flyway são singletons do container — injetados, não passados
+  // por um chamador que possa mutá-los depois. Mesmo caso e mesma justificativa do RateLimitFilter
+  // em SecurityConfig. Cópia defensiva de um bean Spring não faria sentido: quebraria a injeção.
+  @SuppressFBWarnings(&quot;EI_EXPOSE_REP2&quot;)
+<span class="fc" id="L70">  public StatusController(Environment ambiente, JdbcTemplate jdbcTemplate, Flyway flyway) {</span>
+<span class="fc" id="L71">    this.ambiente = ambiente;</span>
+<span class="fc" id="L72">    this.jdbcTemplate = jdbcTemplate;</span>
+<span class="fc" id="L73">    this.flyway = flyway;</span>
+<span class="fc" id="L74">  }</span>
+
+  @GetMapping(&quot;/status&quot;)
+  public String status(Model model) {
+<span class="fc" id="L78">    model.addAttribute(&quot;nome&quot;, nome);</span>
+<span class="fc" id="L79">    model.addAttribute(&quot;versao&quot;, versao);</span>
+
+<span class="fc" id="L81">    String[] ativos = ambiente.getActiveProfiles();</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">    model.addAttribute(&quot;perfil&quot;, ativos.length == 0 ? &quot;default&quot; : String.join(&quot;, &quot;, ativos));</span>
+
+<span class="fc" id="L84">    boolean bancoOk = bancoRespondendo();</span>
+<span class="fc" id="L85">    model.addAttribute(&quot;bancoOk&quot;, bancoOk);</span>
+    // A contagem só faz sentido se o banco respondeu; -1 sinaliza &quot;não apurado&quot; e o template o
+    // traduz, em vez de exibir 0 — que seria indistinguível de &quot;nenhuma migration aplicada&quot;.
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">    model.addAttribute(&quot;migracoes&quot;, bancoOk ? migracoesAplicadas() : -1);</span>
+
+<span class="fc" id="L90">    return &quot;status&quot;;</span>
+  }
+
+  /** Sonda o banco pela conexão que a APLICAÇÃO usa — é essa que importa para quem lê a página. */
+  private boolean bancoRespondendo() {
+    try {
+<span class="fc" id="L96">      jdbcTemplate.queryForObject(&quot;SELECT 1&quot;, Integer.class);</span>
+<span class="fc" id="L97">      return true;</span>
+<span class="nc" id="L98">    } catch (org.springframework.dao.DataAccessException e) {</span>
+      // warn e não error: banco fora do ar é o fato que a página existe para mostrar, não um
+      // incidente da página. Registrar como error fabricaria alarme sobre uma leitura de status.
+<span class="nc" id="L101">      log.warn(&quot;Banco não respondeu à sonda de /status&quot;, e);</span>
+<span class="nc" id="L102">      return false;</span>
+    }
+  }
+
+  private int migracoesAplicadas() {
+    try {
+<span class="fc" id="L108">      return flyway.info().applied().length;</span>
+<span class="nc" id="L109">    } catch (RuntimeException e) {</span>
+<span class="nc" id="L110">      log.warn(&quot;Não foi possível ler o histórico de migrations&quot;, e);</span>
+<span class="nc" id="L111">      return -1;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

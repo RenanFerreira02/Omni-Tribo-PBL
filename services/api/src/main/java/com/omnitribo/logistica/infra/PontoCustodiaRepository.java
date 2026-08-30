@@ -33,4 +33,14 @@ public interface PontoCustodiaRepository extends JpaRepository<PontoCustodia, UU
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select p from PontoCustodia p where p.id = :id")
   Optional<PontoCustodia> buscarParaAtualizar(@Param("id") UUID id);
+
+  /**
+   * Sonda de duplicata do código, para o cadastro recusar com 422 em vez de 500.
+   *
+   * <p>Não substitui {@code uk_ponto_custodia_codigo}: entre esta consulta e o INSERT cabe outro
+   * cadastro com o mesmo código. A UNIQUE continua sendo a barreira que garante a invariante; esta
+   * consulta só transforma o caso comum — um humano repetindo um código — numa mensagem que aponta
+   * o campo, em vez de um erro de driver.
+   */
+  boolean existsByCodigo(String codigo);
 }

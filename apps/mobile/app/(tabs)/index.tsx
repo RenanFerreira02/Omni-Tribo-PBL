@@ -14,10 +14,9 @@ import { JustificativaLocalizacao } from '@/components/JustificativaLocalizacao'
 import { MissaoCard } from '@/components/MissaoCard';
 import { useMissoesInfinitas, useMissoesProximas } from '@/features/missoes/hooks';
 import { useLocalizacao } from '@/features/missoes/useLocalizacao';
+import { CATEGORIAS } from '@/features/missoes/rotulos';
 import { rotuloCategoria } from '@/lib/formatar';
 import { cores, coresCategoria, glifoCategoria, espaco, textoAcessivel, tipografia } from '@/theme';
-
-const CATEGORIAS: CategoriaMissao[] = ['ENTREGA', 'COLETA', 'TRIBO', 'AJUDA'];
 
 type Modo = 'perto' | 'todas';
 

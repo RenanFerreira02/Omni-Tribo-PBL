@@ -47,7 +47,7 @@ describe('onboarding', () => {
     await render(<Onboarding />);
 
     expect(screen.getByTestId('indicador-paginas')).toBeTruthy();
-    expect(screen.getByText(/Missões no seu bairro/)).toBeTruthy();
+    expect(screen.getByText(/Ajuda a poucos quarteirões/)).toBeTruthy();
     expect(screen.getByText(/Check-in no local/)).toBeTruthy();
     // O terceiro slide é o que o produto mais precisa deixar claro desde o início.
     expect(screen.getByText(/XP e tokens, não dinheiro/)).toBeTruthy();

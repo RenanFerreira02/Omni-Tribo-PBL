@@ -186,11 +186,18 @@ public class SecurityConfig {
                         &quot;/api/v1/auth/registrar&quot;,
                         &quot;/api/v1/auth/refresh&quot;,
                         &quot;/api/v1/webhooks/**&quot;, // autenticado por HMAC, ver HmacWebhookFilter
-                        &quot;/api/v1/ping&quot; // health check
-                        )
-<span class="fc" id="L191">                    .permitAll()</span>
-<span class="fc" id="L192">                    .anyRequest()</span>
-<span class="fc" id="L193">                    .authenticated())</span>
+                        &quot;/api/v1/ping&quot;, // health check
+                        // Página de demonstração de Spring MVC + Thymeleaf, servida em HTML. É
+                        // anônima porque esta API autentica só por Bearer: exigir JWT tornaria a
+                        // página inalcançável num browser, que é o único lugar onde ela faz
+                        // sentido. Ela não existe em produção — StatusController é
+                        // @Profile(&quot;!prod&quot;)
+                        // —, e o que expõe (nome, versão, perfil, banco de pé) é do mesmo nível do
+                        // /actuator/health e /info, que já respondem anônimos.
+                        &quot;/status&quot;)
+<span class="fc" id="L198">                    .permitAll()</span>
+<span class="fc" id="L199">                    .anyRequest()</span>
+<span class="fc" id="L200">                    .authenticated())</span>
 
         // Filtros customizados — instanciados aqui, não como @Component, para evitar
         // que o Spring Boot os registre também como filtros de servlet (dupla execução).
@@ -204,39 +211,39 @@ public class SecurityConfig {
         // resolve a posição se Y já tem ordem conhecida na cadeia. Invertendo as duas linhas, a
         // montagem falha no startup com &quot;The Filter class RateLimitFilter does not have a
         // registered order&quot;.
-<span class="fc" id="L207">        .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)</span>
-<span class="fc" id="L208">        .addFilterBefore(new HmacWebhookFilter(parametrosWebhook), RateLimitFilter.class)</span>
-<span class="fc" id="L209">        .addFilterAfter(new JwtAuthFilter(jwtService, consultaSessao), RateLimitFilter.class)</span>
+<span class="fc" id="L214">        .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)</span>
+<span class="fc" id="L215">        .addFilterBefore(new HmacWebhookFilter(parametrosWebhook), RateLimitFilter.class)</span>
+<span class="fc" id="L216">        .addFilterAfter(new JwtAuthFilter(jwtService, consultaSessao), RateLimitFilter.class)</span>
 
         // Handlers customizados: retornam ProblemDetail (RFC 9457) em vez do HTML padrão.
-<span class="fc" id="L212">        .exceptionHandling(</span>
+<span class="fc" id="L219">        .exceptionHandling(</span>
             e -&gt;
-<span class="fc" id="L214">                e.authenticationEntryPoint(this::entryPoint401)</span>
-<span class="fc" id="L215">                    .accessDeniedHandler(this::handler403))</span>
+<span class="fc" id="L221">                e.authenticationEntryPoint(this::entryPoint401)</span>
+<span class="fc" id="L222">                    .accessDeniedHandler(this::handler403))</span>
 
         // Headers de segurança
-<span class="fc" id="L218">        .headers(</span>
+<span class="fc" id="L225">        .headers(</span>
             h -&gt;
-<span class="fc" id="L220">                h</span>
+<span class="fc" id="L227">                h</span>
                     // HSTS: força HTTPS por 1 ano em todos os subdomínios.
                     // Só ativo em produção com TLS real; em dev o browser ignora HTTP.
-<span class="fc" id="L223">                    .httpStrictTransportSecurity(</span>
-<span class="fc" id="L224">                        hsts -&gt; hsts.maxAgeInSeconds(31536000).includeSubDomains(true))</span>
+<span class="fc" id="L230">                    .httpStrictTransportSecurity(</span>
+<span class="fc" id="L231">                        hsts -&gt; hsts.maxAgeInSeconds(31536000).includeSubDomains(true))</span>
                     // X-Frame-Options DENY: impede clickjacking via iframe.
-<span class="fc" id="L226">                    .frameOptions(f -&gt; f.deny())</span>
+<span class="fc" id="L233">                    .frameOptions(f -&gt; f.deny())</span>
                     // X-Content-Type-Options nosniff: impede MIME sniffing pelo browser.
-<span class="fc" id="L228">                    .contentTypeOptions(c -&gt; {})</span>
+<span class="fc" id="L235">                    .contentTypeOptions(c -&gt; {})</span>
                     // Referrer-Policy: não vaza a URL da API nos cabeçalhos Referer externos.
-<span class="fc" id="L230">                    .referrerPolicy(</span>
-<span class="fc" id="L231">                        r -&gt; r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))</span>
+<span class="fc" id="L237">                    .referrerPolicy(</span>
+<span class="fc" id="L238">                        r -&gt; r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))</span>
                     // CSP: API pura — nenhum recurso externo, nenhum frame, nenhum form.
                     // Em produção com frontend servido pelo mesmo domínio, ajustar default-src.
-<span class="fc" id="L234">                    .contentSecurityPolicy(</span>
+<span class="fc" id="L241">                    .contentSecurityPolicy(</span>
                         csp -&gt;
-<span class="fc" id="L236">                            csp.policyDirectives(</span>
+<span class="fc" id="L243">                            csp.policyDirectives(</span>
                                 &quot;default-src 'none'; frame-ancestors 'none'; form-action 'none'&quot;)));
 
-<span class="fc" id="L239">    return http.build();</span>
+<span class="fc" id="L246">    return http.build();</span>
   }
 
   /**
@@ -252,39 +259,51 @@ public class SecurityConfig {
    */
   @Bean
   CorsConfigurationSource corsConfigSource() {
-<span class="fc" id="L255">    CorsConfiguration config = new CorsConfiguration();</span>
-<span class="fc" id="L256">    List&lt;String&gt; origens =</span>
-<span class="fc" id="L257">        Arrays.stream(origensPermitidas.split(&quot;,&quot;))</span>
-<span class="fc" id="L258">            .map(String::trim)</span>
-<span class="pc bpc" id="L259" title="1 of 2 branches missed.">            .filter(o -&gt; !o.isEmpty())</span>
-<span class="fc" id="L260">            .toList();</span>
-<span class="fc" id="L261">    config.setAllowedOrigins(origens);</span>
-<span class="fc" id="L262">    config.setAllowedMethods(List.of(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;));</span>
-<span class="fc" id="L263">    config.setAllowedHeaders(</span>
-<span class="fc" id="L264">        List.of(&quot;Authorization&quot;, &quot;Content-Type&quot;, &quot;X-Correlation-Id&quot;, &quot;X-Requested-With&quot;));</span>
-<span class="fc" id="L265">    config.setExposedHeaders(List.of(&quot;X-Correlation-Id&quot;));</span>
-<span class="fc" id="L266">    config.setAllowCredentials(false); // Bearer token — sem cookies de sessão</span>
-<span class="fc" id="L267">    config.setMaxAge(3600L);</span>
+<span class="fc" id="L262">    CorsConfiguration config = new CorsConfiguration();</span>
+<span class="fc" id="L263">    List&lt;String&gt; origens =</span>
+<span class="fc" id="L264">        Arrays.stream(origensPermitidas.split(&quot;,&quot;))</span>
+<span class="fc" id="L265">            .map(String::trim)</span>
+<span class="pc bpc" id="L266" title="1 of 2 branches missed.">            .filter(o -&gt; !o.isEmpty())</span>
+<span class="fc" id="L267">            .toList();</span>
+<span class="fc" id="L268">    config.setAllowedOrigins(origens);</span>
+<span class="fc" id="L269">    config.setAllowedMethods(List.of(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;));</span>
+    // Idempotency-Key NÃO é opcional nesta lista, e a ausência dele era invisível: cinco POSTs o
+    // exigem como obrigatório (transferências, saques, resgates, financiamentos e aportes). Header
+    // customizado torna a requisição não-simples, então o browser manda o preflight — e o
+    // CorsFilter, não achando o nome aqui, reprova o preflight e a requisição REAL nunca sai. Do
+    // lado do servidor não há status nem log: o erro só aparece no console do browser. O app mobile
+    // nunca esbarrou nisso porque React Native não faz preflight, o que é exatamente o motivo de a
+    // falha ter sobrevivido até um cliente de browser existir.
+<span class="fc" id="L277">    config.setAllowedHeaders(</span>
+<span class="fc" id="L278">        List.of(</span>
+            &quot;Authorization&quot;,
+            &quot;Content-Type&quot;,
+            &quot;Idempotency-Key&quot;,
+            &quot;X-Correlation-Id&quot;,
+            &quot;X-Requested-With&quot;));
+<span class="fc" id="L284">    config.setExposedHeaders(List.of(&quot;X-Correlation-Id&quot;));</span>
+<span class="fc" id="L285">    config.setAllowCredentials(false); // Bearer token — sem cookies de sessão</span>
+<span class="fc" id="L286">    config.setMaxAge(3600L);</span>
 
-<span class="fc" id="L269">    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();</span>
-<span class="fc" id="L270">    source.registerCorsConfiguration(&quot;/**&quot;, config);</span>
-<span class="fc" id="L271">    return source;</span>
+<span class="fc" id="L288">    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();</span>
+<span class="fc" id="L289">    source.registerCorsConfiguration(&quot;/**&quot;, config);</span>
+<span class="fc" id="L290">    return source;</span>
   }
 
   /** 401 em ProblemDetail — chamado quando não há autenticação válida. */
   private void entryPoint401(
       HttpServletRequest request, HttpServletResponse response, AuthenticationException ex)
       throws IOException {
-<span class="fc" id="L278">    escreverProblemDetail(</span>
-<span class="fc" id="L279">        response, HttpStatus.UNAUTHORIZED, &quot;Autenticação necessária&quot;, request.getRequestURI());</span>
-<span class="fc" id="L280">  }</span>
+<span class="fc" id="L297">    escreverProblemDetail(</span>
+<span class="fc" id="L298">        response, HttpStatus.UNAUTHORIZED, &quot;Autenticação necessária&quot;, request.getRequestURI());</span>
+<span class="fc" id="L299">  }</span>
 
   /** 403 em ProblemDetail — chamado quando a autenticação existe mas a autorização falha. */
   private void handler403(
       HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex)
       throws IOException {
-<span class="nc" id="L286">    escreverProblemDetail(response, HttpStatus.FORBIDDEN, &quot;Acesso negado&quot;, request.getRequestURI());</span>
-<span class="nc" id="L287">  }</span>
+<span class="nc" id="L305">    escreverProblemDetail(response, HttpStatus.FORBIDDEN, &quot;Acesso negado&quot;, request.getRequestURI());</span>
+<span class="nc" id="L306">  }</span>
 
   private void escreverProblemDetail(
       HttpServletResponse response, HttpStatus status, String detalhe, String instancia)
@@ -292,29 +311,29 @@ public class SecurityConfig {
     // Escreve ProblemDetail (RFC 9457) diretamente: AuthenticationEntryPoint e
     // AccessDeniedHandler executam no filtro, antes do DispatcherServlet, onde ObjectMapper
     // pode não estar disponível no ciclo de inicialização. Autocontido por design.
-<span class="fc" id="L295">    response.setStatus(status.value());</span>
-<span class="fc" id="L296">    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);</span>
+<span class="fc" id="L314">    response.setStatus(status.value());</span>
+<span class="fc" id="L315">    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);</span>
     // Obrigatório, e não cosmético: sem isto o servlet cai no default ISO-8859-1 e o corpo sai
     // com &quot;Autenticação&quot; em Latin-1 dentro de um application/problem+json. JSON é UTF-8 por
     // definição (RFC 8259 §8.1), então o cliente decodifica lixo — e 401 é o erro que o app mais
     // recebe, porque todo access token expira em 15 min.
-<span class="fc" id="L301">    response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
-<span class="fc" id="L302">    String uri = instancia.replace(&quot;\&quot;&quot;, &quot;&quot;);</span>
+<span class="fc" id="L320">    response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
+<span class="fc" id="L321">    String uri = instancia.replace(&quot;\&quot;&quot;, &quot;&quot;);</span>
     // Mesmo catálogo de type do GlobalExceptionHandler. Sem isto, 401 e 403 vindos da cadeia de
     // filtros sairiam como about:blank enquanto os do controller sairiam tipados — o cliente veria
     // dois contratos de erro diferentes para a mesma situação, dependendo de onde ela foi
     // detectada.
-<span class="fc" id="L307">    response</span>
-<span class="fc" id="L308">        .getWriter()</span>
-<span class="fc" id="L309">        .write(</span>
-<span class="fc" id="L310">            String.format(</span>
+<span class="fc" id="L326">    response</span>
+<span class="fc" id="L327">        .getWriter()</span>
+<span class="fc" id="L328">        .write(</span>
+<span class="fc" id="L329">            String.format(</span>
                 &quot;{\&quot;type\&quot;:\&quot;%s\&quot;,\&quot;title\&quot;:\&quot;%s\&quot;,\&quot;status\&quot;:%d&quot;
                     + &quot;,\&quot;detail\&quot;:\&quot;%s\&quot;,\&quot;instance\&quot;:\&quot;%s\&quot;}&quot;,
-<span class="fc" id="L313">                TipoProblema.deStatus(status),</span>
-<span class="fc" id="L314">                status.getReasonPhrase(),</span>
-<span class="fc" id="L315">                status.value(),</span>
-<span class="fc" id="L316">                detalhe.replace(&quot;\&quot;&quot;, &quot;'&quot;),</span>
+<span class="fc" id="L332">                TipoProblema.deStatus(status),</span>
+<span class="fc" id="L333">                status.getReasonPhrase(),</span>
+<span class="fc" id="L334">                status.value(),</span>
+<span class="fc" id="L335">                detalhe.replace(&quot;\&quot;&quot;, &quot;'&quot;),</span>
                 uri));
-<span class="fc" id="L318">  }</span>
+<span class="fc" id="L337">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

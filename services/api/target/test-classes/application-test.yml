@@ -27,7 +27,10 @@ app:
     # DESLIGADA — que é o padrão de dev e prod — tem teste próprio em SaqueDesabilitadoTest.
     saque-habilitado: true
   cors:
-    origens-permitidas: http://localhost:8081
+    # DUAS origens, e as duas são exercitadas: CorsConfigTest afirma sobre 4200 (o dashboard
+    # Angular) e usa a ausência de qualquer outra para provar a recusa. Uma lista de um item só não
+    # distinguiria "recusou a origem errada" de "recusa tudo".
+    origens-permitidas: http://localhost:4200,http://localhost:8081
   rate-limit:
     # Rate limiting tem testes próprios em AuthControllerTest e é reavaliado em F12. Aqui um
     # limite apertado só mascararia resultados de outros testes com 429.

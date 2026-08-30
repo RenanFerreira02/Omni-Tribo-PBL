@@ -1,0 +1,65 @@
+.cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+h1 { margin: 0 0 0.2rem; font-size: 1.4rem; }
+h2 { margin: 1.8rem 0 0.6rem; font-size: 1rem; color: #33414f; }
+.perfil { margin: 0; color: #5d6b7a; font-size: 0.85rem; }
+.proposito { margin: 0.15rem 0 0; color: #5d6b7a; font-size: 0.85rem; }
+
+.recarregar {
+  padding: 0.45rem 0.9rem; border: 1px solid #2f6f4f; border-radius: 6px;
+  background: #2f6f4f; color: #fff; font: inherit; font-size: 0.85rem; cursor: pointer;
+}
+.recarregar:disabled { border-color: #9bb0a4; background: #9bb0a4; cursor: not-allowed; }
+
+.aviso { margin: 1.2rem 0; padding: 0.9rem 1rem; border-radius: 8px; font-size: 0.9rem; }
+.aviso.carregando { background: #eef2f6; color: #4a5a6a; }
+.aviso.erro { background: #fdecec; color: #96271f; border: 1px solid #f2c4c0; }
+.aviso.erro .erro-frase { margin: 0 0 0.35rem; font-weight: 600; }
+.aviso.erro .erro-meta { margin: 0 0 0.7rem; font-size: 0.78rem; color: #7d3b34; }
+.aviso.erro code { background: #f7dad7; padding: 0.05rem 0.3rem; border-radius: 3px; }
+.aviso.erro button, .aviso.vazio button {
+  padding: 0.4rem 0.8rem; border: 1px solid currentColor; border-radius: 6px;
+  background: transparent; color: inherit; font: inherit; font-size: 0.82rem; cursor: pointer;
+}
+.aviso.vazio { background: #fff8e6; color: #6b4e14; border: 1px solid #f0dfae; }
+.aviso.vazio p { margin: 0 0 0.5rem; }
+.aviso.vazio ul { margin: 0 0 0.8rem; padding-left: 1.1rem; }
+.aviso.vazio li { margin-bottom: 0.25rem; }
+.aviso.vazio code { background: #f4e8c8; padding: 0.05rem 0.3rem; border-radius: 3px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.8rem; margin-top: 1.2rem; }
+.card { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.9rem; border: 1px solid #e2e7ec; border-radius: 8px; background: #fff; }
+.card-rotulo { color: #5d6b7a; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.card-valor { font-size: 1.9rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.barra { height: 6px; border-radius: 3px; background: #eef1f4; overflow: hidden; }
+.barra-preenchida { height: 100%; background: #2f6f4f; border-radius: 3px; }
+.card-proporcao { color: #7a8794; font-size: 0.75rem; }
+.card-proporcao.vazio { font-style: italic; }
+
+.filtros { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.6rem; }
+.filtros-rotulo { color: #5d6b7a; font-size: 0.85rem; margin-right: 0.2rem; }
+.filtros button {
+  padding: 0.3rem 0.7rem; border: 1px solid #c9d1da; border-radius: 999px;
+  background: #fff; font: inherit; font-size: 0.8rem; cursor: pointer; color: #33414f;
+}
+.filtros button.ativo { border-color: #2f6f4f; background: #2f6f4f; color: #fff; }
+
+table.missoes { width: 100%; margin-top: 0.9rem; border-collapse: collapse; font-size: 0.87rem; background: #fff; }
+table.missoes caption { caption-side: top; text-align: left; padding-bottom: 0.4rem; color: #5d6b7a; font-size: 0.8rem; }
+table.missoes th, table.missoes td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #eaeef2; text-align: left; }
+table.missoes th { color: #5d6b7a; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+table.missoes .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.selo { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+.selo-aberta { background: #e4f0e9; color: #1f5a3d; }
+.selo-aceita { background: #e5eefa; color: #1d4a80; }
+.selo-em_andamento { background: #fdf0d8; color: #7a5410; }
+.selo-aguardando_confirmacao { background: #f3e9fa; color: #5b2d80; }
+.selo-em_disputa { background: #fde6e3; color: #8f2a20; }
+.selo-concluida { background: #dcece2; color: #14502f; }
+.selo-cancelada, .selo-expirada, .selo-rascunho { background: #eceff2; color: #56626e; }
+
+.tribos ul { margin: 0; padding: 0; list-style: none; border: 1px solid #e6eaee; border-radius: 8px; overflow: hidden; background: #fff; }
+.tribos li { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; padding: 0.55rem 0.8rem; border-bottom: 1px solid #eef1f4; font-size: 0.87rem; }
+.tribos li:last-child { border-bottom: none; }
+.tribos .bairro, .tribos .centro { color: #5d6b7a; }
+.tribos .vazio { color: #a9b3bd; font-style: italic; }

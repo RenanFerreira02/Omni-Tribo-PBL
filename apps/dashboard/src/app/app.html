@@ -1,0 +1,20 @@
+<header>
+  <!-- {{ }} — interpolação -->
+  <span class="marca">{{ titulo }}</span>
+
+  <!-- *ngIf — a navegação só existe para quem está autenticado -->
+  <nav *ngIf="auth.estaAutenticado()">
+    <a routerLink="/home" routerLinkActive="ativo">Home</a>
+    <a routerLink="/admin" routerLinkActive="ativo">Admin</a>
+  </nav>
+
+  <div class="direita" *ngIf="auth.estaAutenticado()">
+    <span class="email" *ngIf="auth.usuario() as usuario">{{ usuario.email }}</span>
+    <!-- ( ) — event binding -->
+    <button type="button" (click)="sair()">Sair</button>
+  </div>
+</header>
+
+<main>
+  <router-outlet />
+</main>

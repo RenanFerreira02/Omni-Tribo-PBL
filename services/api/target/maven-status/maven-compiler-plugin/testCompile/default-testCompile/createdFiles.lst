@@ -34,6 +34,7 @@ com/omnitribo/logistica/treino/AvaliadorCalibracao$Faixa.class
 com/omnitribo/missoes/dominio/CalculadoraDeRecompensaTest.class
 com/omnitribo/JwtTestConfig$1.class
 com/omnitribo/logistica/api/PontoCustodiaControllerTest.class
+com/omnitribo/compartilhado/api/StatusPaginaTest.class
 com/omnitribo/compartilhado/infra/IndiceGeoespacialTest.class
 com/omnitribo/compartilhado/dominio/MedianaTest.class
 com/omnitribo/logistica/treino/ParametrosDoYaml.class
@@ -50,6 +51,7 @@ com/omnitribo/missoes/dominio/MissaoStateMachineTest.class
 com/omnitribo/carteira/api/TransferenciaDeadlockTest.class
 com/omnitribo/carteira/SuporteCarteira.class
 com/omnitribo/identidade/api/AuthControllerTest.class
+com/omnitribo/compartilhado/infra/CorsConfigTest.class
 com/omnitribo/compartilhado/infra/BloqueioProgressivoTest.class
 com/omnitribo/carteira/api/ConservacaoTokensTest.class
 com/omnitribo/compartilhado/api/ContratoErroTest.class
@@ -67,6 +69,7 @@ com/omnitribo/carteira/api/TransferenciaControllerTest.class
 com/omnitribo/compartilhado/dominio/ImpactoServiceTest.class
 com/omnitribo/integracoes/infra/DisjuntorTest.class
 com/omnitribo/carteira/api/ResgateBeneficioTest.class
+com/omnitribo/logistica/api/PontoCustodiaCadastroTest.class
 com/omnitribo/logistica/treino/GeradorDatasetEntregas.class
 com/omnitribo/compartilhado/api/ActuatorSegurancaTest.class
 com/omnitribo/carteira/api/CarteiraLeituraESaqueTest.class

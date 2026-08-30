@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title th:text="'Status · ' + ${nome}">Status</title>
+  </head>
+  <body>
+    <h1 th:text="${nome}">aplicação</h1>
+
+    <!--/*
+      Comentário de PARSER do Thymeleaf: some da resposta. Comentário HTML comum viraria texto na
+      página, e um teste que afirme sobre o conteúdo renderizado passaria a casar com a explicação
+      em vez do dado.
+
+      Cuidado ao editar: escrever a sequência de fechamento dentro do texto encerra o comentário
+      ali mesmo, e todo o resto vaza como conteúdo visível. Aconteceu aqui, e a regressão está
+      coberta por StatusPaginaTest.nao_vaza_comentario_do_template_para_a_saida.
+
+      A página não tem estilo: a CSP da cadeia principal é default-src 'none' e style-src recai
+      sobre ela, então um bloco de estilo seria recusado pelo browser sem erro nenhum no servidor.
+      Ver o javadoc de StatusController.
+    */-->
+    <dl>
+      <dt>Versão</dt>
+      <dd th:text="${versao}">—</dd>
+
+      <dt>Perfil ativo</dt>
+      <dd th:text="${perfil}">—</dd>
+
+      <dt>Banco de dados</dt>
+      <dd th:text="${bancoOk} ? 'conectado' : 'indisponível'">—</dd>
+
+      <dt>Migrations aplicadas</dt>
+      <!--/* -1 é "não apurado", e não zero: zero afirmaria banco vazio, que é outra coisa. */-->
+      <dd th:text="${migracoes} &lt; 0 ? 'não apurado' : ${migracoes}">—</dd>
+    </dl>
+
+    <hr />
+    <p>
+      Página de demonstração de Spring MVC + Thymeleaf. A interface administrativa deste projeto é o
+      dashboard Angular em <code>apps/dashboard</code>.
+    </p>
+  </body>
+</html>

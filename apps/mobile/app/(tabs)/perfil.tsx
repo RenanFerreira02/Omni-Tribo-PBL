@@ -233,6 +233,15 @@ export default function TelaPerfil() {
           </Text>
         </Card>
 
+        {/* ─── Sobre ─────────────────────────────────────────────────────────────────────── */}
+        <TituloTela nivel="secao">Sobre o Omni-Tribo</TituloTela>
+        <Botao
+          titulo="O que é o Omni-Tribo"
+          variante="secundario"
+          onPress={() => router.push('/sobre')}
+          testID="botao-sobre"
+        />
+
         <Botao titulo="Sair" variante="secundario" onPress={sair} testID="botao-sair" />
       </ScrollView>
 

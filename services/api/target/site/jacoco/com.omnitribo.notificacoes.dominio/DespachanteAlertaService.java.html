@@ -225,9 +225,9 @@ public class DespachanteAlertaService implements DespachoAlerta {
    * o defeito seria um rótulo de prioridade, não algo que justifique reter uma notificação.
    */
   private static short prioridadeDe(String faixaRisco) {
-<span class="pc bpc" id="L228" title="2 of 3 branches missed.">    return switch (faixaRisco) {</span>
+<span class="pc bpc" id="L228" title="1 of 3 branches missed.">    return switch (faixaRisco) {</span>
 <span class="nc" id="L229">      case &quot;ALTO&quot; -&gt; Alerta.PRIORIDADE_ALTA;</span>
-<span class="nc" id="L230">      case &quot;MEDIO&quot; -&gt; Alerta.PRIORIDADE_MEDIA;</span>
+<span class="fc" id="L230">      case &quot;MEDIO&quot; -&gt; Alerta.PRIORIDADE_MEDIA;</span>
 <span class="fc" id="L231">      default -&gt; Alerta.PRIORIDADE_NORMAL;</span>
     };
   }

@@ -1,8 +1,10 @@
-# Omni-Tribo
+# PBL Fase 5 — Smart HAS · Omni-Tribo
 
-### Uma entrega que falhou vira missão comunitária remunerada.
+**FIAP — Sistemas de Informação · RM 555833**
 
-![O ciclo da tese: a transportadora reporta a falha, nasce uma missão de bairro, o vizinho faz check-in e é creditado](docs/imagens/demo.gif)
+### Vizinho ajuda vizinho, e o bairro remunera esse cuidado.
+
+![O ciclo da tese: um pedido de ajuda vira missão de bairro, o vizinho faz check-in e é creditado em token comunitário](docs/imagens/demo.gif)
 
 **▶ [Vídeo-pitch (3 min)](COLE-A-URL-DO-VIDEO-AQUI)** ·
 [Roteiro de demonstração](docs/ROTEIRO-DEMO.md) ·
@@ -20,16 +22,36 @@
 
 ---
 
-App de **missões sociais hiperlocais gamificadas**. Usuários recebem missões no bairro — entregas
-solidárias, coleta de recicláveis, mutirões, ajuda —, fazem check-in geolocalizado e recebem XP e
-tokens comunitários, resgatáveis em benefícios de parceiros do bairro.
+App de **ajuda de vizinhança com reconhecimento**. Vizinhos publicam e atendem pedidos no bairro —
+uma mão para montar um móvel, mutirões de rua, coleta de recicláveis, entregas solidárias —, fazem
+check-in geolocalizado e recebem XP e tokens comunitários, resgatáveis em benefícios de parceiros do
+bairro. **Token é reconhecimento, não dinheiro:** circula entre vizinhos da mesma tribo e não é
+conversível em reais.
 
-**A tese do produto**, por extenso: para o varejista, entrega falha custa re-entrega, armazenagem e
-risco de perder o cliente; a missão de bairro é um canal de última milha mais barato que a segunda
-tentativa.
+**A tese do produto**, por extenso: o cuidado de vizinhança já acontece e não é reconhecido nem
+retribuído. Quem monta o móvel do vizinho, puxa o mutirão da rua ou tira os recicláveis do prédio faz
+trabalho real e recebe zero. O Omni-Tribo dá a esse trabalho um registro, uma prova (o check-in
+geolocalizado) e uma retribuição que circula no próprio bairro.
 
-Projeto acadêmico FIAP — Sistemas de Informação, RM 555833. Challenge Leroy Merlin: Sociedade 5.0 e
-Logística.
+**E há um caso em que quem paga vem de fora.** Quando uma entrega falha e a encomenda fica num ponto
+de custódia, a retirada pelo vizinho também é ajuda — só que aí a transportadora financia a
+recompensa, porque para ela a segunda tentativa custa mais caro. É a prova de que o modelo se conecta
+a um evento externo real, e não um segundo produto.
+
+## Como este projeto responde ao Smart HAS
+
+Cada linha aponta para o arquivo que a sustenta. Nenhuma delas é promessa: se a leitura discordar da
+tabela, o arquivo linkado é quem decide.
+
+| Eixo do enunciado | Como este projeto responde | Onde isso está |
+|---|---|---|
+| **Sociedade 5.0** | Missões sociais hiperlocais, tribo de bairro, **economia do cuidado**: a tecnologia é centrada em resolver um problema humano concreto — o vizinho que precisa e o vizinho que pode —, **não em ampliar conectividade**. A recompensa é XP e token comunitário resgatável no bairro, não alcance nem engajamento. | [`ADR 0009`](docs/adr/0009-economia-do-cuidado-token-como-recompensa.md) · [O problema](#o-problema) |
+| **Sistema inteligente de apoio à decisão** | O **modelo de risco** do módulo `logistica`: regressão logística **interpretável** sobre **14 características** da entrega, que ordena missões por urgência no fan-out e **calibra a recompensa** — o multiplicador é limitado a 1,5× e congelado na criação da missão. Interpretável de propósito: a resposta traz os fatores que mais pesaram, em português. Os coeficientes foram **treinados em dados sintéticos**, e isso está declarado no próprio documento do modelo. | [`CaracteristicaRisco.java`](services/api/src/main/java/com/omnitribo/logistica/dominio/CaracteristicaRisco.java) · [`docs/qualidade/modelo-previsao.md`](docs/qualidade/modelo-previsao.md) · [`ADR 0022`](docs/adr/0022-previsao-de-risco-de-entrega.md) |
+| **AI Logistics Extension** | A **extensão** do produto social, não o seu centro: o módulo `logistica` e o **webhook de entrega falida** recebem um evento de terceiro (a transportadora reporta a falha, autenticada por HMAC) e o convertem em **missão de ajuda** no ponto de custódia, com a recompensa já financiada por quem tem interesse nela. É o único caminho em que o dinheiro vem de fora do bairro. | [`WebhookTransportadoraController.java`](services/api/src/main/java/com/omnitribo/logistica/api/WebhookTransportadoraController.java) · [`ADR 0021`](docs/adr/0021-verificacao-de-webhook-de-transportadora.md) · [diagrama da entrega falida](docs/diagramas/sequencia-entrega-falida.md) |
+
+> **O mesmo produto é também a entrega do Challenge Leroy Merlin** (Sociedade 5.0 e Logística), cujo
+> repositório é [`RenanFerreira02/Omni-Tribo`](https://github.com/RenanFerreira02/Omni-Tribo).
+> **Este repositório é o recorte do PBL**: o mesmo sistema, lido pelos eixos do Smart HAS.
 
 ### Se você chegou aqui pela Fase 4 procurando Flutter
 
@@ -55,19 +77,30 @@ diverge dele, e por quê, está em [`docs/DIVERGENCIAS-DOCUMENTACAO.md`](docs/DI
 
 ## O problema
 
-Duas dores que se resolvem uma à outra.
+**A dor central é social.** Solidão urbana, vínculos de vizinhança enfraquecidos, e aplicativos que
+ampliam a conectividade virtual enquanto o isolamento cresce. Falta um motivo concreto para duas
+pessoas do mesmo bairro se encontrarem — e falta reconhecimento para quem já ajuda: a ajuda de
+vizinhança é invisível, não deixa registro e não retribui nada a quem a presta.
 
-**Do lado social:** solidão urbana, vínculos de vizinhança enfraquecidos, e aplicativos que ampliam
-a conectividade virtual enquanto o isolamento cresce. Falta um motivo concreto para duas pessoas do
-mesmo bairro se encontrarem.
+**O que o produto faz.** Transforma pedidos de ajuda em missões com escopo, prazo e recompensa.
+Quatro categorias, e três delas não têm nada de logística:
 
-**Do lado logístico:** a entrega falida. Ninguém em casa, o pacote volta para o centro de
-distribuição, e o varejista paga re-entrega, armazenagem e risco de perder o cliente — um custo que
-hoje não vira valor para ninguém.
+| Categoria | O que é |
+|---|---|
+| **AJUDA** | Uma mão para montar um móvel, carregar, instalar — o pedido direto de um vizinho |
+| **TRIBO** | Mutirão da rua: consertar a calçada, pintar o muro, cuidar da praça |
+| **COLETA** | Recicláveis e descarte que ninguém sozinho consegue tirar dali |
+| **ENTREGA** | Levar algo até alguém — inclui o caso patrocinado, abaixo |
 
-**A tese:** a segunda tentativa de entrega é mais cara que uma missão de bairro. Se o pacote puder
-ficar num ponto de custódia e um vizinho for remunerado para retirá-lo, o custo do fracasso vira
-renda comunitária. É o mesmo evento resolvendo os dois problemas.
+**Onde a logística entra, e por que ela não é o centro.** Existe uma dor logística vizinha: a entrega
+falida. Ninguém em casa, o pacote volta para o centro de distribuição, e o varejista paga re-entrega,
+armazenagem e risco de perder o cliente. Se o pacote ficar num ponto de custódia e um vizinho for
+remunerado para retirá-lo, o custo do fracasso vira renda comunitária.
+
+Isso importa por um motivo específico e limitado: **é o único caso em que a recompensa é financiada
+por um ator de fora do bairro**, e não pelo pote da própria comunidade. É o que prova que a economia
+do cuidado consegue receber dinheiro externo sem deixar de ser comunitária — e é a "AI Logistics
+Extension" do enunciado. Uma extensão, não o produto.
 
 ## Estado
 
@@ -446,6 +479,7 @@ Quatro garantias, cada uma com evidência executável em vez de afirmação:
 
 | Ordem | Documento | Por quê |
 |---|---|---|
+| 0 | [`docs/ENTREGA-FASE5.md`](docs/ENTREGA-FASE5.md) | **a entrega desta fase**: as três partes do enunciado, justificativa de stack, roadmap e as divergências declaradas |
 | 1 | [`docs/EVOLUCAO-ARQUITETURAL.md`](docs/EVOLUCAO-ARQUITETURAL.md) | a linha do tempo das decisões e o defeito econômico que a auditoria achou — como foi detectado e por que a reconciliação não o pegou |
 | 2 | [`docs/diagramas/`](docs/diagramas/) | o sistema em sete diagramas, incluindo a arquitetura-alvo em escala |
 | 3 | [`docs/ROTEIRO-DEMO.md`](docs/ROTEIRO-DEMO.md) | demonstração de 10 min com comandos exatos e plano B |

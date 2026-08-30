@@ -19,4 +19,14 @@ export const ROTULO_COMPLEXIDADE: Record<ComplexidadeMissao, string> = {
 
 export const COMPLEXIDADES: ComplexidadeMissao[] = ['LEVE', 'MEDIA', 'PESADA'];
 
-export const CATEGORIAS: CategoriaMissao[] = ['ENTREGA', 'COLETA', 'TRIBO', 'AJUDA'];
+/**
+ * Ordem de EXIBIÇÃO das categorias — não é a ordem do enum no backend, e não precisa ser.
+ *
+ * A ajuda direta entre vizinhos vem primeiro porque é o que o produto é; ENTREGA fica por último
+ * porque é o caso com patrocinador externo, o mais raro e o menos representativo. Antes ENTREGA
+ * abria a lista, e a primeira impressão do app era a de um produto de logística.
+ *
+ * `CategoriaMissao` no servidor NÃO foi reordenada: o `ordinal()` de um enum persistido como String
+ * não é contrato, mas mexer nele para mudar a ordem de uns chips seria risco sem retorno.
+ */
+export const CATEGORIAS: CategoriaMissao[] = ['AJUDA', 'TRIBO', 'COLETA', 'ENTREGA'];

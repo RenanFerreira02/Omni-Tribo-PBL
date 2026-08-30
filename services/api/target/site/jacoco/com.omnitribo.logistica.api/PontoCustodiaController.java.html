@@ -11,12 +11,17 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -34,9 +39,9 @@ public class PontoCustodiaController {
 
   private final PontoCustodiaService pontoCustodiaService;
 
-<span class="fc" id="L37">  public PontoCustodiaController(PontoCustodiaService pontoCustodiaService) {</span>
-<span class="fc" id="L38">    this.pontoCustodiaService = pontoCustodiaService;</span>
-<span class="fc" id="L39">  }</span>
+<span class="fc" id="L42">  public PontoCustodiaController(PontoCustodiaService pontoCustodiaService) {</span>
+<span class="fc" id="L43">    this.pontoCustodiaService = pontoCustodiaService;</span>
+<span class="fc" id="L44">  }</span>
 
   @GetMapping(&quot;/{id}&quot;)
   @Operation(
@@ -51,7 +56,7 @@ public class PontoCustodiaController {
     @ApiResponse(responseCode = &quot;404&quot;, ref = &quot;#/components/responses/NaoEncontrado&quot;)
   })
   public PontoCustodiaResponse buscar(@PathVariable UUID id) {
-<span class="fc" id="L54">    return pontoCustodiaService.buscar(id);</span>
+<span class="fc" id="L59">    return pontoCustodiaService.buscar(id);</span>
   }
 
   @GetMapping
@@ -72,7 +77,35 @@ public class PontoCustodiaController {
       // regras diferentes de &quot;até onde dá para pedir&quot;.
       @RequestParam(defaultValue = &quot;2000&quot;) @Min(1) @Max(20000) int raioMetros,
       @RequestParam(defaultValue = &quot;50&quot;) @Min(1) @Max(100) int limite) {
-<span class="fc" id="L75">    return pontoCustodiaService.proximos(filtro.lat(), filtro.lon(), raioMetros, limite);</span>
+<span class="fc" id="L80">    return pontoCustodiaService.proximos(filtro.lat(), filtro.lon(), raioMetros, limite);</span>
+  }
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+  @Operation(
+      summary = &quot;Cadastrar ponto de custódia&quot;,
+      description =
+          &quot;&quot;&quot;
+          Exclusivo de ADMIN. Até aqui um ponto de custódia só nascia por migration de seed, e o \
+          painel administrativo não tinha como abrir uma loja nova no bairro.
+
+          NÃO aceita `ocupacao` nem `ativo`: o ponto nasce vazio e ativo. Ocupação é movida só pelo \
+          webhook de entrega falida e pela baixa da missão, ambos sob `SELECT ... FOR UPDATE` — \
+          aceitá-la aqui abriria por fora do lock a corrida que ele fecha.
+
+          Código repetido e tribo inexistente respondem 422, não 409: são dados que não satisfazem \
+          a regra, e a reação da tela é corrigir o campo, não recarregar.
+          &quot;&quot;&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Ponto cadastrado&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;403&quot;, ref = &quot;#/components/responses/AcessoNegado&quot;),
+    @ApiResponse(responseCode = &quot;422&quot;, ref = &quot;#/components/responses/RegraNegocioViolada&quot;)
+  })
+  public PontoCustodiaResponse cadastrar(@Valid @RequestBody CadastrarPontoCustodiaRequest pedido) {
+<span class="fc" id="L108">    return pontoCustodiaService.cadastrar(pedido);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

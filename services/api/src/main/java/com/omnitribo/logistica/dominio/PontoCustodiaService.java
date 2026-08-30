@@ -1,8 +1,12 @@
 package com.omnitribo.logistica.dominio;
 
 import com.omnitribo.compartilhado.api.ConsultasGeoespaciais;
+import com.omnitribo.compartilhado.dominio.Auditavel;
 import com.omnitribo.compartilhado.dominio.Coordenadas;
 import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import com.omnitribo.identidade.api.ConsultaTribo;
+import com.omnitribo.logistica.api.CadastrarPontoCustodiaRequest;
 import com.omnitribo.logistica.api.PontoCustodiaResponse;
 import com.omnitribo.logistica.infra.PontoCustodiaRepository;
 import java.math.BigDecimal;
@@ -31,8 +35,14 @@ import org.springframework.transaction.annotation.Transactional;
  * de 2026-08-20: um comentário que nega um caminho de escrita concorrente é o que autoriza a
  * próxima pessoa a mexer no lock.
  *
- * <p>A escrita NÃO deve virar endpoint: expor escrita aqui deixaria qualquer usuário autenticado
- * marcar uma loja de terceiro como lotada.
+ * <p><b>Retificação (2026-08-29): este parágrafo dizia "a escrita NÃO deve virar endpoint", sem
+ * qualificar QUAL escrita, e agora existe {@link #cadastrar}.</b> A frase continua verdadeira para
+ * o que ela realmente protegia — <b>{@code ocupacao}</b>: expor ocupação a um endpoint deixaria
+ * qualquer autenticado marcar a loja de um terceiro como lotada, e o cadastro abaixo por isso não
+ * aceita esse campo. O que passou a existir é CADASTRO, restrito a ADMIN, que nasce com {@code
+ * ocupacao = 0} e não toca no valor depois. Deixar o parágrafo como estava faria o próximo leitor
+ * concluir que este arquivo não deveria ter um método de escrita, e o certo é que ele não deve ter
+ * um método que escreva ocupação fora do lock.
  */
 @Service
 public class PontoCustodiaService {
@@ -42,12 +52,56 @@ public class PontoCustodiaService {
 
   private final PontoCustodiaRepository pontoCustodiaRepository;
   private final ConsultasGeoespaciais consultasGeoespaciais;
+  private final ConsultaTribo consultaTribo;
 
   public PontoCustodiaService(
       PontoCustodiaRepository pontoCustodiaRepository,
-      ConsultasGeoespaciais consultasGeoespaciais) {
+      ConsultasGeoespaciais consultasGeoespaciais,
+      ConsultaTribo consultaTribo) {
     this.pontoCustodiaRepository = pontoCustodiaRepository;
     this.consultasGeoespaciais = consultasGeoespaciais;
+    // Injetado pela INTERFACE, e não pela implementação: é o tipo declarado no campo que o
+    // ArchUnit inspeciona. Nomear TriboService aqui compilaria e reprovaria RegrasArquiteturaTest.
+    this.consultaTribo = consultaTribo;
+  }
+
+  /**
+   * Cadastra um ponto de custódia. Exclusivo de ADMIN — a autorização mora no controller.
+   *
+   * <p>Ordem das checagens: primeiro o código duplicado, depois a tribo. As duas são independentes,
+   * mas o código é o campo que o operador mais repete, e reportá-lo primeiro evita uma segunda
+   * viagem quando os dois estão errados.
+   *
+   * <p><b>422 e não 409 nos dois casos.</b> A regra do projeto é explícita: 409 diz "não cabe NESTE
+   * estado, caberia em outro" e manda a tela recarregar; 422 diz "cabe no estado, mas os dados não
+   * satisfazem" e manda corrigir o campo. Um código repetido e uma tribo inexistente são dados que
+   * não satisfazem — o operador troca o valor e reenvia. Devolver 409 daria ao cliente o {@code
+   * type} {@code transicao-invalida}, cuja reação de UI é "recarregue a tela", que aqui não resolve
+   * nada.
+   */
+  @Transactional
+  @Auditavel(acao = "PONTO_CUSTODIA_CADASTRADO", entidade = "ponto_custodia")
+  public PontoCustodiaResponse cadastrar(CadastrarPontoCustodiaRequest pedido) {
+    if (pontoCustodiaRepository.existsByCodigo(pedido.codigo())) {
+      throw new RegraNegocioVioladaException(
+          "Já existe um ponto de custódia com o código " + pedido.codigo() + ".");
+    }
+    if (pedido.triboId() != null && !consultaTribo.existe(pedido.triboId())) {
+      throw new RegraNegocioVioladaException("A tribo informada não existe.");
+    }
+
+    PontoCustodia novo =
+        new PontoCustodia(
+            pedido.codigo(),
+            pedido.tipo(),
+            pedido.apelido(),
+            Coordenadas.ponto(pedido.lat(), pedido.lon()),
+            pedido.capacidade(),
+            pedido.triboId());
+
+    // distanciaM nula: não há coordenada de referência num cadastro, e devolver 0 sugeriria
+    // "está exatamente aqui" para um valor que ninguém mediu.
+    return responseDe(pontoCustodiaRepository.save(novo), null);
   }
 
   /**

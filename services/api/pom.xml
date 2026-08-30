@@ -102,6 +102,13 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
+    <!-- Thymeleaf: serve UMA página, GET /status, para demonstrar Spring MVC renderizado no
+         servidor. A interface administrativa do projeto é o dashboard Angular; ver StatusController.
+         Sem <version>: gerenciada pelo BOM do Spring Boot 4.1, como todo starter deste pom. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
 
     <!-- Data -->
     <dependency>

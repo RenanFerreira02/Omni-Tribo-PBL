@@ -1,0 +1,60 @@
+header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.8rem 1.2rem;
+  border-bottom: 1px solid #dde2e8;
+  background: #fff;
+}
+
+.marca {
+  font-weight: 700;
+  color: #2f6f4f;
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+}
+
+nav a {
+  color: #33414f;
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+nav a.ativo {
+  color: #2f6f4f;
+  font-weight: 600;
+  border-bottom-color: #2f6f4f;
+}
+
+.direita {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-left: auto;
+}
+
+.email {
+  color: #5d6b7a;
+  font-size: 0.85rem;
+}
+
+.direita button {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid #c4ccd6;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+main {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.2rem;
+}

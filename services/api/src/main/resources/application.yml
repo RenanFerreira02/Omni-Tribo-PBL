@@ -70,6 +70,12 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
 
 app:
+  # Nome e versão exibidos em GET /status. A versão vem do pom por FILTRAGEM de recurso do
+  # spring-boot-starter-parent (delimitador @), e não copiada à mão: um número repetido aqui
+  # divergiria do pom no primeiro release, e a página passaria a mentir com confiança.
+  info:
+    nome: ${spring.application.name}
+    versao: @project.version@
   jwt:
     # Paths relativos ao diretório de trabalho do processo (services/api/).
     # Sobrescreva com JWT_PRIVATE_KEY_PATH e JWT_PUBLIC_KEY_PATH em produção.
@@ -81,7 +87,18 @@ app:
   cors:
     # Lista explícita de origens — nunca wildcard.
     # Wildcard em CORS anularia a proteção same-origin em browsers.
-    origens-permitidas: ${CORS_ORIGENS:http://localhost:8081,exp://localhost:8082}
+    #
+    # Default VAZIO, e não a lista de dev. Antes o default aqui era
+    # `http://localhost:8081,exp://localhost:8082`, e ele valia para TODO perfil que não
+    # sobrescrevesse: produção só escapava porque application-prod.yml lembra de sobrescrever, e um
+    # perfil novo herdaria localhost sem ninguém ter decidido isso. A origem de máquina de
+    # desenvolvimento agora só existe onde ela faz sentido — application-dev.yml e
+    # application-test.yml.
+    #
+    # Vazio é fail-closed, e NÃO é falha de boot: o `filter(o -> !o.isEmpty())` de
+    # SecurityConfig.corsConfigSource() descarta a string vazia, a lista de origens fica vazia,
+    # nenhuma origem casa e todo preflight cross-origin é recusado. Quem não é browser não percebe.
+    origens-permitidas: ${CORS_ORIGENS:}
   rate-limit:
     login-por-minuto: 5          # tentativas de login por IP+email antes de 429
     escrita-por-minuto: 100      # POST/PUT/PATCH/DELETE por usuário autenticado

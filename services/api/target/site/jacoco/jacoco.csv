@@ -11,7 +11,7 @@ omnitribo-api,com.omnitribo.missoes.api,FinanciarMissaoRequest,0,9,0,0,0,1,0,1,0
 omnitribo-api,com.omnitribo.missoes.api,MissaoFiltroRequest,0,48,3,5,0,10,3,2,0,1
 omnitribo-api,com.omnitribo.missoes.api,ResumoMissoesDoSistema,0,9,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.api,MissaoProximaResponse,0,9,0,0,0,1,0,1,0,1
-omnitribo-api,com.omnitribo.missoes.api,MissaoResponse,4,259,3,14,2,49,3,13,0,7
+omnitribo-api,com.omnitribo.missoes.api,MissaoResponse,2,261,2,15,1,50,2,14,0,7
 omnitribo-api,com.omnitribo.missoes.api,EdicaoMissaoVerificador,47,47,13,11,14,9,13,2,1,2
 omnitribo-api,com.omnitribo.missoes.api,MissaoProximaFiltroRequest,0,28,1,3,0,6,1,2,0,1
 omnitribo-api,com.omnitribo.missoes.api,RegistrarCheckinRequest,0,20,0,0,0,2,0,2,0,2
@@ -38,6 +38,7 @@ omnitribo-api,com.omnitribo.compartilhado.api,ImpactoResponse,0,18,0,0,0,1,0,1,0
 omnitribo-api,com.omnitribo.compartilhado.api,ImpactoController,0,10,0,0,0,4,0,2,0,2
 omnitribo-api,com.omnitribo.compartilhado.api,ImpactoResponse.MissoesDeRetirada,0,18,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.compartilhado.api,TipoProblema,2,65,1,7,1,26,1,8,0,2
+omnitribo-api,com.omnitribo.compartilhado.api,StatusController,17,77,2,2,6,17,2,5,0,5
 omnitribo-api,com.omnitribo.compartilhado.api,ImpactoResponse.EntregasFalidas,0,21,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.compartilhado.api,PingController.PingResponse,0,9,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.compartilhado.api,PingController,0,9,0,0,0,2,0,2,0,2
@@ -102,7 +103,7 @@ omnitribo-api,com.omnitribo.logistica.dominio,EstatisticasEntregasFalidasService
 omnitribo-api,com.omnitribo.logistica.dominio,DirecaoDoFator,0,15,0,0,0,3,0,1,0,1
 omnitribo-api,com.omnitribo.logistica.dominio,TipoEndereco,0,27,0,0,0,5,0,1,0,1
 omnitribo-api,com.omnitribo.logistica.dominio,ResultadoRisco,0,33,0,0,0,4,0,1,0,1
-omnitribo-api,com.omnitribo.logistica.dominio,PontoCustodia,17,56,2,4,3,16,4,13,2,12
+omnitribo-api,com.omnitribo.logistica.dominio,PontoCustodia,17,89,2,4,3,28,4,14,2,13
 omnitribo-api,com.omnitribo.logistica.dominio,CodificadorEntrega,7,225,1,29,1,37,1,22,0,8
 omnitribo-api,com.omnitribo.logistica.dominio,PrevisaoRiscoService,0,74,0,4,0,21,0,5,0,3
 omnitribo-api,com.omnitribo.logistica.dominio,FatorRisco,0,21,0,0,0,1,0,1,0,1
@@ -112,7 +113,7 @@ omnitribo-api,com.omnitribo.logistica.dominio,DadosParaPrevisao,0,30,0,0,0,1,0,1
 omnitribo-api,com.omnitribo.logistica.dominio,EntregaFalida,79,146,2,6,23,44,23,16,21,14
 omnitribo-api,com.omnitribo.logistica.dominio,TipoPontoCustodia,0,27,0,0,0,5,0,1,0,1
 omnitribo-api,com.omnitribo.logistica.dominio,EntregaFalidaService.ResultadoRegistro,0,18,0,0,0,2,0,2,0,2
-omnitribo-api,com.omnitribo.logistica.dominio,PontoCustodiaService,0,127,0,2,0,29,0,10,0,9
+omnitribo-api,com.omnitribo.logistica.dominio,PontoCustodiaService,0,185,1,7,0,43,1,13,0,10
 omnitribo-api,com.omnitribo.logistica.dominio,ParametrosRisco.Padronizacao,0,9,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.logistica.dominio,CaracteristicaRisco,0,138,0,0,0,23,0,5,0,5
 omnitribo-api,com.omnitribo.logistica.dominio,ConfirmacaoRetiradaService,0,69,0,4,0,16,0,6,0,4
@@ -126,18 +127,19 @@ omnitribo-api,com.omnitribo.logistica.dominio,PrevisorDeRisco,6,320,1,22,0,62,2,
 omnitribo-api,com.omnitribo.logistica.dominio,ParametrosRisco,44,160,11,17,8,24,11,8,0,5
 omnitribo-api,com.omnitribo.notificacoes.dominio,ParametrosNotificacoes,20,24,4,4,4,6,4,1,0,1
 omnitribo-api,com.omnitribo.notificacoes.dominio,AlertaService,0,81,0,2,0,22,0,7,0,6
-omnitribo-api,com.omnitribo.notificacoes.dominio,DespachanteAlertaService,89,290,8,16,24,71,10,14,2,8
+omnitribo-api,com.omnitribo.notificacoes.dominio,DespachanteAlertaService,87,292,7,17,23,72,9,15,2,8
 omnitribo-api,com.omnitribo.notificacoes.dominio,Alerta,6,69,0,0,2,23,2,11,2,11
 omnitribo-api,com.omnitribo.logistica.api,WebhookTransportadoraController,12,164,3,7,3,46,3,9,0,7
 omnitribo-api,com.omnitribo.logistica.api,PrevisaoFalhaController,0,46,0,2,0,15,0,4,0,3
 omnitribo-api,com.omnitribo.logistica.api,ResumoEntregasFalidas,0,18,0,0,0,1,0,1,0,1
-omnitribo-api,com.omnitribo.logistica.api,PontoCustodiaResponse,0,30,0,0,0,1,0,1,0,1
+omnitribo-api,com.omnitribo.logistica.api,PontoCustodiaResponse,0,33,0,0,0,2,0,2,0,2
 omnitribo-api,com.omnitribo.logistica.api,EntregaFalidaWebhookResponse,0,43,0,3,0,11,0,4,0,2
 omnitribo-api,com.omnitribo.logistica.api,EntregaFalidaWebhookRequest,5,83,3,7,0,4,3,6,0,4
 omnitribo-api,com.omnitribo.logistica.api,PrevisaoFalhaResponse,0,47,0,0,0,11,0,2,0,2
+omnitribo-api,com.omnitribo.logistica.api,CadastrarPontoCustodiaRequest,0,24,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.logistica.api,ConfirmacaoRetiradaRequest,0,6,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.logistica.api,ConfirmacaoRetiradaResponse,3,38,0,2,1,9,1,3,1,2
-omnitribo-api,com.omnitribo.logistica.api,PontoCustodiaController,0,21,0,0,0,5,0,3,0,3
+omnitribo-api,com.omnitribo.logistica.api,PontoCustodiaController,0,26,0,0,0,6,0,4,0,4
 omnitribo-api,com.omnitribo.logistica.api,PrevisaoFalhaResponse.FatorResponse,0,47,0,0,0,8,0,2,0,2
 omnitribo-api,com.omnitribo.logistica.api,PontoCustodiaFiltroRequest,0,9,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.logistica.api,PrevisaoFalhaRequest,0,30,0,0,0,1,0,1,0,1
@@ -147,7 +149,7 @@ omnitribo-api,com.omnitribo.compartilhado.infra,BloqueioLoginService.BloqueioInf
 omnitribo-api,com.omnitribo.compartilhado.infra,ParametrosWebhook,14,56,7,7,3,11,7,4,0,4
 omnitribo-api,com.omnitribo.compartilhado.infra,RateLimitFilter,7,269,4,28,2,67,4,22,0,10
 omnitribo-api,com.omnitribo.compartilhado.infra,JwtProperties,0,18,0,0,0,1,0,1,0,1
-omnitribo-api,com.omnitribo.compartilhado.infra,SecurityConfig,9,384,1,1,2,87,2,28,1,28
+omnitribo-api,com.omnitribo.compartilhado.infra,SecurityConfig,9,389,1,1,2,87,2,28,1,28
 omnitribo-api,com.omnitribo.compartilhado.infra,HmacWebhookFilter,40,289,5,17,15,69,6,17,1,11
 omnitribo-api,com.omnitribo.compartilhado.infra,HmacWebhookFilter.CorpoBufferizado.new ServletInputStream() {...},15,10,2,0,3,2,4,2,3,2
 omnitribo-api,com.omnitribo.compartilhado.infra,DrenadorOutboxJob,25,17,7,1,7,7,4,3,0,3
@@ -217,7 +219,7 @@ omnitribo-api,com.omnitribo.identidade.dominio,RefreshToken,4,48,2,2,1,15,3,7,1,
 omnitribo-api,com.omnitribo.identidade.dominio,ExportacaoDadosService,0,43,0,2,0,10,0,3,0,2
 omnitribo-api,com.omnitribo.identidade.dominio,Patrocinador,8,44,0,0,4,15,2,8,2,8
 omnitribo-api,com.omnitribo.identidade.dominio,PatrocinadorService,35,145,4,8,7,39,7,8,3,6
-omnitribo-api,com.omnitribo.identidade.dominio,TriboService,2,101,1,1,1,24,1,10,0,10
+omnitribo-api,com.omnitribo.identidade.dominio,TriboService,4,110,3,3,1,25,3,11,0,11
 omnitribo-api,com.omnitribo.identidade.dominio,Auditoria,11,70,1,3,3,21,3,11,2,10
 omnitribo-api,com.omnitribo.identidade.dominio,CalculadoraDeConquistas,0,63,0,2,0,14,0,3,0,2
 omnitribo-api,com.omnitribo.identidade.dominio,ProgressaoUsuarioService,20,74,3,3,3,21,5,5,2,5
@@ -287,7 +289,7 @@ omnitribo-api,com.omnitribo.integracoes.infra,LimiteDeChamadasExternas,10,28,1,1
 omnitribo-api,com.omnitribo.integracoes.infra,ClienteViaCep.Resposta,0,21,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.integracoes.infra,ProtecaoDeChamadasExternas,3,31,0,0,1,6,1,4,1,4
 omnitribo-api,com.omnitribo.integracoes.infra,ClientesExternosConfig,0,19,0,0,0,6,0,3,0,3
-omnitribo-api,com.omnitribo.integracoes.infra,CodigosWmo,16,8,8,3,8,4,8,3,0,1
+omnitribo-api,com.omnitribo.integracoes.infra,CodigosWmo,12,12,6,5,6,6,6,5,0,1
 omnitribo-api,com.omnitribo.integracoes.infra,ClassificacaoDeFalhaExterna,2,40,1,11,1,9,1,7,0,2
 omnitribo-api,com.omnitribo.integracoes.infra,ClienteOpenMeteo.Resposta,0,6,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.integracoes.infra,DisjuntorDeChamadasExternas.Estado,0,24,0,0,0,2,0,2,0,2

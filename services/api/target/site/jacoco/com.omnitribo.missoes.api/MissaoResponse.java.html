@@ -215,12 +215,12 @@ import java.util.UUID;
 <span class="fc bfc" id="L215" title="All 2 branches covered.">    if (faixaRisco == null) {</span>
 <span class="fc" id="L216">      return null;</span>
     }
-<span class="pc bpc" id="L218" title="2 of 3 branches missed.">    return switch (faixaRisco) {</span>
+<span class="pc bpc" id="L218" title="1 of 3 branches missed.">    return switch (faixaRisco) {</span>
       case &quot;ALTO&quot; -&gt;
 <span class="nc" id="L220">          &quot;Entregas neste endereço costumam falhar. Combine o horário com o destinatário antes de&quot;</span>
               + &quot; ir — é o que mais aumenta a chance de dar certo desta vez.&quot;;
       case &quot;MEDIO&quot; -&gt;
-<span class="nc" id="L223">          &quot;Esta entrega tem histórico irregular. Vale confirmar se há alguém para receber antes de&quot;</span>
+<span class="fc" id="L223">          &quot;Esta entrega tem histórico irregular. Vale confirmar se há alguém para receber antes de&quot;</span>
               + &quot; sair.&quot;;
 <span class="fc" id="L225">      default -&gt; null;</span>
     };

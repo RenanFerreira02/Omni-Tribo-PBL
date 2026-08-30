@@ -186,8 +186,15 @@ public class SecurityConfig {
                         "/api/v1/auth/registrar",
                         "/api/v1/auth/refresh",
                         "/api/v1/webhooks/**", // autenticado por HMAC, ver HmacWebhookFilter
-                        "/api/v1/ping" // health check
-                        )
+                        "/api/v1/ping", // health check
+                        // Página de demonstração de Spring MVC + Thymeleaf, servida em HTML. É
+                        // anônima porque esta API autentica só por Bearer: exigir JWT tornaria a
+                        // página inalcançável num browser, que é o único lugar onde ela faz
+                        // sentido. Ela não existe em produção — StatusController é
+                        // @Profile("!prod")
+                        // —, e o que expõe (nome, versão, perfil, banco de pé) é do mesmo nível do
+                        // /actuator/health e /info, que já respondem anônimos.
+                        "/status")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
@@ -260,8 +267,20 @@ public class SecurityConfig {
             .toList();
     config.setAllowedOrigins(origens);
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    // Idempotency-Key NÃO é opcional nesta lista, e a ausência dele era invisível: cinco POSTs o
+    // exigem como obrigatório (transferências, saques, resgates, financiamentos e aportes). Header
+    // customizado torna a requisição não-simples, então o browser manda o preflight — e o
+    // CorsFilter, não achando o nome aqui, reprova o preflight e a requisição REAL nunca sai. Do
+    // lado do servidor não há status nem log: o erro só aparece no console do browser. O app mobile
+    // nunca esbarrou nisso porque React Native não faz preflight, o que é exatamente o motivo de a
+    // falha ter sobrevivido até um cliente de browser existir.
     config.setAllowedHeaders(
-        List.of("Authorization", "Content-Type", "X-Correlation-Id", "X-Requested-With"));
+        List.of(
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            "X-Correlation-Id",
+            "X-Requested-With"));
     config.setExposedHeaders(List.of("X-Correlation-Id"));
     config.setAllowCredentials(false); // Bearer token — sem cookies de sessão
     config.setMaxAge(3600L);

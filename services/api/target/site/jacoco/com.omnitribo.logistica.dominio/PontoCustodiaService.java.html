@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PontoCustodiaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.logistica.dominio</a> &gt; <span class="el_source">PontoCustodiaService.java</span></div><h1>PontoCustodiaService.java</h1><pre class="source lang-java linenums">package com.omnitribo.logistica.dominio;
 
 import com.omnitribo.compartilhado.api.ConsultasGeoespaciais;
+import com.omnitribo.compartilhado.dominio.Auditavel;
 import com.omnitribo.compartilhado.dominio.Coordenadas;
 import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
+import com.omnitribo.identidade.api.ConsultaTribo;
+import com.omnitribo.logistica.api.CadastrarPontoCustodiaRequest;
 import com.omnitribo.logistica.api.PontoCustodiaResponse;
 import com.omnitribo.logistica.infra.PontoCustodiaRepository;
 import java.math.BigDecimal;
@@ -31,8 +35,14 @@ import org.springframework.transaction.annotation.Transactional;
  * de 2026-08-20: um comentário que nega um caminho de escrita concorrente é o que autoriza a
  * próxima pessoa a mexer no lock.
  *
- * &lt;p&gt;A escrita NÃO deve virar endpoint: expor escrita aqui deixaria qualquer usuário autenticado
- * marcar uma loja de terceiro como lotada.
+ * &lt;p&gt;&lt;b&gt;Retificação (2026-08-29): este parágrafo dizia &quot;a escrita NÃO deve virar endpoint&quot;, sem
+ * qualificar QUAL escrita, e agora existe {@link #cadastrar}.&lt;/b&gt; A frase continua verdadeira para
+ * o que ela realmente protegia — &lt;b&gt;{@code ocupacao}&lt;/b&gt;: expor ocupação a um endpoint deixaria
+ * qualquer autenticado marcar a loja de um terceiro como lotada, e o cadastro abaixo por isso não
+ * aceita esse campo. O que passou a existir é CADASTRO, restrito a ADMIN, que nasce com {@code
+ * ocupacao = 0} e não toca no valor depois. Deixar o parágrafo como estava faria o próximo leitor
+ * concluir que este arquivo não deveria ter um método de escrita, e o certo é que ele não deve ter
+ * um método que escreva ocupação fora do lock.
  */
 @Service
 public class PontoCustodiaService {
@@ -42,13 +52,57 @@ public class PontoCustodiaService {
 
   private final PontoCustodiaRepository pontoCustodiaRepository;
   private final ConsultasGeoespaciais consultasGeoespaciais;
+  private final ConsultaTribo consultaTribo;
 
   public PontoCustodiaService(
       PontoCustodiaRepository pontoCustodiaRepository,
-<span class="fc" id="L48">      ConsultasGeoespaciais consultasGeoespaciais) {</span>
-<span class="fc" id="L49">    this.pontoCustodiaRepository = pontoCustodiaRepository;</span>
-<span class="fc" id="L50">    this.consultasGeoespaciais = consultasGeoespaciais;</span>
-<span class="fc" id="L51">  }</span>
+      ConsultasGeoespaciais consultasGeoespaciais,
+<span class="fc" id="L60">      ConsultaTribo consultaTribo) {</span>
+<span class="fc" id="L61">    this.pontoCustodiaRepository = pontoCustodiaRepository;</span>
+<span class="fc" id="L62">    this.consultasGeoespaciais = consultasGeoespaciais;</span>
+    // Injetado pela INTERFACE, e não pela implementação: é o tipo declarado no campo que o
+    // ArchUnit inspeciona. Nomear TriboService aqui compilaria e reprovaria RegrasArquiteturaTest.
+<span class="fc" id="L65">    this.consultaTribo = consultaTribo;</span>
+<span class="fc" id="L66">  }</span>
+
+  /**
+   * Cadastra um ponto de custódia. Exclusivo de ADMIN — a autorização mora no controller.
+   *
+   * &lt;p&gt;Ordem das checagens: primeiro o código duplicado, depois a tribo. As duas são independentes,
+   * mas o código é o campo que o operador mais repete, e reportá-lo primeiro evita uma segunda
+   * viagem quando os dois estão errados.
+   *
+   * &lt;p&gt;&lt;b&gt;422 e não 409 nos dois casos.&lt;/b&gt; A regra do projeto é explícita: 409 diz &quot;não cabe NESTE
+   * estado, caberia em outro&quot; e manda a tela recarregar; 422 diz &quot;cabe no estado, mas os dados não
+   * satisfazem&quot; e manda corrigir o campo. Um código repetido e uma tribo inexistente são dados que
+   * não satisfazem — o operador troca o valor e reenvia. Devolver 409 daria ao cliente o {@code
+   * type} {@code transicao-invalida}, cuja reação de UI é &quot;recarregue a tela&quot;, que aqui não resolve
+   * nada.
+   */
+  @Transactional
+  @Auditavel(acao = &quot;PONTO_CUSTODIA_CADASTRADO&quot;, entidade = &quot;ponto_custodia&quot;)
+  public PontoCustodiaResponse cadastrar(CadastrarPontoCustodiaRequest pedido) {
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (pontoCustodiaRepository.existsByCodigo(pedido.codigo())) {</span>
+<span class="fc" id="L86">      throw new RegraNegocioVioladaException(</span>
+<span class="fc" id="L87">          &quot;Já existe um ponto de custódia com o código &quot; + pedido.codigo() + &quot;.&quot;);</span>
+    }
+<span class="pc bpc" id="L89" title="1 of 4 branches missed.">    if (pedido.triboId() != null &amp;&amp; !consultaTribo.existe(pedido.triboId())) {</span>
+<span class="fc" id="L90">      throw new RegraNegocioVioladaException(&quot;A tribo informada não existe.&quot;);</span>
+    }
+
+<span class="fc" id="L93">    PontoCustodia novo =</span>
+        new PontoCustodia(
+<span class="fc" id="L95">            pedido.codigo(),</span>
+<span class="fc" id="L96">            pedido.tipo(),</span>
+<span class="fc" id="L97">            pedido.apelido(),</span>
+<span class="fc" id="L98">            Coordenadas.ponto(pedido.lat(), pedido.lon()),</span>
+<span class="fc" id="L99">            pedido.capacidade(),</span>
+<span class="fc" id="L100">            pedido.triboId());</span>
+
+    // distanciaM nula: não há coordenada de referência num cadastro, e devolver 0 sugeriria
+    // &quot;está exatamente aqui&quot; para um valor que ninguém mediu.
+<span class="fc" id="L104">    return responseDe(pontoCustodiaRepository.save(novo), null);</span>
+  }
 
   /**
    * Ponto INATIVO responde 404, e não um corpo com {@code ativo: false}.
@@ -59,12 +113,12 @@ public class PontoCustodiaService {
    */
   @Transactional(readOnly = true)
   public PontoCustodiaResponse buscar(UUID id) {
-<span class="fc" id="L62">    PontoCustodia ponto =</span>
+<span class="fc" id="L116">    PontoCustodia ponto =</span>
         pontoCustodiaRepository
-<span class="fc" id="L64">            .findById(id)</span>
-<span class="fc" id="L65">            .filter(PontoCustodia::isAtivo)</span>
-<span class="fc" id="L66">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(NAO_ENCONTRADO));</span>
-<span class="fc" id="L67">    return responseDe(ponto, null);</span>
+<span class="fc" id="L118">            .findById(id)</span>
+<span class="fc" id="L119">            .filter(PontoCustodia::isAtivo)</span>
+<span class="fc" id="L120">            .orElseThrow(() -&gt; new RecursoNaoEncontradoException(NAO_ENCONTRADO));</span>
+<span class="fc" id="L121">    return responseDe(ponto, null);</span>
   }
 
   /**
@@ -79,37 +133,37 @@ public class PontoCustodiaService {
   public List&lt;PontoCustodiaResponse&gt; proximos(
       BigDecimal lat, BigDecimal lon, int raioMetros, int limite) {
 
-<span class="fc" id="L82">    List&lt;ConsultasGeoespaciais.AlvoProximo&gt; alvos =</span>
-<span class="fc" id="L83">        consultasGeoespaciais.pontosCustodiaNoRaio(lat, lon, raioMetros, limite);</span>
-<span class="fc bfc" id="L84" title="All 2 branches covered.">    if (alvos.isEmpty()) {</span>
-<span class="fc" id="L85">      return List.of();</span>
+<span class="fc" id="L136">    List&lt;ConsultasGeoespaciais.AlvoProximo&gt; alvos =</span>
+<span class="fc" id="L137">        consultasGeoespaciais.pontosCustodiaNoRaio(lat, lon, raioMetros, limite);</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (alvos.isEmpty()) {</span>
+<span class="fc" id="L139">      return List.of();</span>
     }
 
-<span class="fc" id="L88">    Map&lt;UUID, Double&gt; distanciaPorId = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc" id="L89">    alvos.forEach(alvo -&gt; distanciaPorId.put(alvo.id(), alvo.distanciaM()));</span>
+<span class="fc" id="L142">    Map&lt;UUID, Double&gt; distanciaPorId = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L143">    alvos.forEach(alvo -&gt; distanciaPorId.put(alvo.id(), alvo.distanciaM()));</span>
 
-<span class="fc" id="L91">    return pontoCustodiaRepository.findAllById(distanciaPorId.keySet()).stream()</span>
+<span class="fc" id="L145">    return pontoCustodiaRepository.findAllById(distanciaPorId.keySet()).stream()</span>
         // findAllById não promete ordem; a que importa é a do PostGIS, por distância crescente.
-<span class="fc" id="L93">        .sorted(Comparator.comparingDouble(p -&gt; distanciaPorId.get(p.getId())))</span>
-<span class="fc" id="L94">        .map(p -&gt; responseDe(p, arredondar(distanciaPorId.get(p.getId()), 2)))</span>
-<span class="fc" id="L95">        .toList();</span>
+<span class="fc" id="L147">        .sorted(Comparator.comparingDouble(p -&gt; distanciaPorId.get(p.getId())))</span>
+<span class="fc" id="L148">        .map(p -&gt; responseDe(p, arredondar(distanciaPorId.get(p.getId()), 2)))</span>
+<span class="fc" id="L149">        .toList();</span>
   }
 
   private static PontoCustodiaResponse responseDe(PontoCustodia ponto, BigDecimal distanciaM) {
-<span class="fc" id="L99">    return new PontoCustodiaResponse(</span>
-<span class="fc" id="L100">        ponto.getId(),</span>
-<span class="fc" id="L101">        ponto.getCodigo(),</span>
-<span class="fc" id="L102">        ponto.getTipo().name(),</span>
-<span class="fc" id="L103">        ponto.getApelido(),</span>
-<span class="fc" id="L104">        arredondar(Coordenadas.latitude(ponto.getPonto()).doubleValue(), CASAS_COORDENADA),</span>
-<span class="fc" id="L105">        arredondar(Coordenadas.longitude(ponto.getPonto()).doubleValue(), CASAS_COORDENADA),</span>
-<span class="fc" id="L106">        ponto.getCapacidade(),</span>
-<span class="fc" id="L107">        ponto.getOcupacao(),</span>
+<span class="fc" id="L153">    return new PontoCustodiaResponse(</span>
+<span class="fc" id="L154">        ponto.getId(),</span>
+<span class="fc" id="L155">        ponto.getCodigo(),</span>
+<span class="fc" id="L156">        ponto.getTipo().name(),</span>
+<span class="fc" id="L157">        ponto.getApelido(),</span>
+<span class="fc" id="L158">        arredondar(Coordenadas.latitude(ponto.getPonto()).doubleValue(), CASAS_COORDENADA),</span>
+<span class="fc" id="L159">        arredondar(Coordenadas.longitude(ponto.getPonto()).doubleValue(), CASAS_COORDENADA),</span>
+<span class="fc" id="L160">        ponto.getCapacidade(),</span>
+<span class="fc" id="L161">        ponto.getOcupacao(),</span>
         distanciaM);
   }
 
   private static BigDecimal arredondar(double valor, int casas) {
-<span class="fc" id="L112">    return BigDecimal.valueOf(valor).setScale(casas, RoundingMode.HALF_UP);</span>
+<span class="fc" id="L166">    return BigDecimal.valueOf(valor).setScale(casas, RoundingMode.HALF_UP);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

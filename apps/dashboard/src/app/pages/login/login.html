@@ -1,0 +1,48 @@
+<section class="cartao">
+  <!-- {{ }} — interpolação -->
+  <h1>{{ titulo }}</h1>
+  <p class="subtitulo">Painel administrativo · {{ ambiente }}</p>
+
+  <!-- ( ) — event binding. ngSubmit e não click: cobre também o Enter dentro do campo. -->
+  <form (ngSubmit)="entrar()">
+    <label for="email">E-mail</label>
+    <!-- [( )] — two-way binding. Campo comum de propósito: quem o altera é o usuário digitando,
+         e o event listener do ngModel já agenda change detection. -->
+    <input
+      id="email"
+      name="email"
+      type="email"
+      autocomplete="username"
+      [(ngModel)]="email"
+      placeholder="admin@omnitribo.dev"
+      required
+    />
+
+    <label for="senha">Senha</label>
+    <!-- [( )] — two-way binding -->
+    <input
+      id="senha"
+      name="senha"
+      type="password"
+      autocomplete="current-password"
+      [(ngModel)]="senha"
+      required
+    />
+
+    <!-- [ ] — property binding: desabilita enquanto carrega ou enquanto falta campo -->
+    <button type="submit" [disabled]="carregando() || !email || !senha">
+      {{ carregando() ? 'Entrando…' : 'Entrar' }}
+    </button>
+  </form>
+
+  <!-- *ngIf — o parágrafo só existe no DOM quando há erro -->
+  <p class="erro" *ngIf="erro()">{{ erro() }}</p>
+
+  <!-- *ngIf com else -->
+  <p class="dica" *ngIf="!carregando(); else carregandoTpl">
+    Use uma conta com papel ADMIN para abrir a aba /admin.
+  </p>
+  <ng-template #carregandoTpl>
+    <p class="dica">Falando com a API…</p>
+  </ng-template>
+</section>

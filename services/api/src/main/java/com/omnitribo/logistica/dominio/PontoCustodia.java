@@ -50,6 +50,39 @@ public class PontoCustodia {
 
   protected PontoCustodia() {}
 
+  /**
+   * Construtor de CADASTRO. Único caminho de criação em código.
+   *
+   * <p>Não recebe {@code ocupacao} nem {@code ativo} de propósito: o ponto nasce vazio e ativo.
+   * Ocupação é movida só por {@link #registrarEntrada()} e {@link #registrarSaida()}, sob o lock do
+   * repositório — aceitar um valor inicial aqui abriria por fora do lock a mesma corrida que ele
+   * fecha. Ver {@code CadastrarPontoCustodiaRequest}.
+   *
+   * <p>{@code id} e {@code criadoEm} são gerados aqui, e não pelo banco, porque a entidade usa
+   * {@code @Id} sem {@code @GeneratedValue}: sem isto o INSERT sai com id nulo.
+   */
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "Point de JTS é imutável após construção; cópia defensiva sem benefício")
+  public PontoCustodia(
+      String codigo,
+      TipoPontoCustodia tipo,
+      String apelido,
+      Point ponto,
+      int capacidade,
+      UUID triboId) {
+    this.id = UUID.randomUUID();
+    this.codigo = codigo;
+    this.tipo = tipo;
+    this.apelido = apelido;
+    this.ponto = ponto;
+    this.capacidade = capacidade;
+    this.triboId = triboId;
+    this.ocupacao = 0;
+    this.ativo = true;
+    this.criadoEm = Instant.now();
+  }
+
   public UUID getId() {
     return id;
   }

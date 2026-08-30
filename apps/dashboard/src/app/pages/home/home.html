@@ -1,0 +1,139 @@
+<div class="cabecalho">
+  <div>
+    <h1>Ajuda no bairro</h1>
+    <p class="proposito">
+      Pedidos de vizinhos, mutirões e coletas — e o que a comunidade já concluiu.
+    </p>
+    <!-- *ngIf com `as`: alias não-nulo, sem repetir a leitura do signal -->
+    <p class="perfil" *ngIf="auth.usuario() as usuario">
+      {{ usuario.email }} · papel {{ usuario.papel }}
+    </p>
+  </div>
+  <!-- ( ) — event binding no botão de recarregar. [ ] — desabilitado durante a carga. -->
+  <button type="button" class="recarregar" (click)="carregar()" [disabled]="carregando()">
+    {{ carregando() ? 'Carregando…' : 'Recarregar' }}
+  </button>
+</div>
+
+<!-- ===================== ESTADO 1: CARREGANDO ===================== -->
+<p class="aviso carregando" *ngIf="carregando()">Consultando a API…</p>
+
+<!-- ===================== ESTADO 2: ERRO ===================== -->
+<!-- A frase vem da VARIANTE do `type`, nunca de parsear `detail`. -->
+<div class="aviso erro" *ngIf="!carregando() && problema() as p">
+  <p class="erro-frase">{{ mensagem(p) }}</p>
+  <p class="erro-meta">
+    HTTP {{ p.status }}
+    <span *ngIf="p.type"> · <code>{{ p.type }}</code></span>
+    <span *ngIf="p.traceId"> · traceId <code>{{ p.traceId }}</code></span>
+  </p>
+  <button type="button" (click)="carregar()">Tentar de novo</button>
+</div>
+
+<!-- ===================== CONTEÚDO ===================== -->
+<div *ngIf="!carregando() && !problema()">
+  <section class="cards">
+    <!-- *ngFor sobre a lista de indicadores; valores por interpolação -->
+    <article class="card" *ngFor="let indicador of indicadores()">
+      <span class="card-rotulo">{{ indicador.rotulo }}</span>
+      <strong class="card-valor">{{ indicador.valor }}</strong>
+
+      <!-- Barra: div com largura percentual. Sem biblioteca de gráfico. -->
+      <div class="barra" *ngIf="indicador.total !== null">
+        <!-- [ ] — property binding no estilo e no rótulo acessível -->
+        <div
+          class="barra-preenchida"
+          [style.width.%]="larguraDaBarra(indicador)"
+          [attr.aria-label]="larguraDaBarra(indicador) + '% do total de missões'"
+        ></div>
+      </div>
+      <span class="card-proporcao" *ngIf="indicador.total !== null">
+        {{ larguraDaBarra(indicador) }}% de {{ indicador.total }}
+      </span>
+      <!-- Denominador zero é `null`, nunca 0%: são coisas diferentes. -->
+      <span class="card-proporcao vazio" *ngIf="indicador.total === null">
+        sem base para proporção
+      </span>
+    </article>
+  </section>
+
+  <section class="filtros">
+    <span class="filtros-rotulo">Missões recentes:</span>
+    <!-- *ngFor nos botões de filtro; ( ) no clique; [ ] na classe e no aria-pressed -->
+    <button
+      type="button"
+      *ngFor="let opcao of opcoes"
+      [class.ativo]="filtro() === opcao.valor"
+      [attr.aria-pressed]="filtro() === opcao.valor"
+      (click)="trocarFiltro(opcao.valor)"
+    >
+      {{ opcao.rotulo }}
+    </button>
+  </section>
+
+  <!-- ===================== ESTADO 3: VAZIO ===================== -->
+  <!-- Ensina o que fazer em vez de ficar em branco. -->
+  <div class="aviso vazio" *ngIf="missoes().length === 0">
+    <p><strong>Nenhuma missão com o status “{{ rotuloDoFiltroAtual() }}”.</strong></p>
+    <p>
+      A consulta funcionou e devolveu zero linhas — não é erro. O seed de desenvolvimento cria
+      missões apenas em <code>ABERTA</code>, <code>ACEITA</code> e <code>CONCLUIDA</code>; os demais
+      status só aparecem depois que alguém executa o ciclo.
+    </p>
+    <p>Caminhos daqui:</p>
+    <ul>
+      <li>Volte para <strong>Todas</strong> para ver o que existe agora.</li>
+      <li>Crie e mova uma missão pelo app mobile, ou por <code>POST /api/v1/missoes</code>.</li>
+      <li>
+        Se nem <strong>Todas</strong> traz nada, o banco está sem seed: rode <code>make reset</code>
+        na raiz e suba o backend — é o boot que aplica as migrations de seed.
+      </li>
+    </ul>
+    <button type="button" (click)="trocarFiltro('')">Ver todas</button>
+  </div>
+
+  <table class="missoes" *ngIf="missoes().length > 0">
+    <caption>
+      {{ missoes().length }} de {{ totalNoFiltro() }} missões · filtro “{{ rotuloDoFiltroAtual() }}”
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Título</th>
+        <th scope="col">Status</th>
+        <th scope="col">Categoria</th>
+        <th scope="col">Bairro</th>
+        <th scope="col" class="num">XP</th>
+        <th scope="col" class="num">Tokens</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- *ngFor sobre as missões -->
+      <tr *ngFor="let missao of missoes()">
+        <td>{{ missao.titulo }}</td>
+        <td>
+          <!-- [ ] — classe condicional por status, montada no componente -->
+          <span [class]="classeDoStatus(missao.status)">{{ missao.status }}</span>
+        </td>
+        <td>{{ missao.categoria }}</td>
+        <td>{{ missao.bairro || '—' }}</td>
+        <td class="num">{{ missao.xpRecompensa }}</td>
+        <td class="num">{{ missao.tokensRecompensa }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="tribos">
+    <h2>Tribos ({{ tribos().length }})</h2>
+    <ul>
+      <li *ngFor="let tribo of tribos()">
+        <strong>{{ tribo.nome }}</strong>
+        <span class="bairro">{{ tribo.bairro }}</span>
+        <!-- Centro é derivado por ST_Centroid e é nulo quando a tribo não tem missão nem ponto -->
+        <span class="centro" *ngIf="tribo.centroLat !== null; else semCentro">
+          {{ tribo.centroLat }}, {{ tribo.centroLon }}
+        </span>
+        <ng-template #semCentro><span class="centro vazio">sem centro</span></ng-template>
+      </li>
+    </ul>
+  </section>
+</div>

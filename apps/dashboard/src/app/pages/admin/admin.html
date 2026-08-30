@@ -1,0 +1,212 @@
+<div class="cabecalho">
+  <div>
+    <h1>Pontos de custódia</h1>
+    <p class="perfil" *ngIf="auth.usuario() as usuario">
+      {{ usuario.email }} · papel {{ usuario.papel }}
+    </p>
+  </div>
+  <div class="acoes">
+    <!-- ( ) nos dois; [ ] desabilita durante a carga -->
+    <button type="button" class="secundario" (click)="carregarPontos()" [disabled]="carregandoPontos()">
+      {{ carregandoPontos() ? 'Carregando…' : 'Recarregar' }}
+    </button>
+    <button type="button" class="primario" (click)="abrirFormulario()" [disabled]="formAberto()">
+      Novo ponto
+    </button>
+  </div>
+</div>
+
+<!-- feedback de SUCESSO, some ao abrir o formulário de novo -->
+<p class="aviso sucesso" *ngIf="sucesso()">{{ sucesso() }}</p>
+
+<!-- ===================== FORMULÁRIO ===================== -->
+<form class="formulario" *ngIf="formAberto()" (ngSubmit)="salvar()">
+  <h2>Cadastrar ponto de custódia</h2>
+
+  <p class="nota">
+    A validação abaixo é conveniência de digitação. Quem decide é o servidor — inclusive o que só
+    ele sabe: se o código já existe e se a tribo existe.
+  </p>
+
+  <!-- erro GERAL vindo do servidor, discriminado pelo `type` do RFC 9457 -->
+  <div class="aviso erro" *ngIf="problemaForm() as p">
+    <p class="erro-frase">{{ mensagem(p) }}</p>
+    <p class="erro-meta">
+      HTTP {{ p.status }}
+      <span *ngIf="p.type"> · <code>{{ p.type }}</code></span>
+      <span *ngIf="p.traceId"> · traceId <code>{{ p.traceId }}</code></span>
+    </p>
+  </div>
+
+  <div class="campos">
+    <label>
+      Código
+      <!-- [( )] two-way; [ ] classe de erro condicional -->
+      <input
+        name="codigo"
+        [(ngModel)]="form.codigo"
+        [class.invalido]="!!errosCampo().codigo"
+        placeholder="PC-PINHEIROS-02"
+        maxlength="20"
+      />
+      <small class="erro-campo" *ngIf="errosCampo().codigo">{{ errosCampo().codigo }}</small>
+    </label>
+
+    <label>
+      Tipo
+      <select name="tipo" [(ngModel)]="form.tipo" [class.invalido]="!!errosCampo().tipo">
+        <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
+      </select>
+      <small class="erro-campo" *ngIf="errosCampo().tipo">{{ errosCampo().tipo }}</small>
+    </label>
+
+    <label class="largo">
+      Apelido
+      <input
+        name="apelido"
+        [(ngModel)]="form.apelido"
+        [class.invalido]="!!errosCampo().apelido"
+        placeholder="Leroy Merlin Pinheiros"
+        maxlength="100"
+      />
+      <small class="erro-campo" *ngIf="errosCampo().apelido">{{ errosCampo().apelido }}</small>
+    </label>
+
+    <label>
+      Latitude
+      <input
+        name="lat"
+        type="number"
+        step="any"
+        [(ngModel)]="form.lat"
+        [class.invalido]="!!errosCampo().lat"
+        placeholder="-23.5640"
+      />
+      <small class="erro-campo" *ngIf="errosCampo().lat">{{ errosCampo().lat }}</small>
+    </label>
+
+    <label>
+      Longitude
+      <input
+        name="lon"
+        type="number"
+        step="any"
+        [(ngModel)]="form.lon"
+        [class.invalido]="!!errosCampo().lon"
+        placeholder="-46.6934"
+      />
+      <small class="erro-campo" *ngIf="errosCampo().lon">{{ errosCampo().lon }}</small>
+    </label>
+
+    <label>
+      Capacidade
+      <input
+        name="capacidade"
+        type="number"
+        [(ngModel)]="form.capacidade"
+        [class.invalido]="!!errosCampo().capacidade"
+        placeholder="25"
+      />
+      <small class="erro-campo" *ngIf="errosCampo().capacidade">{{ errosCampo().capacidade }}</small>
+    </label>
+
+    <label>
+      Tribo <span class="opcional">(opcional)</span>
+      <select name="triboId" [(ngModel)]="form.triboId" [class.invalido]="!!errosCampo().triboId">
+        <option value="">— sem tribo —</option>
+        <option *ngFor="let tribo of tribos()" [value]="tribo.id">{{ tribo.nome }}</option>
+      </select>
+      <small class="erro-campo" *ngIf="errosCampo().triboId">{{ errosCampo().triboId }}</small>
+    </label>
+  </div>
+
+  <p class="nota">
+    <strong>Ocupação não é campo deste formulário.</strong> Todo ponto nasce vazio: a ocupação só é
+    movida pelo webhook de entrega falida e pela baixa da missão, sob lock no banco.
+  </p>
+
+  <div class="botoes">
+    <!-- ( ) no submit e no cancelar; [ ] desabilita enquanto a requisição está em voo -->
+    <button type="submit" class="primario" [disabled]="salvando()">
+      {{ salvando() ? 'Salvando…' : 'Salvar' }}
+    </button>
+    <button type="button" class="secundario" (click)="cancelar()" [disabled]="salvando()">
+      Cancelar
+    </button>
+  </div>
+</form>
+
+<!-- ===================== LISTAGEM ===================== -->
+<p class="contexto">
+  Pontos ativos num raio de {{ raioKm }} km de ({{ centroLat }}, {{ centroLon }}), do mais próximo.
+  A API não oferece listagem sem coordenada.
+</p>
+
+<p class="aviso carregando" *ngIf="carregandoPontos()">Consultando pontos…</p>
+
+<div class="aviso erro" *ngIf="!carregandoPontos() && problemaLista() as p">
+  <p class="erro-frase">{{ mensagem(p) }}</p>
+  <p class="erro-meta">HTTP {{ p.status }}<span *ngIf="p.type"> · <code>{{ p.type }}</code></span></p>
+  <button type="button" (click)="carregarPontos()">Tentar de novo</button>
+</div>
+
+<div class="aviso vazio" *ngIf="!carregandoPontos() && !problemaLista() && pontos().length === 0">
+  <p><strong>Nenhum ponto de custódia ativo neste raio.</strong></p>
+  <p>
+    A consulta funcionou e devolveu zero linhas. Ou não há ponto cadastrado, ou todos estão fora dos
+    {{ raioKm }} km do centro acima, ou foram desativados — ponto inativo some da consulta de
+    propósito, para não mandar ninguém a uma loja que não recebe mais encomenda.
+  </p>
+  <p>Use <strong>Novo ponto</strong> acima para cadastrar o primeiro.</p>
+</div>
+
+<table class="pontos" *ngIf="!carregandoPontos() && !problemaLista() && pontos().length > 0">
+  <caption>{{ pontos().length }} ponto(s) ativo(s)</caption>
+  <thead>
+    <tr>
+      <th scope="col">Código</th>
+      <th scope="col">Apelido</th>
+      <th scope="col">Tipo</th>
+      <th scope="col" class="num">Ocupação</th>
+      <th scope="col">Lotação</th>
+      <th scope="col" class="num">Distância</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let ponto of pontos()">
+      <td><code>{{ ponto.codigo }}</code></td>
+      <td>{{ ponto.apelido }}</td>
+      <td>{{ ponto.tipo }}</td>
+      <td class="num">{{ ponto.ocupacao }} / {{ ponto.capacidade }}</td>
+      <td>
+        <!-- [ ] classe condicional; a barra é div com largura percentual -->
+        <span [class]="classeDeLotacao(ponto)">{{ ocupacaoPercentual(ponto) }}%</span>
+        <div class="barra">
+          <div class="barra-preenchida" [style.width.%]="ocupacaoPercentual(ponto)"></div>
+        </div>
+      </td>
+      <td class="num">{{ ponto.distanciaM !== null ? ponto.distanciaM + ' m' : '—' }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===================== IMPACTO (fase anterior, mantido) ===================== -->
+<section class="impacto" *ngIf="impacto() as dados">
+  <h2>Impacto — ajuda patrocinada por transportadora</h2>
+  <p class="gerado">
+    O único caminho em que a recompensa vem de fora do bairro. As demais missões — ajuda, mutirão e
+    coleta — são financiadas pela própria comunidade.
+  </p>
+  <p class="gerado">Apurado em {{ dados.geradoEm }}</p>
+  <ul class="indicadores">
+    <li *ngFor="let indicador of funil()">
+      <span>{{ indicador.rotulo }}</span><span class="valor">{{ indicador.valor }}</span>
+    </li>
+  </ul>
+  <h2>Token em circulação</h2>
+  <ul class="indicadores">
+    <li *ngFor="let indicador of tokens()">
+      <span>{{ indicador.rotulo }}</span><span class="valor">{{ indicador.valor }}</span>
+    </li>
+  </ul>
+</section>

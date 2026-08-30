@@ -1,5 +1,6 @@
 package com.omnitribo.logistica.api;
 
+import com.omnitribo.compartilhado.api.RecursoAuditavel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -23,4 +24,16 @@ public record PontoCustodiaResponse(
     BigDecimal lon,
     int capacidade,
     int ocupacao,
-    @Schema(description = "Distância em metros; só na busca por raio") BigDecimal distanciaM) {}
+    @Schema(description = "Distância em metros; só na busca por raio") BigDecimal distanciaM)
+    implements RecursoAuditavel {
+
+  /**
+   * Metade obrigatória da auditoria: sem isto, {@code AuditoriaAspecto} grava {@code entidade_id}
+   * nulo e a trilha vira "alguém cadastrou um ponto" sem dizer QUAL. A outra metade é o
+   * {@code @Auditavel} no método de serviço; faltar qualquer uma não quebra a compilação.
+   */
+  @Override
+  public UUID idAuditoria() {
+    return id;
+  }
+}

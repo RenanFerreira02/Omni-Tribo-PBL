@@ -2,6 +2,7 @@ package com.omnitribo.identidade.dominio;
 
 import com.omnitribo.compartilhado.api.ConsultasGeoespaciais;
 import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
+import com.omnitribo.identidade.api.ConsultaTribo;
 import com.omnitribo.identidade.api.TriboResponse;
 import com.omnitribo.identidade.infra.TriboRepository;
 import java.math.BigDecimal;
@@ -22,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
  * querer é BUSCA por nome ou bairro, não paginação — e aí o contrato muda por um motivo real.
  */
 @Service
-public class TriboService {
+public class TriboService implements ConsultaTribo {
 
   private static final String NAO_ENCONTRADA = "Tribo não encontrada.";
 
@@ -87,5 +88,18 @@ public class TriboService {
 
   private static BigDecimal arredondar(double valor) {
     return BigDecimal.valueOf(valor).setScale(CASAS_COORDENADA, RoundingMode.HALF_UP);
+  }
+
+  /**
+   * Implementação de {@link ConsultaTribo}.
+   *
+   * <p>{@code existsById} e não {@code findById}: a resposta é um boolean, e trazer a linha inteira
+   * — inclusive a geometria do polígono da tribo — para descartá-la seria desperdício por
+   * requisição de cadastro.
+   */
+  @Override
+  @Transactional(readOnly = true)
+  public boolean existe(UUID triboId) {
+    return triboId != null && triboRepository.existsById(triboId);
   }
 }

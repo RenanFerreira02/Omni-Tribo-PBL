@@ -1,0 +1,126 @@
+h1 {
+  margin-top: 0;
+}
+
+h2 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1rem;
+  color: #33414f;
+}
+
+.perfil {
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  background: #eef4f0;
+  font-size: 0.9rem;
+}
+
+.gerado {
+  color: #5d6b7a;
+  font-size: 0.8rem;
+}
+
+.indicadores {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #e6eaee;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.indicadores li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid #eef1f4;
+}
+
+.indicadores li:last-child {
+  border-bottom: none;
+}
+
+.valor {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.taxa {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.vazio {
+  color: #8b98a5;
+}
+
+.erro {
+  padding: 0.6rem 0.7rem;
+  border-radius: 6px;
+  background: #fdecec;
+  color: #96271f;
+}
+
+/* ---------- cadastro de ponto de custódia ---------- */
+.cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.acoes { display: flex; gap: 0.5rem; }
+button.primario {
+  padding: 0.45rem 0.9rem; border: 1px solid #2f6f4f; border-radius: 6px;
+  background: #2f6f4f; color: #fff; font: inherit; font-size: 0.85rem; cursor: pointer;
+}
+button.secundario {
+  padding: 0.45rem 0.9rem; border: 1px solid #c4ccd6; border-radius: 6px;
+  background: #fff; color: #33414f; font: inherit; font-size: 0.85rem; cursor: pointer;
+}
+button.primario:disabled { border-color: #9bb0a4; background: #9bb0a4; cursor: not-allowed; }
+button.secundario:disabled { color: #a9b3bd; cursor: not-allowed; }
+
+.aviso { margin: 1rem 0; padding: 0.9rem 1rem; border-radius: 8px; font-size: 0.9rem; }
+.aviso.sucesso { background: #e4f0e9; color: #1f5a3d; border: 1px solid #bcdcc9; }
+.aviso.carregando { background: #eef2f6; color: #4a5a6a; }
+.aviso.erro { background: #fdecec; color: #96271f; border: 1px solid #f2c4c0; }
+.aviso.erro .erro-frase { margin: 0 0 0.3rem; font-weight: 600; }
+.aviso.erro .erro-meta { margin: 0 0 0.6rem; font-size: 0.78rem; color: #7d3b34; }
+.aviso.erro code { background: #f7dad7; padding: 0.05rem 0.3rem; border-radius: 3px; }
+.aviso.erro button {
+  padding: 0.35rem 0.75rem; border: 1px solid currentColor; border-radius: 6px;
+  background: transparent; color: inherit; font: inherit; font-size: 0.8rem; cursor: pointer;
+}
+.aviso.vazio { background: #fff8e6; color: #6b4e14; border: 1px solid #f0dfae; }
+.aviso.vazio p { margin: 0 0 0.5rem; }
+
+.formulario {
+  margin: 1rem 0 1.5rem; padding: 1.1rem; border: 1px solid #d9dee5;
+  border-radius: 10px; background: #fff;
+}
+.formulario h2 { margin: 0 0 0.4rem; font-size: 1rem; }
+.formulario .nota { margin: 0 0 0.9rem; color: #5d6b7a; font-size: 0.8rem; }
+.campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.8rem; }
+.campos label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; font-weight: 600; }
+.campos label.largo { grid-column: 1 / -1; }
+.campos .opcional { font-weight: 400; color: #8b98a5; }
+.campos input, .campos select {
+  padding: 0.5rem 0.6rem; border: 1px solid #c4ccd6; border-radius: 6px;
+  font: inherit; font-size: 0.9rem; font-weight: 400;
+}
+.campos input:focus, .campos select:focus { outline: 2px solid #2f6f4f; outline-offset: 1px; }
+.campos .invalido { border-color: #c0392b; background: #fef7f6; }
+.erro-campo { color: #96271f; font-weight: 400; font-size: 0.75rem; }
+.botoes { display: flex; gap: 0.5rem; margin-top: 1rem; }
+
+.contexto { color: #5d6b7a; font-size: 0.8rem; margin: 1.4rem 0 0.4rem; }
+table.pontos { width: 100%; border-collapse: collapse; font-size: 0.87rem; background: #fff; }
+table.pontos caption { caption-side: top; text-align: left; padding-bottom: 0.4rem; color: #5d6b7a; font-size: 0.8rem; }
+table.pontos th, table.pontos td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #eaeef2; text-align: left; vertical-align: middle; }
+table.pontos th { color: #5d6b7a; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+table.pontos .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.pontos code { background: #f1f4f7; padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.8rem; }
+
+.lotacao { display: inline-block; padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+.lotacao-ok { background: #e4f0e9; color: #1f5a3d; }
+.lotacao-quase { background: #fdf0d8; color: #7a5410; }
+.lotacao-cheio { background: #fde6e3; color: #8f2a20; }
+table.pontos .barra { height: 5px; margin-top: 0.25rem; border-radius: 3px; background: #eef1f4; overflow: hidden; width: 6rem; }
+table.pontos .barra-preenchida { height: 100%; background: #2f6f4f; }
+
+.impacto { margin-top: 2.2rem; padding-top: 1.2rem; border-top: 1px solid #e2e7ec; }

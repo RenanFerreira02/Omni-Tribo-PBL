@@ -1,0 +1,79 @@
+:host {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem;
+}
+
+.cartao {
+  width: 100%;
+  max-width: 22rem;
+  padding: 2rem;
+  border: 1px solid #d9dee5;
+  border-radius: 10px;
+  background: #fff;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.subtitulo {
+  margin: 0.25rem 0 1.5rem;
+  color: #5d6b7a;
+  font-size: 0.85rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #c4ccd6;
+  border-radius: 6px;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+input:focus {
+  outline: 2px solid #2f6f4f;
+  outline-offset: 1px;
+}
+
+button {
+  width: 100%;
+  padding: 0.7rem;
+  border: none;
+  border-radius: 6px;
+  background: #2f6f4f;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #9bb0a4;
+  cursor: not-allowed;
+}
+
+.erro {
+  margin-top: 1rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 6px;
+  background: #fdecec;
+  color: #96271f;
+  font-size: 0.85rem;
+}
+
+.dica {
+  margin-top: 1rem;
+  color: #5d6b7a;
+  font-size: 0.8rem;
+}
