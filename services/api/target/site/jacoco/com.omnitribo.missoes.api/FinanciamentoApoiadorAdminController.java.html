@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FinanciamentoApoiadorAdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">omnitribo-api</a> &gt; <a href="index.source.html" class="el_package">com.omnitribo.missoes.api</a> &gt; <span class="el_source">FinanciamentoApoiadorAdminController.java</span></div><h1>FinanciamentoApoiadorAdminController.java</h1><pre class="source lang-java linenums">package com.omnitribo.missoes.api;
+
+import com.omnitribo.missoes.dominio.FinanciamentoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * ADMIN põe token de um APOIADOR do bairro no pote de uma missão comunitária.
+ *
+ * &lt;h2&gt;Por que este endpoint existe, e por que ele é ADMIN&lt;/h2&gt;
+ *
+ * &lt;p&gt;O apoiador é um titular de carteira que &lt;b&gt;nunca autentica&lt;/b&gt;: a conta nasce com status
+ * INATIVO, e {@code AutenticacaoService} recusa qualquer status diferente de ATIVO. Ele não tem — e
+ * não deve ter — um JWT, então não alcança {@code POST /tribos/{triboId}/financiamentos}, que tira
+ * a identidade do token. Um caminho que dependesse do JWT dele seria código inalcançável, e foi
+ * exatamente esse o defeito que a verificação ponta a ponta pegou.
+ *
+ * &lt;p&gt;É coerente com o resto: o apoiador é administrado de ponta a ponta — cadastro, aporte e
+ * encerramento são todos ADMIN, em {@code /admin/patrocinadores}.
+ *
+ * &lt;p&gt;&lt;b&gt;Sem este endpoint a economia não fecha.&lt;/b&gt; {@code APORTE_PATROCINADOR} é o único ponto de
+ * emissão de token do sistema, e até a V28 quem levava esse token ao pote era a conversão do
+ * webhook de entrega falida. Com o webhook removido (ADR 0031), o token emitido ficaria parado na
+ * carteira do apoiador para sempre: a economia teria só o sumidouro do resgate, e a soma cairia
+ * monotonicamente até zero.
+ *
+ * &lt;h2&gt;Por que ele vive em {@code missoes} e não em {@code identidade}&lt;/h2&gt;
+ *
+ * &lt;p&gt;O recurso MUTADO é {@code missao.pote_tokens} — o path diz isso. O apoiador entra como
+ * parâmetro, resolvido pela porta {@code ConsultaPatrocinador}; pôr o endpoint junto do cadastro
+ * faria {@code identidade} depender de {@code missoes.dominio}, que o ArchUnit proíbe.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/admin/missoes&quot;)
+@Tag(name = &quot;Financiamento&quot;, description = &quot;Financiamento comunitário do pote de missões&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+@Validated
+public class FinanciamentoApoiadorAdminController {
+
+  private final FinanciamentoService financiamentoService;
+
+<span class="fc" id="L59">  public FinanciamentoApoiadorAdminController(FinanciamentoService financiamentoService) {</span>
+<span class="fc" id="L60">    this.financiamentoService = financiamentoService;</span>
+<span class="fc" id="L61">  }</span>
+
+  @PostMapping(&quot;/{missaoId}/financiamento-apoiador&quot;)
+  @ResponseStatus(HttpStatus.CREATED)
+  @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+  @Operation(
+      summary = &quot;Financiar o pote com token de um apoiador do bairro&quot;,
+      description =
+          &quot;Debita a carteira do apoiador e credita o pote da missão, com motivo &quot;
+              + &quot;FINANCIAMENTO_PATROCINADOR. NÃO emite token: é o aporte que emite, e este endpoint &quot;
+              + &quot;apenas move para o pote o que já foi emitido — a soma SUM(carteiras) + SUM(potes) &quot;
+              + &quot;não muda aqui. Idempotente pelo header Idempotency-Key.&quot;)
+  @ApiResponses({
+    @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Pote atualizado&quot;),
+    @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
+    @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),
+    @ApiResponse(responseCode = &quot;403&quot;, ref = &quot;#/components/responses/AcessoNegado&quot;),
+    @ApiResponse(responseCode = &quot;404&quot;, ref = &quot;#/components/responses/NaoEncontrado&quot;),
+    @ApiResponse(responseCode = &quot;422&quot;, ref = &quot;#/components/responses/RegraNegocioViolada&quot;)
+  })
+  public FinanciamentoResponse financiar(
+      @PathVariable UUID missaoId,
+      @Valid @RequestBody FinanciarComoApoiadorRequest corpo,
+      // required=true faz a ausência virar 400 pelo próprio framework. O @Size não protege o banco
+      // — a coluna guarda um sha256 de tamanho fixo — e sim o cliente de si mesmo: uma chave vazia
+      // ou constante o prenderia para sempre no replay da primeira operação que ele fez.
+      @RequestHeader(&quot;Idempotency-Key&quot;) @NotBlank @Size(min = 8, max = 200) String chaveDoCliente) {
+
+<span class="fc" id="L89">    return financiamentoService.financiarComoApoiador(</span>
+<span class="fc" id="L90">        missaoId, corpo.tokens(), corpo.patrocinadorId(), chaveDoCliente);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -36,7 +36,6 @@ export default function LayoutApp() {
       }}
     >
       <Stack.Screen name="beneficios" />
-      <Stack.Screen name="impacto" options={{ headerShown: true, title: 'Impacto' }} />
       <Stack.Screen name="missao/criar" />
       <Stack.Screen name="missao/[id]" options={{ headerShown: true, title: 'Missão' }} />
       <Stack.Screen name="sobre" options={{ headerShown: true, title: 'Sobre' }} />

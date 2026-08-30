@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.omnitribo.compartilhado.infra.IndiceGeoespacialTest
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.855 s -- in com.omnitribo.compartilhado.infra.IndiceGeoespacialTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.950 s -- in com.omnitribo.compartilhado.infra.IndiceGeoespacialTest

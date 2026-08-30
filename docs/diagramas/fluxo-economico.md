@@ -37,25 +37,26 @@ flowchart TB
 
     tribo["TRIBO"] --> conserva
     coleta["COLETA"] --> conserva
+    ajuda["AJUDA"] --> conserva
     entrega["ENTREGA"] --> cunha
-    ajuda["AJUDA"] --> cunha
 
-    patro["🏢 Carteira de patrocinador<br/><b>NÃO IMPLEMENTADA</b>"]
-    patro -.->|"aresta que fecha o ciclo<br/>(Pendência #1)"| pote
+    patro["🏢 Carteira de apoiador<br/>aporte ADMIN: o ÚNICO ponto de emissão"]
+    patro -->|"FINANCIAMENTO_PATROCINADOR"| pote
 
     exec1 --> resgate["🎁 Resgate em benefício<br/>de parceiro do bairro"]
     exec2 --> resgate
-    resgate -.->|"sumidouro real<br/><b>ainda não existe no backend</b>"| nada2(("∅"))
+    resgate -->|"RESGATE: debita e não credita ninguém"| nada2(("∅"))
 
     style cunha fill:#fff1f0,stroke:#c0392b
     style conserva fill:#eefaf3,stroke:#1f6f4a
-    style patro fill:#f5f5f5,stroke:#999,stroke-dasharray: 5 5
+    style patro fill:#eef4fb,stroke:#2c6fbb
     style resgate fill:#fdf6e3,stroke:#b58900
 ```
 
 ## O que o diagrama admite
 
-**As duas arestas tracejadas são o que falta**, e estão desenhadas de propósito.
+**As duas arestas que faltavam foram fechadas**, e a história de cada uma está aqui porque é ela que
+explica por que o desenho é este.
 
 **1. O patrocinador não existia — e passou a existir.** Até 2026-08-20, ENTREGA e AJUDA cunhavam.
 Medido do zero em 2026-08-16: um ciclo AJUDA aumentou `SUM(saldos) + SUM(potes)` em exatamente o
@@ -74,26 +75,23 @@ virou o sumidouro no [ADR 0027](../adr/0027-resgate-queima-token.md). A emissão
 virou um ponto só, `APORTE_PATROCINADOR`. Medição de 2026-08-22: **Δ=0 nas quatro categorias**
 ([evidência](../evidencias/f14-conservacao-quatro-categorias.md)).
 
-O que **ainda** cunha é ENTREGA criada por humano — sem transportadora, não há patrocinador a
-debitar. Ela é `FontePote.CUNHAGEM`, declarada na linha da missão.
+O que **ainda** cunha é ENTREGA criada por humano. Ela é `FontePote.CUNHAGEM`, declarada na linha da
+missão em vez de escondida num `if`.
 
-**2. O resgate não tem sumidouro no backend.** O catálogo de benefícios é dado local do app: não há
-tabela de parceiro, endpoint, nem motivo `RESGATE` no ledger. Simular o débito no cliente produziria
-um saldo que o servidor desmente no primeiro `refetch` — a tela diz ao usuário que a baixa ainda não
-acontece.
+**O patrocinador virou APOIADOR DO BAIRRO em 2026-08-30** ([ADR 0031](../adr/0031-remocao-da-extensao-logistica.md)).
+A aresta que ele fecha é a mesma, e ela mudou de forma: até então o token aportado chegava ao pote
+dentro da conversão do webhook de entrega falida, automaticamente; hoje chega por um financiamento
+explícito, no mesmo endpoint que um membro da tribo usa. Sem esse caminho, o aporte emitiria token
+que ficaria parado na carteira dele — emissão sem destino.
 
-## O multiplicador de risco amplia a cunhagem — de forma limitada e deliberada
+**2. O resgate não tinha sumidouro, e passou a ter.** Ele chegou no
+[ADR 0027](../adr/0027-resgate-queima-token.md): o lançamento com motivo `RESGATE` debita e **não
+credita ninguém**, sem contraparte e sem missão. É o par exato do aporte, e é o que faz a economia
+ser um ciclo em vez de um estoque.
 
-Missão nascida de entrega falida recebe multiplicador ∈ **[1,00; 1,50]**, congelado na linha junto
-com `versao_formula`. Como ENTREGA cunha, risco alto cunha até 1,5× o que cunharia.
-
-**É exatamente por causa da Pendência #1 que o teto é estreito**, existe em dois blocos de
-configuração e tem um teste (`CoerenciaTetoRiscoTest`) travando a concordância entre eles. Sem teto,
-o risco multiplicaria a emissão sem financiador.
-
-O multiplicador entra na **BASE** do cálculo, junto da complexidade — nunca sobre o total.
-Multiplicar o total escalaria também distância, peso e volume, e a recompensa explodiria de forma
-não linear no caso extremo.
+> **Havia aqui uma terceira seção**, sobre o multiplicador de risco ∈ [1,00; 1,50] que ampliava a
+> cunhagem de missão nascida de entrega falida. O multiplicador saiu da fórmula na versão 4, junto
+> com a extensão logística (ADR 0031).
 
 ## As duas invariantes, que não são a mesma
 

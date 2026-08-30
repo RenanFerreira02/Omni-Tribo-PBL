@@ -112,15 +112,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // memória e ~100 ms de CPU, por ADR 0005), a rota era um amplificador de DoS não autenticado —
     // o atacante gasta uma requisição, o servidor gasta 100 ms. Agora cai no bucket geral de
     // escrita, por IP, já que ainda não há token nessa altura.
-    // /api/v1/webhooks/ é isento AQUI porque tem teto PRÓPRIO no HmacWebhookFilter, que roda antes
-    // e já recusou quem não tem assinatura válida. Deixar cair no balde geral aplicaria um segundo
-    // limite com a chave errada: sem JWT, a chave é o IP, e várias transportadoras atrás do mesmo
-    // gateway dividiriam uma cota pensada para usuário final.
+    // `/api/v1/webhooks/` também era isento aqui, porque tinha teto próprio no HmacWebhookFilter.
+    // Os dois saíram na V28 (ADR 0031) junto com a extensão logística: sem rota autenticada por
+    // HMAC, não há mais nada nesta cadeia cuja chave de balde não seja usuário ou IP.
     String path = request.getRequestURI();
     if (path.equals("/api/v1/auth/login")
         || path.startsWith("/v3/api-docs")
         || path.startsWith("/swagger-ui")
-        || path.startsWith("/api/v1/webhooks/")
         || path.equals("/api/v1/ping")) {
       chain.doFilter(request, response);
       return;

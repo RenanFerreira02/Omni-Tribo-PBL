@@ -5,6 +5,13 @@
 
 ---
 
+> ## RETIFICADO em 2026-08-30 — ADR 0031
+>
+> **A invariante não muda; a ponta de emissão troca de dono.** `SUM(carteiras) + SUM(potes)`
+> continua constante dentro do ciclo de missões, subindo no `APORTE_PATROCINADOR` e descendo no
+> `RESGATE`. O que era aporte de transportadora agora é aporte de apoiador do bairro, e o token
+> emitido chega ao pote por financiamento explícito em vez da conversão automática do webhook.
+
 ## Contexto
 
 O ADR 0009 §3 decidiu que o resgate em benefício de parceiro é o **sumidouro** do TOKEN — e não

@@ -14,10 +14,10 @@ public record ParametrosNotificacoes(
     /**
      * Teto de alertas por usuário por hora.
      *
-     * &lt;p&gt;Existe porque a densidade de entregas falidas é irregular: um ponto de custódia
-     * movimentado no fim da rota do dia gera uma rajada, e sem teto a mesma pessoa recebe dezenas
-     * de notificações em minutos. A reação a isso é desinstalar o app, não aceitar missão — ou
-     * seja, o excesso de notificação destrói exatamente o canal que a notificação existe para usar.
+     * &lt;p&gt;Existe porque a densidade de publicações é irregular: um mutirão organizado num sábado
+     * publica várias missões seguidas no mesmo bairro, e sem teto a mesma pessoa recebe dezenas de
+     * notificações em minutos. A reação a isso é desinstalar o app, não aceitar missão — ou seja, o
+     * excesso de notificação destrói exatamente o canal que a notificação existe para usar.
      */
     int alertasPorHora,
 
@@ -28,35 +28,18 @@ public record ParametrosNotificacoes(
      * que processa até 100 eventos por vez; sem teto, um ponto numa região densa expandiria um
      * evento em milhares de inserts e seguraria a transação do lote inteiro.
      */
-    int tribosPorEvento,
+    int tribosPorEvento) {
 
-    /**
-     * Teto por hora para alertas de risco ALTO.
-     *
-     * &lt;p&gt;Maior que {@code alertasPorHora}, e é essa folga que resolve o problema: sem ela, cinco
-     * entregas triviais chegando primeiro silenciariam a difícil pela hora seguinte — justamente a
-     * que mais precisa de alguém e a que paga melhor. É folga, não isenção: uma rajada de entregas
-     * de alto risco no mesmo ponto continua limitada.
-     */
-    int alertasAltaPrioridadePorHora) {
-
-<span class="fc" id="L43">  public ParametrosNotificacoes {</span>
-<span class="pc bpc" id="L44" title="1 of 2 branches missed.">    if (raioAlertaMetros &lt;= 0) {</span>
-<span class="nc" id="L45">      throw new IllegalArgumentException(&quot;app.notificacoes.raio-alerta-metros deve ser positivo&quot;);</span>
+<span class="fc" id="L33">  public ParametrosNotificacoes {</span>
+<span class="pc bpc" id="L34" title="1 of 2 branches missed.">    if (raioAlertaMetros &lt;= 0) {</span>
+<span class="nc" id="L35">      throw new IllegalArgumentException(&quot;app.notificacoes.raio-alerta-metros deve ser positivo&quot;);</span>
     }
-<span class="pc bpc" id="L47" title="1 of 2 branches missed.">    if (alertasPorHora &lt;= 0) {</span>
-<span class="nc" id="L48">      throw new IllegalArgumentException(&quot;app.notificacoes.alertas-por-hora deve ser positivo&quot;);</span>
+<span class="pc bpc" id="L37" title="1 of 2 branches missed.">    if (alertasPorHora &lt;= 0) {</span>
+<span class="nc" id="L38">      throw new IllegalArgumentException(&quot;app.notificacoes.alertas-por-hora deve ser positivo&quot;);</span>
     }
-<span class="pc bpc" id="L50" title="1 of 2 branches missed.">    if (tribosPorEvento &lt;= 0) {</span>
-<span class="nc" id="L51">      throw new IllegalArgumentException(&quot;app.notificacoes.tribos-por-evento deve ser positivo&quot;);</span>
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">    if (tribosPorEvento &lt;= 0) {</span>
+<span class="nc" id="L41">      throw new IllegalArgumentException(&quot;app.notificacoes.tribos-por-evento deve ser positivo&quot;);</span>
     }
-<span class="pc bpc" id="L53" title="1 of 2 branches missed.">    if (alertasAltaPrioridadePorHora &lt; alertasPorHora) {</span>
-      // Menor que o teto normal inverteria o sentido do carve-out: o alerta mais urgente seria o
-      // primeiro a ser descartado, e nada no comportamento denunciaria a inversão.
-<span class="nc" id="L56">      throw new IllegalArgumentException(</span>
-          &quot;app.notificacoes.alertas-alta-prioridade-por-hora não pode ser menor que&quot;
-              + &quot; alertas-por-hora&quot;);
-    }
-<span class="fc" id="L60">  }</span>
+<span class="fc" id="L43">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

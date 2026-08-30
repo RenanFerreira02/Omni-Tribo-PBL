@@ -81,13 +81,28 @@ de **-23.55737, -46.46987**, para a demonstração ser feita com o GPS ligado.
 | `marlene` | marlene@omnitribo.dev  | USUARIO | Tribo Cidade Líder |
 | `jonas`   | jonas@omnitribo.dev    | USUARIO | Tribo Cidade Líder |
 
-O que entra junto: 3 pontos de custódia (LOCKER a 170 m, portaria a 342 m, loja a 4,1 km), 8 missões
-nas quatro categorias entre 170 m e 4,5 km, 8 encomendas em `entrega_falida` — pendentes, convertidas
-em missão aberta e convertidas em missão já concluída —, carteiras com ledger fechado e 3 alertas.
+O que entra junto: 8 missões nas quatro categorias entre 170 m e 4,5 km, carteiras com ledger fechado
+e 3 alertas. (Entravam também 3 pontos de custódia e 8 encomendas em `entrega_falida`; as duas
+tabelas saíram na `V28` — ver [ADR 0031](adr/0031-remocao-da-extensao-logistica.md).)
 
 Duas coisas foram conferidas contra o sistema em execução, e não escritas de cabeça: **as recompensas
 saíram de `POST /missoes/previa-recompensa`** (as 8 batem), e **os potes não cunham token** — os 156
 em potes correspondem a 156 debitados de carteira como `FINANCIAMENTO_TRIBO`.
+
+### Apoiadores do bairro (`V907__seed_apoiadores.sql`)
+
+Duas contas titulares de carteira, INATIVAS (nenhuma senha as autentica) e sem tribo, uma por perfil:
+`apoiador-dev` e `apoiador-teste`, cada uma com **5.000 tokens** e o lançamento
+`APORTE_PATROCINADOR` correspondente — sem ele o `MigracaoTest` reprovaria, porque saldo positivo sem
+origem no ledger é a corrupção que a reconciliação existe para achar.
+
+São elas que sustentam a emissão de token em dev e em test: o aporte é o **único ponto de emissão do
+sistema**, e o apoiador pode financiar o pote de qualquer missão comunitária dispensando a checagem
+de tribo.
+
+O mesmo seed traz **Fernanda** (`fernanda@omnitribo.dev`, Tribo Pinheiros, xp 400 → nível 3) e
+**Gustavo** (`gustavo@omnitribo.dev`, mesma tribo, xp 0 → nível 1): mesmos consentimentos vigentes, e
+a única variável diferente é o nível. É o par controlado do fan-out de notificação.
 
 **Nota:** a V1 foi renomeada de `V1__extensions.sql` para `V1__extensoes.sql` nesta fase.
 Se o banco local já tinha V1 aplicada, execute `make reset` antes de subir o backend.

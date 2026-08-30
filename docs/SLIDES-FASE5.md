@@ -48,18 +48,18 @@ são o corpo, e a **nota** é o que você fala — não o que aparece na tela.
 
 ---
 
-## Slide 4 — Onde entra a logística
+## Slide 4 — Quem financia o pote
 
-**Uma extensão, não o produto**
+**Quem cria a missão não paga**
 
-- Entrega falha → encomenda fica no ponto de custódia
-- A retirada pelo vizinho **também é ajuda** — mas quem paga é a transportadora
-- Único caminho em que o dinheiro vem **de fora** do bairro
-- Autenticado por HMAC sobre o corpo bruto
+- Publicar exige pote cobrindo a recompensa — e quem o forma são OUTROS
+- Membro da tribo, ou um **apoiador do bairro** (comércio local, associação)
+- Quem paga não escolhe quem executa e não recebe nada de volta
+- Emissão de token num ponto só: aporte ADMIN, idempotente e auditado
 
-> É aqui que você cobre a "AI Logistics Extension" do enunciado sem transformar o produto num app de
-> logística. Uma frase: "é a prova de que a economia do cuidado recebe dinheiro externo sem deixar
-> de ser comunitária".
+> Se perguntarem pela extensão logística: ela existiu — entrega falida virava missão de retirada com
+> a transportadora financiando — e foi **removida em 2026-08-30**, com a decisão registrada no
+> ADR 0031. Diga o que se perdeu junto: o eixo de apoio à decisão ficou sem implementação.
 
 ---
 
@@ -98,7 +98,7 @@ são o corpo, e a **nota** é o que você fala — não o que aparece na tela.
 - Rotas `/login` `/home` `/admin` com guard
 - `HttpClient` + interceptor que anexa o token
 - Binding nas quatro formas · `*ngIf` · `*ngFor`
-- Formulário com `[(ngModel)]`: cadastro de ponto de custódia
+- Formulário com `[(ngModel)]`: cadastro de benefício de parceiro
 
 > Diga que a validação do cliente **não substitui** a do servidor — e que o backend não foi
 > afrouxado para o formulário funcionar.
@@ -133,9 +133,10 @@ são o corpo, e a **nota** é o que você fala — não o que aparece na tela.
 
 **Declarado, não escondido**
 
-- Modelo de risco treinado em **dados sintéticos** — validar com dado real
-- Três pendências diagnosticadas e registradas (outbox sem carta-morta; pote imobilizado sem
-  diagnóstico; alerta de ponto lotado sem teto)
+- O eixo de **apoio à decisão** ficou sem implementação: o modelo previa falha de entrega e saiu
+  com a extensão logística (ADR 0031). Perda declarada, não maquiada
+- Duas pendências diagnosticadas e registradas (outbox sem carta-morta; pote imobilizado sem
+  diagnóstico)
 - Acessibilidade: passada de TalkBack no Android
 - **Navegação:** Expo Router, não React Navigation — decisão consciente, medida e documentada
 

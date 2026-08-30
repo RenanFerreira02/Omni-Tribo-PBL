@@ -14,7 +14,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Corpo de criação de missão.
@@ -98,5 +97,4 @@ public record CriarMissaoRequest(
         @Digits(integer = 6, fraction = 2, message = "Volume deve ter no máximo 2 decimais")
         BigDecimal volumeL,
     @NotNull(message = "Início da janela é obrigatório") Instant janelaInicio,
-    @NotNull(message = "Fim da janela é obrigatório") Instant janelaFim,
-    UUID pontoCustodiaId) {}
+    @NotNull(message = "Fim da janela é obrigatório") Instant janelaFim) {}

@@ -69,33 +69,15 @@ public class Missao {
   @Column(name = "versao_formula")
   private Integer versaoFormula;
 
-  /**
-   * Reservado para a F11. Nenhum código lê ou escreve hoje; entrou junto para que o congelamento da
-   * recompensa já nascesse completo.
-   */
-  @Column(name = "multiplicador_risco", precision = 4, scale = 2)
-  private BigDecimal multiplicadorRisco;
-
-  /**
-   * Faixa de risco congelada na criação. Nula em toda missão que não veio de entrega falida.
-   *
-   * <p>{@code String} e não enum, deliberadamente: o enum {@code FaixaRisco} vive em {@code
-   * logistica.dominio}, e a regra do ArchUnit proíbe {@code missoes} de importá-lo. É a mesma razão
-   * pela qual a porta {@code ConversaoEntregaFalida} recebe a faixa como {@code String} — sempre o
-   * {@code name()} de um enum já validado do outro lado, nunca texto livre.
-   */
-  @Column(name = "faixa_risco", length = 5)
-  private String faixaRisco;
+  // multiplicador_risco NÃO é mapeado, e a coluna continua no banco de propósito: ela explica a
+  // recompensa das missões de retirada já creditadas, e apagá-la apagaria essa explicação. Ver
+  // V28 §3a. `ddl-auto: validate` não reclama de coluna que nenhuma entidade mapeia.
 
   @Column(nullable = false, columnDefinition = "geography(POINT,4326)")
   private Point origem;
 
   @Column(columnDefinition = "geography(POINT,4326)")
   private Point destino;
-
-  // UUID puro, sem FK: fronteira missoes→logistica; ver V3__missoes.sql
-  @Column(name = "ponto_custodia_id")
-  private UUID pontoCustodiaId;
 
   @Column(nullable = false, length = 8)
   private String cep;
@@ -160,13 +142,13 @@ public class Missao {
   /**
    * Nível mínimo (derivado do XP por {@code RegraNivel}) exigido para ACEITAR esta missão.
    *
-   * <p>1 significa "sem restrição", e é o valor de toda missão criada por usuário — o DTO de
-   * criação não tem este campo, e não deve ter: quem publica não escolhe quem pode executar. Só a
-   * conversão de entrega falida grava valor maior, e o motivo é a Regra de Elegibilidade por
-   * Reputação do challenge: custódia de pacote de terceiro não fica visível para toda a base.
+   * <p>1 significa "sem restrição", e é o valor de TODA missão hoje: o DTO de criação não tem este
+   * campo, e não deve ter — quem publica não escolhe quem pode executar. O único caminho que
+   * gravava valor maior era a conversão de entrega falida, removida na V28 (ADR 0031).
    *
-   * <p>Coluna por missão, e não constante no serviço, para que a regra fique auditável junto com a
-   * missão que a aplicou — recalibrar o mínimo depois não reescreve o passado.
+   * <p>A coluna e a validação em {@code MissaoService.validarNivelParaAceitar} ficam: o gate de
+   * reputação é regra de produto, e é por missão em vez de constante no serviço para que continue
+   * auditável junto com a missão que a aplicou. Voltar a exigir nível é acrescentar um escritor.
    */
   @Column(name = "nivel_minimo", nullable = false)
   private int nivelMinimo = 1;
@@ -175,9 +157,10 @@ public class Missao {
    * De onde sai o token da recompensa. Derivado da categoria no construtor e CONGELADO ali — ver
    * {@link FontePote}.
    *
-   * <p>Não há setter público: a única transição permitida é {@link #financiadaPeloPatrocinador()},
-   * chamada na conversão de entrega falida antes de a missão ser publicada. Depois de ABERTA, mudar
-   * a fonte alteraria de onde o executor vai ser pago, com a missão já contratada.
+   * <p>Não há setter, e não é descuido: mudar a fonte depois de ABERTA alteraria de onde o executor
+   * vai ser pago com a missão já contratada, e faria o estorno procurar lançamentos do motivo
+   * errado — o token de quem financiou ficaria preso. Existiu uma transição, {@code
+   * financiadaPeloPatrocinador()}, usada só pela conversão de entrega falida; saiu com ela na V28.
    */
   @Enumerated(EnumType.STRING)
   @Column(name = "fonte_pote", nullable = false, length = 12)
@@ -207,7 +190,6 @@ public class Missao {
       BigDecimal valorBrl,
       Point origem,
       Point destino,
-      UUID pontoCustodiaId,
       String cep,
       String logradouro,
       String bairro,
@@ -233,14 +215,9 @@ public class Missao {
     this.tokensRecompensa = recompensa.tokens();
     this.complexidade = recompensa.complexidade();
     this.versaoFormula = recompensa.versaoFormula();
-    // Congelado junto com versao_formula, e pela mesma razão: sem ele, um crédito antigo deixa de
-    // ser explicável assim que o modelo de risco for re-treinado. A coluna existe desde a V16,
-    // reservada exatamente para este momento.
-    this.multiplicadorRisco = recompensa.multiplicadorRisco();
     this.valorBrl = valorBrl;
     this.origem = origem;
     this.destino = destino;
-    this.pontoCustodiaId = pontoCustodiaId;
     this.cep = cep;
     this.logradouro = logradouro;
     this.bairro = bairro;
@@ -381,49 +358,8 @@ public class Missao {
     return versaoFormula;
   }
 
-  public BigDecimal getMultiplicadorRisco() {
-    return multiplicadorRisco;
-  }
-
-  public String getFaixaRisco() {
-    return faixaRisco;
-  }
-
-  /**
-   * Registra a faixa de risco avaliada na criação.
-   *
-   * <p>Separado do construtor porque a faixa não faz parte de {@code CalculadoraDeRecompensa
-   * .Recompensa}: a calculadora conhece o multiplicador (que é insumo da fórmula) e não a faixa
-   * (que é rótulo de apresentação). Chamado uma única vez, na conversão de entrega falida, antes de
-   * publicar.
-   */
-  public void registrarFaixaRisco(String faixa) {
-    this.faixaRisco = faixa;
-  }
-
   public FontePote getFontePote() {
     return fontePote;
-  }
-
-  /**
-   * Marca a missão como financiada pelo patrocinador. Chamada UMA vez, na conversão de entrega
-   * falida, antes de publicar.
-   *
-   * <p>Mesmo molde de {@link #registrarFaixaRisco}: fica fora do construtor porque só a conversão
-   * sabe se existe patrocinador com saldo, e essa resposta só aparece depois de a recompensa estar
-   * calculada e a carteira travada.
-   *
-   * <p>A guarda não é decorativa. Aceitar esta chamada numa missão COMUNIDADE trocaria a fonte de
-   * um pote que membros da tribo já financiaram, e o estorno passaria a procurar lançamentos do
-   * motivo errado — o dinheiro deles ficaria preso na missão. Estado impossível vira erro alto
-   * aqui, e não saldo perdido em silêncio depois.
-   */
-  public void financiadaPeloPatrocinador() {
-    if (this.fontePote != FontePote.CUNHAGEM) {
-      throw new IllegalStateException(
-          "Só missão de fonte CUNHAGEM pode passar a PATROCINADOR; esta é " + this.fontePote + ".");
-    }
-    this.fontePote = FontePote.PATROCINADOR;
   }
 
   @SuppressFBWarnings(
@@ -438,10 +374,6 @@ public class Missao {
       justification = "Point de JTS é imutável após construção; cópia defensiva sem benefício")
   public Point getDestino() {
     return destino;
-  }
-
-  public UUID getPontoCustodiaId() {
-    return pontoCustodiaId;
   }
 
   public String getCep() {
@@ -546,19 +478,5 @@ public class Missao {
 
   public int getNivelMinimo() {
     return nivelMinimo;
-  }
-
-  /**
-   * Exige reputação para aceitar.
-   *
-   * <p>Fora do construtor de propósito, e ainda assim sem virar setter genérico: nenhum DTO de
-   * entrada alcança este método, então não reabre o mass assignment que o construtor de 22
-   * parâmetros fechou. Chamado só na conversão de entrega falida, antes do primeiro {@code save}.
-   */
-  void exigirNivelMinimo(int nivel) {
-    if (nivel < 1) {
-      throw new IllegalArgumentException("Nível mínimo deve ser ao menos 1, veio " + nivel);
-    }
-    this.nivelMinimo = nivel;
   }
 }

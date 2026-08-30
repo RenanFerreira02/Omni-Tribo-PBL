@@ -55,9 +55,9 @@ export default function Sobre() {
             pessoa para outra.
           </Text>
           <Text style={estilos.paragrafo}>
-            Quando uma entrega falha e a encomenda fica num ponto de custódia, ela também vira
-            missão — e aí quem financia a recompensa é a transportadora. É um caso a mais de ajuda
-            de vizinhança, com um patrocinador do lado de fora.
+            O pote de cada missão é formado por quem quer que ela aconteça: outros vizinhos da
+            tribo, ou um apoiador do bairro. Quem cria a missão não paga — e quem executa recebe
+            exatamente o token que alguém pôs ali.
           </Text>
         </View>
 

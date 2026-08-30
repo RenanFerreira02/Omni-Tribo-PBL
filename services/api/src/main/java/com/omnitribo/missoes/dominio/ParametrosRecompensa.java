@@ -63,17 +63,6 @@ public record ParametrosRecompensa(
     BigDecimal tokensPorCemLitros,
 
     /**
-     * Adicional por real ofertado por um terceiro — hoje, a transportadora no webhook de entrega
-     * falida. Zero em toda missão criada por usuário, que não tem como informar valor.
-     *
-     * <p><b>Não é uma cotação token↔real.</b> É calibração de urgência: peso, volume e distância
-     * medem esforço, e o valor ofertado é a única pista de quanto a entrega importa para quem a
-     * paga. Baixo de propósito — se fosse alto, o parceiro compraria posição na lista e a economia
-     * do cuidado viraria leilão.
-     */
-    BigDecimal tokensPorRealOfertado,
-
-    /**
      * Teto absoluto por missão.
      *
      * <p>Existe mesmo com a fórmula fechada porque insumo declarado pelo criador ainda é insumo:
@@ -101,30 +90,7 @@ public record ParametrosRecompensa(
     BigDecimal pesoMediaAteKg,
 
     /** Fronteira MEDIA→PESADA: volume, em litros. */
-    BigDecimal volumeMediaAteL,
-
-    /**
-     * Piso do multiplicador de risco que a ECONOMIA aceita honrar.
-     *
-     * <p>1,00: risco nunca REDUZ recompensa. Um piso abaixo de 1 inverteria a tese do produto —
-     * entrega difícil pagaria menos.
-     */
-    BigDecimal multiplicadorRiscoMinimo,
-
-    /**
-     * Teto do multiplicador de risco que a ECONOMIA aceita honrar.
-     *
-     * <p><b>Existe além do teto de {@code app.logistica.risco}, e a duplicação é deliberada.</b>
-     * Lá, o teto define como o modelo MAPEIA probabilidade em multiplicador; aqui, define quanto a
-     * economia está disposta a CUNHAR. São decisões de donos diferentes: um cientista de dados
-     * recalibrando o modelo não deveria conseguir ampliar a emissão de token sozinho, e esta é a
-     * barreira que garante isso.
-     *
-     * <p>Os dois valores precisam concordar hoje, e {@code CoerenciaTetoRiscoTest} falha se
-     * divergirem — um teto de economia menor que o do modelo faria a calibração do modelo mentir
-     * sobre o que efetivamente se paga.
-     */
-    BigDecimal multiplicadorRiscoMaximo) {
+    BigDecimal volumeMediaAteL) {
 
   /**
    * Cópia defensiva dos mapas.

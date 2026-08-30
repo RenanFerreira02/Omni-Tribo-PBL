@@ -1,17 +1,22 @@
 <div class="cabecalho">
   <div>
-    <h1>Pontos de custódia</h1>
+    <h1>Benefícios de parceiros</h1>
     <p class="perfil" *ngIf="auth.usuario() as usuario">
       {{ usuario.email }} · papel {{ usuario.papel }}
     </p>
   </div>
   <div class="acoes">
     <!-- ( ) nos dois; [ ] desabilita durante a carga -->
-    <button type="button" class="secundario" (click)="carregarPontos()" [disabled]="carregandoPontos()">
-      {{ carregandoPontos() ? 'Carregando…' : 'Recarregar' }}
+    <button
+      type="button"
+      class="secundario"
+      (click)="carregarBeneficios()"
+      [disabled]="carregandoBeneficios()"
+    >
+      {{ carregandoBeneficios() ? 'Carregando…' : 'Recarregar' }}
     </button>
     <button type="button" class="primario" (click)="abrirFormulario()" [disabled]="formAberto()">
-      Novo ponto
+      Novo benefício
     </button>
   </div>
 </div>
@@ -21,11 +26,11 @@
 
 <!-- ===================== FORMULÁRIO ===================== -->
 <form class="formulario" *ngIf="formAberto()" (ngSubmit)="salvar()">
-  <h2>Cadastrar ponto de custódia</h2>
+  <h2>Cadastrar benefício</h2>
 
   <p class="nota">
     A validação abaixo é conveniência de digitação. Quem decide é o servidor — inclusive o que só
-    ele sabe: se o código já existe e se a tribo existe.
+    ele sabe: se o parceiro existe e se está ativo.
   </p>
 
   <!-- erro GERAL vindo do servidor, discriminado pelo `type` do RFC 9457 -->
@@ -33,23 +38,29 @@
     <p class="erro-frase">{{ mensagem(p) }}</p>
     <p class="erro-meta">
       HTTP {{ p.status }}
-      <span *ngIf="p.type"> · <code>{{ p.type }}</code></span>
-      <span *ngIf="p.traceId"> · traceId <code>{{ p.traceId }}</code></span>
+      <span *ngIf="p.type">
+        · <code>{{ p.type }}</code></span
+      >
+      <span *ngIf="p.traceId">
+        · traceId <code>{{ p.traceId }}</code></span
+      >
     </p>
   </div>
 
   <div class="campos">
     <label>
-      Código
-      <!-- [( )] two-way; [ ] classe de erro condicional -->
-      <input
-        name="codigo"
-        [(ngModel)]="form.codigo"
-        [class.invalido]="!!errosCampo().codigo"
-        placeholder="PC-PINHEIROS-02"
-        maxlength="20"
-      />
-      <small class="erro-campo" *ngIf="errosCampo().codigo">{{ errosCampo().codigo }}</small>
+      Parceiro
+      <select
+        name="parceiroId"
+        [(ngModel)]="form.parceiroId"
+        [class.invalido]="!!errosCampo().parceiroId"
+      >
+        <option value="">— escolha —</option>
+        <option *ngFor="let p of parceiros()" [value]="p.id">{{ p.nome }}</option>
+      </select>
+      <small class="erro-campo" *ngIf="errosCampo().parceiroId">{{
+        errosCampo().parceiroId
+      }}</small>
     </label>
 
     <label>
@@ -61,68 +72,51 @@
     </label>
 
     <label class="largo">
-      Apelido
+      Título
+      <!-- [( )] two-way; [ ] classe de erro condicional -->
       <input
-        name="apelido"
-        [(ngModel)]="form.apelido"
-        [class.invalido]="!!errosCampo().apelido"
-        placeholder="Leroy Merlin Pinheiros"
-        maxlength="100"
+        name="titulo"
+        [(ngModel)]="form.titulo"
+        [class.invalido]="!!errosCampo().titulo"
+        placeholder="Um café coado na padaria da esquina"
+        maxlength="120"
       />
-      <small class="erro-campo" *ngIf="errosCampo().apelido">{{ errosCampo().apelido }}</small>
+      <small class="erro-campo" *ngIf="errosCampo().titulo">{{ errosCampo().titulo }}</small>
+    </label>
+
+    <label class="largo">
+      Descrição
+      <input
+        name="descricao"
+        [(ngModel)]="form.descricao"
+        [class.invalido]="!!errosCampo().descricao"
+        placeholder="Válido de segunda a sexta, até as 11h"
+        maxlength="500"
+      />
+      <small class="erro-campo" *ngIf="errosCampo().descricao">{{ errosCampo().descricao }}</small>
     </label>
 
     <label>
-      Latitude
+      Custo em tokens
       <input
-        name="lat"
+        name="custoTokens"
         type="number"
-        step="any"
-        [(ngModel)]="form.lat"
-        [class.invalido]="!!errosCampo().lat"
-        placeholder="-23.5640"
+        [(ngModel)]="form.custoTokens"
+        [class.invalido]="!!errosCampo().custoTokens"
+        placeholder="30"
       />
-      <small class="erro-campo" *ngIf="errosCampo().lat">{{ errosCampo().lat }}</small>
-    </label>
-
-    <label>
-      Longitude
-      <input
-        name="lon"
-        type="number"
-        step="any"
-        [(ngModel)]="form.lon"
-        [class.invalido]="!!errosCampo().lon"
-        placeholder="-46.6934"
-      />
-      <small class="erro-campo" *ngIf="errosCampo().lon">{{ errosCampo().lon }}</small>
-    </label>
-
-    <label>
-      Capacidade
-      <input
-        name="capacidade"
-        type="number"
-        [(ngModel)]="form.capacidade"
-        [class.invalido]="!!errosCampo().capacidade"
-        placeholder="25"
-      />
-      <small class="erro-campo" *ngIf="errosCampo().capacidade">{{ errosCampo().capacidade }}</small>
-    </label>
-
-    <label>
-      Tribo <span class="opcional">(opcional)</span>
-      <select name="triboId" [(ngModel)]="form.triboId" [class.invalido]="!!errosCampo().triboId">
-        <option value="">— sem tribo —</option>
-        <option *ngFor="let tribo of tribos()" [value]="tribo.id">{{ tribo.nome }}</option>
-      </select>
-      <small class="erro-campo" *ngIf="errosCampo().triboId">{{ errosCampo().triboId }}</small>
+      <small class="erro-campo" *ngIf="errosCampo().custoTokens">
+        {{ errosCampo().custoTokens }}
+      </small>
     </label>
   </div>
 
   <p class="nota">
-    <strong>Ocupação não é campo deste formulário.</strong> Todo ponto nasce vazio: a ocupação só é
-    movida pelo webhook de entrega falida e pela baixa da missão, sob lock no banco.
+    <strong>Nenhum benefício se anuncia em reais.</strong> "R$ 10 de desconto por 30 tokens"
+    publicaria uma cotação implícita, e token conversível em moeda corrente é dinheiro — com KYC e
+    enquadramento regulatório junto. O benefício se expressa como <code>BEM</code> ("um café coado")
+    ou <code>PERCENTUAL</code> ("20% na revisão"). O servidor recusa com 400, e há um CHECK no banco
+    como barreira final.
   </p>
 
   <div class="botoes">
@@ -138,75 +132,89 @@
 
 <!-- ===================== LISTAGEM ===================== -->
 <p class="contexto">
-  Pontos ativos num raio de {{ raioKm }} km de ({{ centroLat }}, {{ centroLon }}), do mais próximo.
-  A API não oferece listagem sem coordenada.
+  Benefícios ativos, de parceiros ativos, num raio de {{ raioKm }} km de ({{ centroLat }},
+  {{ centroLon }}), do mais próximo. A API não oferece listagem sem recorte.
 </p>
 
-<p class="aviso carregando" *ngIf="carregandoPontos()">Consultando pontos…</p>
+<p class="aviso carregando" *ngIf="carregandoBeneficios()">Consultando catálogo…</p>
 
-<div class="aviso erro" *ngIf="!carregandoPontos() && problemaLista() as p">
+<div class="aviso erro" *ngIf="!carregandoBeneficios() && problemaLista() as p">
   <p class="erro-frase">{{ mensagem(p) }}</p>
-  <p class="erro-meta">HTTP {{ p.status }}<span *ngIf="p.type"> · <code>{{ p.type }}</code></span></p>
-  <button type="button" (click)="carregarPontos()">Tentar de novo</button>
-</div>
-
-<div class="aviso vazio" *ngIf="!carregandoPontos() && !problemaLista() && pontos().length === 0">
-  <p><strong>Nenhum ponto de custódia ativo neste raio.</strong></p>
-  <p>
-    A consulta funcionou e devolveu zero linhas. Ou não há ponto cadastrado, ou todos estão fora dos
-    {{ raioKm }} km do centro acima, ou foram desativados — ponto inativo some da consulta de
-    propósito, para não mandar ninguém a uma loja que não recebe mais encomenda.
+  <p class="erro-meta">
+    HTTP {{ p.status
+    }}<span *ngIf="p.type">
+      · <code>{{ p.type }}</code></span
+    >
   </p>
-  <p>Use <strong>Novo ponto</strong> acima para cadastrar o primeiro.</p>
+  <button type="button" (click)="carregarBeneficios()">Tentar de novo</button>
 </div>
 
-<table class="pontos" *ngIf="!carregandoPontos() && !problemaLista() && pontos().length > 0">
-  <caption>{{ pontos().length }} ponto(s) ativo(s)</caption>
+<div
+  class="aviso vazio"
+  *ngIf="!carregandoBeneficios() && !problemaLista() && beneficios().length === 0"
+>
+  <p><strong>Nenhum benefício ativo neste raio.</strong></p>
+  <p>
+    A consulta funcionou e devolveu zero linhas. Ou não há benefício cadastrado, ou todos estão fora
+    dos {{ raioKm }} km do centro acima, ou o parceiro foi desativado — benefício de parceiro
+    inativo some do catálogo de propósito, para não mandar ninguém resgatar onde não vale mais.
+  </p>
+  <p>Use <strong>Novo benefício</strong> acima para cadastrar o primeiro.</p>
+</div>
+
+<table
+  class="pontos"
+  *ngIf="!carregandoBeneficios() && !problemaLista() && beneficios().length > 0"
+>
+  <caption>
+    {{
+      beneficios().length
+    }}
+    benefício(s) ativo(s)
+  </caption>
   <thead>
     <tr>
-      <th scope="col">Código</th>
-      <th scope="col">Apelido</th>
+      <th scope="col">Título</th>
+      <th scope="col">Parceiro</th>
+      <th scope="col">Bairro</th>
+      <th scope="col" class="num">Custo</th>
       <th scope="col">Tipo</th>
-      <th scope="col" class="num">Ocupação</th>
-      <th scope="col">Lotação</th>
       <th scope="col" class="num">Distância</th>
     </tr>
   </thead>
   <tbody>
-    <tr *ngFor="let ponto of pontos()">
-      <td><code>{{ ponto.codigo }}</code></td>
-      <td>{{ ponto.apelido }}</td>
-      <td>{{ ponto.tipo }}</td>
-      <td class="num">{{ ponto.ocupacao }} / {{ ponto.capacidade }}</td>
+    <tr *ngFor="let beneficio of beneficios()">
+      <td>{{ beneficio.titulo }}</td>
+      <td>{{ beneficio.parceiroNome }}</td>
+      <td>{{ beneficio.bairro ?? '—' }}</td>
+      <td class="num">{{ beneficio.custoTokens }} tokens</td>
       <td>
-        <!-- [ ] classe condicional; a barra é div com largura percentual -->
-        <span [class]="classeDeLotacao(ponto)">{{ ocupacaoPercentual(ponto) }}%</span>
-        <div class="barra">
-          <div class="barra-preenchida" [style.width.%]="ocupacaoPercentual(ponto)"></div>
-        </div>
+        <!-- [ ] classe condicional -->
+        <span [class]="classeDeTipo(beneficio)">{{ beneficio.tipo }}</span>
       </td>
-      <td class="num">{{ ponto.distanciaM !== null ? ponto.distanciaM + ' m' : '—' }}</td>
+      <td class="num">
+        {{ beneficio.distanciaM !== null ? (beneficio.distanciaM | number: '1.0-0') + ' m' : '—' }}
+      </td>
     </tr>
   </tbody>
 </table>
 
-<!-- ===================== IMPACTO (fase anterior, mantido) ===================== -->
-<section class="impacto" *ngIf="impacto() as dados">
-  <h2>Impacto — ajuda patrocinada por transportadora</h2>
+<!-- ===================== INTEGRIDADE DO LEDGER ===================== -->
+<section class="impacto" *ngIf="reconciliacao() as dados">
+  <h2>Integridade do ledger</h2>
   <p class="gerado">
-    O único caminho em que a recompensa vem de fora do bairro. As demais missões — ajuda, mutirão e
-    coleta — são financiadas pela própria comunidade.
+    Compara, carteira a carteira, o saldo projetado com a soma do ledger. É a resposta do sistema
+    para "algum token apareceu ou sumiu sem lançamento?" — e ela NÃO prova conservação: são
+    invariantes diferentes, e esta passa enquanto a outra pode estar sendo violada.
   </p>
-  <p class="gerado">Apurado em {{ dados.geradoEm }}</p>
   <ul class="indicadores">
-    <li *ngFor="let indicador of funil()">
-      <span>{{ indicador.rotulo }}</span><span class="valor">{{ indicador.valor }}</span>
+    <li *ngFor="let indicador of indicadores()">
+      <span>{{ indicador.rotulo }}</span
+      ><span class="valor">{{ indicador.valor }}</span>
     </li>
   </ul>
-  <h2>Token em circulação</h2>
-  <ul class="indicadores">
-    <li *ngFor="let indicador of tokens()">
-      <span>{{ indicador.rotulo }}</span><span class="valor">{{ indicador.valor }}</span>
-    </li>
-  </ul>
+  <p class="gerado" *ngIf="!dados.integro">
+    <strong>Há divergência.</strong> Cada linha aponta uma carteira em que a projeção e o ledger
+    discordam — o ledger é append-only, então a correção é por ESTORNO, nunca por UPDATE.
+  </p>
 </section>

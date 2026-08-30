@@ -1,42 +1,15 @@
 import { seg } from './caminho';
 import { cliente } from './cliente';
-import type {
-  ClimaResponse,
-  EnderecoResponse,
-  PontoCustodiaResponse,
-  TriboResponse,
-} from './tipos';
-import {
-  climaResponseSchema,
-  enderecoResponseSchema,
-  pontoCustodiaResponseSchema,
-  triboResponseSchema,
-} from '@/schemas';
+import type { ClimaResponse, EnderecoResponse, TriboResponse } from './tipos';
+import { climaResponseSchema, enderecoResponseSchema, triboResponseSchema } from '@/schemas';
 import { validarEmDev } from '@/schemas/validar';
-import { z } from 'zod';
 
-/** Tribos, pontos de custódia, clima e CEP — tudo que responde "onde". */
+/** Tribos, clima e CEP — tudo que responde "onde". */
 
 /** Só o detalhe traz o centro geográfico; a lista o omite para não virar N+1 no servidor. */
 export async function buscarTribo(id: string): Promise<TriboResponse> {
   const { data } = await cliente.get<TriboResponse>(`/tribos/${seg(id)}`);
   return validarEmDev(triboResponseSchema, data, `GET /tribos/${id}`);
-}
-
-export async function buscarPontoCustodia(id: string): Promise<PontoCustodiaResponse> {
-  const { data } = await cliente.get<PontoCustodiaResponse>(`/pontos-custodia/${seg(id)}`);
-  return validarEmDev(pontoCustodiaResponseSchema, data, `GET /pontos-custodia/${id}`);
-}
-
-export async function pontosCustodiaProximos(
-  lat: number,
-  lon: number,
-  raioMetros = 2000,
-): Promise<PontoCustodiaResponse[]> {
-  const { data } = await cliente.get<PontoCustodiaResponse[]>('/pontos-custodia', {
-    params: { lat, lon, raioMetros },
-  });
-  return validarEmDev(z.array(pontoCustodiaResponseSchema), data, 'GET /pontos-custodia');
 }
 
 /**

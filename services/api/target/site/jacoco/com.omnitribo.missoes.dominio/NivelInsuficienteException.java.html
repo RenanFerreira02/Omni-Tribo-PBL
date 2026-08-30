@@ -24,25 +24,25 @@ public class NivelInsuficienteException extends RegraNegocioVioladaException {
   private final int nivelAtual;
 
   public NivelInsuficienteException(int nivelExigido, int nivelAtual) {
-<span class="fc" id="L27">    super(</span>
+<span class="nc" id="L27">    super(</span>
         &quot;Esta missão exige nível &quot;
             + nivelExigido
             + &quot; e o seu é &quot;
             + nivelAtual
             + &quot;. Missões com custódia de encomenda de terceiros são restritas a membros com&quot;
             + &quot; reputação consolidada.&quot;);
-<span class="fc" id="L34">    this.nivelExigido = nivelExigido;</span>
-<span class="fc" id="L35">    this.nivelAtual = nivelAtual;</span>
-<span class="fc" id="L36">  }</span>
+<span class="nc" id="L34">    this.nivelExigido = nivelExigido;</span>
+<span class="nc" id="L35">    this.nivelAtual = nivelAtual;</span>
+<span class="nc" id="L36">  }</span>
 
   @Override
   public URI getTipo() {
-<span class="fc" id="L40">    return TipoProblema.NIVEL_INSUFICIENTE;</span>
+<span class="nc" id="L40">    return TipoProblema.NIVEL_INSUFICIENTE;</span>
   }
 
   @Override
   public Map&lt;String, Object&gt; getPropriedades() {
-<span class="fc" id="L45">    return Map.of(&quot;nivelExigido&quot;, nivelExigido, &quot;nivelAtual&quot;, nivelAtual);</span>
+<span class="nc" id="L45">    return Map.of(&quot;nivelExigido&quot;, nivelExigido, &quot;nivelAtual&quot;, nivelAtual);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

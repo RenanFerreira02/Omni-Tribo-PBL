@@ -7,9 +7,9 @@
 -- que a busca por raio devolva resultado sem ninguém precisar procurar onde clicar.
 --
 -- UUIDs seguem a convenção de um PREFIXO POR TABELA que os seeds anteriores criaram
--- (aaaaaaaa=tribo, bbbbbbbb=usuario, cccccccc=ponto_custodia, dddddddd=missao,
+-- (aaaaaaaa=tribo, bbbbbbbb=usuario, cccccccc=livre desde a V28, dddddddd=missao,
 -- eeeeeeee=carteira, ffffffff=lancamento, 77777777=patrocinador,
--- 88888888=entrega_falida): parceiro fica com 22222222 e beneficio com 33333333,
+-- 88888888=livre desde a V28): parceiro fica com 22222222 e beneficio com 33333333,
 -- dois prefixos até aqui livres. O sufixo …960+ evita as faixas 900-908 e 950-951,
 -- já ocupadas.
 --
@@ -32,7 +32,7 @@ INSERT INTO parceiro (id, nome, ponto, tribo_id, cep, logradouro, bairro, cidade
      'aaaaaaaa-0000-0000-0000-000000000901',
      '08285100', 'Rua Sapé do Norte', 'Cidade Líder', 'São Paulo', 'SP', TRUE, NOW()),
 
-    -- Perto do segundo ponto de custódia da V903, uns 4 km ao norte do primeiro:
+    -- No extremo norte do recorte da V903, uns 4 km do primeiro parceiro:
     -- serve para provar que o raio de fato RECORTA, e não devolve tudo.
     ('22222222-0000-0000-0000-000000000962',
      'Mercearia Dona Neusa',

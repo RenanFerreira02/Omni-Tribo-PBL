@@ -3,7 +3,6 @@
 import com.omnitribo.missoes.dominio.CalculadoraDeRecompensa;
 import com.omnitribo.missoes.dominio.ComplexidadeMissao;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.math.BigDecimal;
 
 /**
  * Recompensa que a missão teria se fosse criada com estes insumos.
@@ -17,24 +16,11 @@ import java.math.BigDecimal;
  * versão é como se percebe isso.
  */
 @Schema(description = &quot;Prévia da recompensa, sem criar missão&quot;)
-<span class="fc" id="L20">public record PreviaRecompensaResponse(</span>
-    int xpRecompensa,
-    long tokensRecompensa,
-    ComplexidadeMissao complexidade,
-    int versaoFormula,
-    /**
-     * Sempre 1,00 nesta rota, e sair mesmo assim é deliberado.
-     *
-     * &lt;p&gt;A prévia serve missão criada por usuário, que não passa por avaliação de risco. Expor o
-     * neutro deixa explícito no contrato que o multiplicador EXISTE na fórmula e que aqui ele não
-     * está agindo — em vez de omiti-lo e fazer o cliente descobrir a diferença ao comparar a prévia
-     * com uma missão vinda do webhook.
-     */
-    BigDecimal multiplicadorRisco) {
+<span class="fc" id="L19">public record PreviaRecompensaResponse(</span>
+    int xpRecompensa, long tokensRecompensa, ComplexidadeMissao complexidade, int versaoFormula) {
 
   public static PreviaRecompensaResponse de(CalculadoraDeRecompensa.Recompensa r) {
-<span class="fc" id="L36">    return new PreviaRecompensaResponse(</span>
-<span class="fc" id="L37">        r.xp(), r.tokens(), r.complexidade(), r.versaoFormula(), r.multiplicadorRisco());</span>
+<span class="fc" id="L23">    return new PreviaRecompensaResponse(r.xp(), r.tokens(), r.complexidade(), r.versaoFormula());</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

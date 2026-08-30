@@ -7,6 +7,7 @@ import com.omnitribo.compartilhado.dominio.ChaveIdempotencia;
 import com.omnitribo.compartilhado.dominio.RecursoNaoEncontradoException;
 import com.omnitribo.compartilhado.dominio.RegraNegocioVioladaException;
 import com.omnitribo.identidade.api.ConsultaAfiliacao;
+import com.omnitribo.identidade.api.ConsultaPatrocinador;
 import com.omnitribo.missoes.api.FinanciamentoResponse;
 import com.omnitribo.missoes.infra.MissaoRepository;
 import java.time.Instant;
@@ -16,13 +17,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Financiamento de missão comunitária: membro debita tokens da própria carteira e credita o pote da
- * missão.
+ * Financiamento de missão comunitária: quem financia debita tokens da própria carteira e credita o
+ * pote da missão.
  *
- * <p>É o SUMIDOURO da moeda, e é o que torna a economia não-fictícia. Sem ele, concluir uma missão
- * TRIBO cunharia tokens do nada e a oferta cresceria sem limite. Com ele, o token que o executor
- * recebe é exatamente o token que um membro da tribo pôs no pote — a soma (carteiras + potes) é
- * constante ao longo de todo o ciclo de vida da missão.
+ * <p>É o que torna a economia não-fictícia. Sem ele, concluir uma missão TRIBO cunharia tokens do
+ * nada e a oferta cresceria sem limite. Com ele, o token que o executor recebe é exatamente o token
+ * que alguém pôs no pote — a soma (carteiras + potes) é constante ao longo de todo o ciclo de vida
+ * da missão.
+ *
+ * <p><b>Dois financiadores possíveis, com autorizações diferentes.</b> O membro da tribo é o caso
+ * normal. O APOIADOR do bairro é o caso que a V28 trouxe para cá (ADR 0031): ele é o único titular
+ * que recebe emissão de token, e sem um caminho para pôr esse token num pote a emissão seria saldo
+ * parado — a economia teria só o sumidouro do resgate. O caminho dele era a conversão do webhook de
+ * entrega falida, que saiu junto com a extensão logística.
  */
 @Service
 public class FinanciamentoService {
@@ -32,20 +39,68 @@ public class FinanciamentoService {
   private final MissaoRepository missaoRepository;
   private final FinanciamentoMissao financiamentoMissao;
   private final ConsultaAfiliacao consultaAfiliacao;
+  private final ConsultaPatrocinador consultaPatrocinador;
 
   public FinanciamentoService(
       MissaoRepository missaoRepository,
       FinanciamentoMissao financiamentoMissao,
-      ConsultaAfiliacao consultaAfiliacao) {
+      ConsultaAfiliacao consultaAfiliacao,
+      ConsultaPatrocinador consultaPatrocinador) {
     this.missaoRepository = missaoRepository;
     this.financiamentoMissao = financiamentoMissao;
     this.consultaAfiliacao = consultaAfiliacao;
+    this.consultaPatrocinador = consultaPatrocinador;
   }
 
   @Auditavel(acao = "MISSAO_FINANCIADA", entidade = "missao")
   @Transactional
   public FinanciamentoResponse financiar(
       UUID triboId, UUID missaoId, long tokens, UUID financiadorId, String chaveDoCliente) {
+    return executar(triboId, missaoId, tokens, financiadorId, chaveDoCliente, false);
+  }
+
+  /**
+   * ADMIN financia o pote em nome de um APOIADOR do bairro.
+   *
+   * <p><b>Por que este caminho existe separado, e por que ele é ADMIN.</b> O apoiador é um titular
+   * de carteira que NUNCA autentica: a conta nasce com status INATIVO, e {@code
+   * AutenticacaoService} recusa qualquer status diferente de ATIVO. Ele não tem — e não deve ter —
+   * um JWT, então não alcança {@code POST /tribos/{'{'}triboId{'}'}/financiamentos}, que tira a
+   * identidade do token. Um caminho que dependesse do JWT dele seria código inalcançável.
+   *
+   * <p>É coerente com o resto: o apoiador é administrado de ponta a ponta — cadastro, aporte e
+   * encerramento são todos ADMIN. Sem este método, o token que o aporte emite não teria como entrar
+   * no ciclo de missões e ficaria parado na carteira dele para sempre; a economia teria só o
+   * sumidouro do resgate, e a soma cairia monotonicamente. Ver ADR 0031 §2.
+   *
+   * <p>{@code triboId} nulo, e não é omissão: o apoiador não pertence a bairro nenhum, e é
+   * exatamente por isso que ele precisa de um caminho próprio em vez de uma regra de tribo
+   * afrouxada para todo mundo.
+   */
+  @Auditavel(acao = "MISSAO_FINANCIADA_POR_APOIADOR", entidade = "missao")
+  @Transactional
+  public FinanciamentoResponse financiarComoApoiador(
+      UUID missaoId, long tokens, UUID patrocinadorId, String chaveDoCliente) {
+
+    // Resolve a RELAÇÃO de apoio → titular da carteira. Vazio cobre "não existe" e "apoio
+    // desativado" de uma vez: os dois levam ao mesmo desfecho, e é a porta que aplica o filtro por
+    // `ativo` para que um `if` esquecido aqui não aceite financiamento de um apoio encerrado.
+    UUID titular =
+        consultaPatrocinador
+            .usuarioIdDoApoiadorAtivo(patrocinadorId)
+            .orElseThrow(
+                () -> new RecursoNaoEncontradoException("Apoiador não encontrado ou inativo."));
+
+    return executar(null, missaoId, tokens, titular, chaveDoCliente, true);
+  }
+
+  private FinanciamentoResponse executar(
+      UUID triboId,
+      UUID missaoId,
+      long tokens,
+      UUID financiadorId,
+      String chaveDoCliente,
+      boolean comoApoiador) {
 
     Instant agora = Instant.now();
 
@@ -61,7 +116,12 @@ public class FinanciamentoService {
 
     // AUTORIZAÇÃO PRIMEIRO, antes até da sondagem. Sondar antes devolveria o pote e a recompensa da
     // missão a quem não é da tribo — é a mesma razão pela qual o check-in autoriza antes de sondar.
-    validarAutorizacao(triboId, missao, financiadorId);
+    // Para o apoiador não há o que autorizar AQUI: o ADMIN foi autorizado na borda, e o titular já
+    // veio resolvido de um apoio ATIVO — é a resolução que faz o papel da autorização, e ela
+    // acontece antes de qualquer leitura da missão.
+    if (!comoApoiador) {
+      validarAutorizacao(triboId, missao, financiadorId);
+    }
 
     // LOCK (carteira) → SONDA → VALIDA → ESCREVE, que é a ordem canônica do projeto.
     //
@@ -86,8 +146,24 @@ public class FinanciamentoService {
     validarEstado(missao);
     validarTeto(missao, tokens);
 
+    // Motivo do lançamento decidido pelo TIPO de financiador: FINANCIAMENTO_TRIBO na carteira de um
+    // apoiador afirmaria um pertencimento que não existe — ele não tem tribo —, e o extrato e a
+    // exportação LGPD mostram o motivo cru. Os DOIS motivos estão em
+    // LancamentoRepository.buscarFinanciamentosDaMissao, então o estorno de missão cancelada ou
+    // expirada devolve o token aos dois financiadores sem nenhuma alteração.
     ResultadoFinanciamento debito =
-        financiamentoMissao.debitar(financiadorId, missaoId, tokens, chave, agora);
+        comoApoiador
+            ? financiamentoMissao
+                .debitarPatrocinador(financiadorId, missaoId, tokens, chave, agora)
+                // VAZIO aqui é saldo insuficiente. O contrato da porta devolve valor porque o
+                // chamador original (o webhook, removido na V28) precisava GRAVAR a recusa; neste
+                // caminho quem chama é uma requisição HTTP, e a tradução correta é 422 — a mesma
+                // que `debitar` produz sozinho para o membro da tribo.
+                .orElseThrow(
+                    () ->
+                        new RegraNegocioVioladaException(
+                            "Saldo insuficiente para financiar " + tokens + " tokens."))
+            : financiamentoMissao.debitar(financiadorId, missaoId, tokens, chave, agora);
 
     // Só credita o pote se o débito de fato aconteceu. Num replay, o pote já recebeu na primeira
     // chamada — creditar de novo duplicaria tokens que saíram da carteira uma vez só, e a
@@ -148,14 +224,18 @@ public class FinanciamentoService {
           "Missão de categoria " + missao.getCategoria() + " não aceita financiamento em tokens.");
     }
 
-    // PATROCINADOR também não passa por aqui, e não é descuido: a missão de retirada já nasce com o
-    // pote completo, financiado dentro da própria conversão do webhook. Um financiamento
-    // comunitário
-    // por cima bateria em validarTeto ("pote ficaria acima da recompensa"), mas a recusa por
-    // autorização vem antes — patrocinador não tem tribo, e o criador é o usuário-sistema.
+    // PATROCINADOR é fonte HISTÓRICA desde a V28: nenhuma missão nova nasce com ela, porque quem a
+    // produzia era a conversão do webhook de entrega falida. As linhas antigas continuam no banco,
+    // e
+    // continuam recusando financiamento pelo mesmo motivo de sempre — nasceram com o pote completo,
+    // e um aporte por cima bateria em validarTeto ("pote ficaria acima da recompensa").
+    //
+    // Note que APOIADOR financiando uma missão COMUNIDADE não passa por aqui: a fonte da missão
+    // continua COMUNIDADE, porque fonte_pote diz de onde o pote SAI para o executor, não quem o
+    // encheu.
     if (missao.getFontePote() == FontePote.PATROCINADOR) {
       throw new RegraNegocioVioladaException(
-          "Missão de retirada é financiada pelo patrocinador da transportadora.");
+          "Missão com pote financiado na criação não aceita financiamento novo.");
     }
 
     // Financiar depois de concluída, cancelada ou expirada seria pôr token num pote que já não

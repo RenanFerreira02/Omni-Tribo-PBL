@@ -33,7 +33,7 @@ do servidor — o painel diz isso em vez de "erro ao carregar", porque não é f
 |---|---|---|
 | `/login` | não | Formulário de entrada |
 | `/home` | sim (`authGuard`) | Perfil da sessão e a lista de tribos (`GET /tribos`) |
-| `/admin` | sim (`authGuard`) | Gestão de pontos de custódia: listagem + cadastro. Abaixo, o funil da entrega falida (`GET /admin/impacto`) |
+| `/admin` | sim (`authGuard`) | Gestão de benefícios de parceiro: listagem + cadastro. Abaixo, a integridade do ledger (`GET /admin/carteiras/reconciliacao`, só ADMIN) |
 
 `/` redireciona para `/home`; qualquer rota desconhecida também.
 
@@ -48,24 +48,28 @@ do servidor — o painel diz isso em vez de "erro ao carregar", porque não é f
 
 ## A validação do formulário NÃO substitui a do servidor
 
-O cadastro de ponto de custódia (`/admin`) valida no cliente: obrigatoriedade, tamanho, o padrão
-`[A-Z0-9-]+` do código, a faixa de latitude e longitude e a capacidade positiva. **Isso é
-conveniência de digitação, e nada mais.**
+O cadastro de benefício (`/admin`) valida no cliente: obrigatoriedade, tamanho, custo positivo e a
+recusa de qualquer menção a reais. **Isso é conveniência de digitação, e nada mais.**
 
-Quem decide é o backend. `CadastrarPontoCustodiaRequest` carrega as mesmas restrições em Bean
-Validation; `PontoCustodiaService.cadastrar` verifica o que só o servidor pode saber — se o código já
-existe e se a tribo existe —, e `uk_ponto_custodia_codigo` no banco é a barreira final. Qualquer
-linha do `validar()` deste projeto é contornável pelo DevTools em dois segundos; nenhuma das do
-servidor é.
+Quem decide é o backend. `CadastrarBeneficioRequest` carrega as mesmas restrições em Bean
+Validation — inclusive o `@Pattern` que reprova `R$` e `reais` no título e na descrição —,
+`CatalogoBeneficiosService` verifica o que só o servidor pode saber (se o parceiro existe e está
+ativo), e `ck_beneficio_sem_reais` no banco é a barreira final. Qualquer linha do `validar()` deste
+projeto é contornável pelo DevTools em dois segundos; nenhuma das do servidor é.
 
 A consequência prática, e é ela que orienta a manutenção: **se este espelho divergir do DTO do
 servidor, o sintoma correto é um 400 que a tela exibe campo a campo — não uma regra afrouxada aqui
 para o formulário "passar".** Nada do backend foi relaxado para esta tela funcionar.
 
-Dois campos do servidor **não** existem no formulário, de propósito: `ocupacao` e `ativo`. Todo ponto
-nasce vazio e ativo. Ocupação é movida só pelo webhook de entrega falida e pela baixa da missão, sob
-`SELECT ... FOR UPDATE` — aceitá-la num formulário abriria por fora do lock a corrida que ele existe
-para fechar.
+**Não existe campo de preço em reais, e a ausência é a regra.** "R$ 10 de desconto por 30 tokens"
+publicaria uma cotação implícita entre token e moeda corrente, e token conversível em dinheiro é
+dinheiro — com KYC e enquadramento regulatório junto (ADR 0009 §6). O benefício se expressa como
+`BEM` ou `PERCENTUAL`.
+
+> **Esta tela cadastrava PONTO DE CUSTÓDIA até 2026-08-30.** O endpoint saiu com a extensão
+> logística (ADR 0031), e o formulário foi repontado para o benefício de parceiro — que é ADMIN,
+> tem validação espelhada e listagem, e continua exercitando o mesmo conjunto de recursos do
+> Angular que a tela anterior exercitava.
 
 ## O token fica em memória, e isso tem um custo
 

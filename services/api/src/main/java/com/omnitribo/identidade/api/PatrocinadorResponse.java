@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * O patrocinador como o ADMIN o vê.
+ * O apoiador como o ADMIN o vê.
  *
  * <p><b>Sem saldo, de propósito.</b> Saldo é estado da carteira e muda sob lock; devolvê-lo numa
  * listagem seria uma leitura sem lock que envelhece antes de chegar à tela. Quem precisa do número
@@ -16,22 +16,12 @@ import java.util.UUID;
  *     como chave — sem isto, ligar um lançamento ao patrocinador exigiria uma consulta manual.
  */
 public record PatrocinadorResponse(
-    UUID id,
-    UUID usuarioId,
-    String transportadoraSlug,
-    String nome,
-    boolean ativo,
-    Instant criadoEm)
+    UUID id, UUID usuarioId, String slug, String nome, boolean ativo, Instant criadoEm)
     implements RecursoAuditavel {
 
   public static PatrocinadorResponse de(Patrocinador p) {
     return new PatrocinadorResponse(
-        p.getId(),
-        p.getUsuarioId(),
-        p.getTransportadoraSlug(),
-        p.getNome(),
-        p.isAtivo(),
-        p.getCriadoEm());
+        p.getId(), p.getUsuarioId(), p.getSlug(), p.getNome(), p.isAtivo(), p.getCriadoEm());
   }
 
   /**

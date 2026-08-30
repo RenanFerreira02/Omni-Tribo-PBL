@@ -25,14 +25,14 @@ export interface MarcadorMapa {
   lon: number;
   /** Cor do pino. Vem de `coresCategoria` — a regra de lint proíbe hex literal fora do tema. */
   cor: string;
-  /** `pino` para missão, `quadrado` para ponto de custódia. Forma, e não só cor: ver comentário. */
+  /** `pino` para missão. `quadrado` sobrou de uma segunda camada removida — ver o comentário. */
   forma: 'pino' | 'quadrado';
   /**
    * Forma da CATEGORIA, desenhada dentro do pino.
    *
-   * `forma` distingue missão de ponto de custódia; não distinguia as quatro categorias de missão
-   * entre si, que eram todas `pino` e diferiam só no matiz. Num mapa não há texto ao lado para
-   * desempatar, então a cor era canal único — o mesmo glifo do chip resolve os dois lugares.
+   * `forma` distinguia missão de ponto de custódia, e nunca distinguiu as quatro categorias de
+   * missão entre si — todas `pino`, diferindo só no matiz. Num mapa não há texto ao lado para
+   * desempatar, então a cor era canal único, e o mesmo glifo do chip resolve isso.
    */
   glifo?: string;
   rotulo: string;
@@ -70,7 +70,9 @@ interface Props {
  * descrita no ADR: trocar por um mapa nativo, no dia em que houver chave e development build, é
  * escrever outra implementação com estas mesmas props, sem tocar em nenhuma tela.
  *
- * Marcador distingue por FORMA além de cor (`pino` para missão, `quadrado` para ponto de custódia).
+ * Marcador distingue por FORMA além de cor. Hoje só há uma camada — o `quadrado` era o ponto de
+ * custódia, removido com a extensão logística —, e a distinção por forma continua no contrato
+ * porque é o que impede a próxima camada de nascer distinguida só por matiz.
  * Só a cor deixaria os dois tipos indistinguíveis para daltonismo — e num mapa não há texto ao lado
  * para desempatar.
  */
@@ -158,7 +160,7 @@ export function MapaLeaflet({
         // O mapa é conteúdo visual sem equivalente textual útil para leitor de tela.
         //
         // A lista de missões (`(tabs)/index.tsx`) é a rota acessível para as MISSÕES — mas não para
-        // os PONTOS DE CUSTÓDIA, que só existem aqui e só são alcançáveis tocando um marcador. Este
+        // os marcadores, que só existem aqui e só são alcançáveis por toque. Este
         // comentário afirmava equivalência completa, e a auditoria de acessibilidade mostrou que
         // ela cobre metade. A outra metade exige uma tela de pontos, que não existe.
         accessibilityLabel="Mapa das missões próximas"
@@ -235,7 +237,7 @@ function paginaLeaflet(centro: { lat: number; lon: number }, mostrarUsuario: boo
   // ALVO DE 44, DESENHO DE 18.
   //
   // O marcador tinha 18x18 — menos de 17% da área que a WCAG 2.5.5 pede, e é o único caminho para
-  // abrir um ponto de custódia. Crescer o desenho encheria o mapa de manchas; o que cresce é a área
+  // abrir uma missão. Crescer o desenho encheria o mapa de manchas; o que cresce é a área
   // SENSÍVEL, com o pino centrado numa caixa transparente de 44. É o mesmo raciocínio do hitSlop
   // do Chip, que aqui não existe por ser HTML dentro da WebView.
   function icone(m) {

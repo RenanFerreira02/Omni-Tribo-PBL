@@ -8,8 +8,6 @@ import { z } from 'zod';
  */
 export const complexidadeSchema = z.enum(['LEVE', 'MEDIA', 'PESADA']);
 
-export const faixaRiscoSchema = z.enum(['BAIXO', 'MEDIO', 'ALTO']);
-
 export const loginSchema = z.object({
   email: z.email('Informe um e-mail válido.'),
   senha: z.string().min(1, 'Informe sua senha.'),
@@ -87,7 +85,6 @@ export const criarMissaoSchema = z
       .max(2000, 'O raio máximo de check-in é 2000 m.'),
     janelaInicio: z.date(),
     janelaFim: z.date(),
-    pontoCustodiaId: z.guid().optional(),
   })
   .superRefine((dados, ctx) => {
     if (dados.janelaFim <= dados.janelaInicio) {
@@ -177,7 +174,6 @@ export const missaoResponseSchema = z.object({
   origemLon: z.number().nullable(),
   destinoLat: z.number().nullable(),
   destinoLon: z.number().nullable(),
-  pontoCustodiaId: z.guid().nullable(),
   // Nulos para quem não participa da missão — o servidor recorta o endereço por participação.
   // Sem `.nullable()` aqui, toda listagem de missão alheia dispara um aviso de divergência em dev,
   // treinando quem lê o log a ignorar o aviso. Ver o comentário em `tipos.ts`.
@@ -197,12 +193,6 @@ export const missaoResponseSchema = z.object({
   complexidade: complexidadeSchema,
   versaoFormula: z.number(),
   nivelMinimo: z.number(),
-  // Risco congelado na criação. Nulos na maioria das missões — só o webhook de entrega falida
-  // avalia risco. `nullable`, e não `optional`: o servidor SEMPRE manda as chaves, com valor nulo
-  // quando não houve avaliação. Aceitar ausência esconderia uma mudança de contrato.
-  multiplicadorRisco: z.number().nullable(),
-  faixaRisco: faixaRiscoSchema.nullable(),
-  avisoRisco: z.string().nullable(),
   versao: z.number(),
 });
 
@@ -298,18 +288,6 @@ export const alertaResponseSchema = z.object({
   criadoEm: z.string(),
 });
 
-export const pontoCustodiaResponseSchema = z.object({
-  id: z.guid(),
-  codigo: z.string(),
-  tipo: z.enum(['LOJA', 'LOCKER', 'PORTARIA', 'VIZINHO']),
-  apelido: z.string(),
-  lat: z.number(),
-  lon: z.number(),
-  capacidade: z.number(),
-  ocupacao: z.number(),
-  distanciaM: z.number().nullable(),
-});
-
 export const climaResponseSchema = z.object({
   temperaturaC: z.number(),
   sensacaoC: z.number(),
@@ -331,9 +309,6 @@ export const previaRecompensaResponseSchema = z.object({
   tokensRecompensa: z.number(),
   complexidade: complexidadeSchema,
   versaoFormula: z.number(),
-  // Sempre 1,00 nesta rota: a prévia serve missão criada por usuário, que não passa por avaliação
-  // de risco. Não é nullable — aqui o servidor manda o neutro, não a ausência.
-  multiplicadorRisco: z.number(),
 });
 
 export const transferenciaResponseSchema = z.object({
@@ -367,51 +342,6 @@ export const resgateResponseSchema = z.object({
   utilizadoEm: z.string().nullable(),
   saldoTokensRestante: z.number(),
   replay: z.boolean(),
-});
-
-/**
- * Painel de impacto (ADMIN).
- *
- * As taxas e a mediana são `nullable` porque o servidor devolve `null` — e não zero — quando não há
- * denominador ou amostra. Aceitar só `number` aqui faria `validarEmDev` gritar num sistema
- * recém-instalado, que é exatamente quando os nulos aparecem.
- *
- * Os valores em BRL são `number`, como `valorBrl` e `saldoBrl` do resto do app: o servidor os
- * serializa como NÚMERO JSON. A primeira versão deste schema pedia `string` — e passou nos testes
- * porque a FIXTURE também mentia. Quem desmentiu foi a resposta real do servidor. Fixture que não
- * espelha o servidor não testa contrato nenhum; testa a si mesma.
- */
-export const impactoResponseSchema = z.object({
-  geradoEm: z.string(),
-  entregasFalidas: z.object({
-    recebidas: z.number(),
-    convertidas: z.number(),
-    pendentes: z.number(),
-    recusadasPontoLotado: z.number(),
-    recusadasSemPatrocinio: z.number(),
-    taxaConversao: z.number().nullable(),
-  }),
-  missoesDeRetirada: z.object({
-    criadas: z.number(),
-    concluidas: z.number(),
-    taxaConclusao: z.number().nullable(),
-    medianaAteCheckinSegundos: z.number().nullable(),
-    amostraMediana: z.number(),
-  }),
-  custoEvitado: z.object({
-    reentregasEvitadas: z.number(),
-    premissaCustoReentregaBrl: z.number(),
-    baseBrl: z.number(),
-    menos50Brl: z.number(),
-    mais50Brl: z.number(),
-  }),
-  tokens: z.object({
-    aportados: z.number(),
-    emCarteiras: z.number(),
-    emPotes: z.number(),
-    emCirculacao: z.number(),
-    resgatados: z.number(),
-  }),
 });
 
 export function paginaSchema<T extends z.ZodTypeAny>(item: T) {

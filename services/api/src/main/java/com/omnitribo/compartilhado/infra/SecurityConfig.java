@@ -62,7 +62,6 @@ public class SecurityConfig {
   private final JwtService jwtService;
   private final RateLimitFilter rateLimitFilter;
   private final ConsultaSessao consultaSessao;
-  private final ParametrosWebhook parametrosWebhook;
 
   @Value("${app.cors.origens-permitidas}")
   private String origensPermitidas;
@@ -70,14 +69,10 @@ public class SecurityConfig {
   // EI_EXPOSE_REP2: RateLimitFilter é singleton Spring — não será mutado pelo chamador.
   @SuppressFBWarnings("EI_EXPOSE_REP2")
   public SecurityConfig(
-      JwtService jwtService,
-      RateLimitFilter rateLimitFilter,
-      ConsultaSessao consultaSessao,
-      ParametrosWebhook parametrosWebhook) {
+      JwtService jwtService, RateLimitFilter rateLimitFilter, ConsultaSessao consultaSessao) {
     this.jwtService = jwtService;
     this.rateLimitFilter = rateLimitFilter;
     this.consultaSessao = consultaSessao;
-    this.parametrosWebhook = parametrosWebhook;
   }
 
   /**
@@ -172,20 +167,16 @@ public class SecurityConfig {
         // impressão de que esta cadeia os atende, e alguém removeria a outra achando redundante.
         .authorizeHttpRequests(
             auth ->
-                // `/api/v1/webhooks/**` VOLTOU a esta lista, e voltou pela condição que o
-                // comentário anterior exigia: "ele nasce autenticado e a isenção é reintroduzida
-                // JUNTO com o HMAC, não antes". O HMAC agora existe — HmacWebhookFilter, montado
-                // logo abaixo nesta mesma cadeia.
-                //
-                // `permitAll` aqui NÃO significa rota aberta: significa que a autenticação dela não
-                // é o JWT. Quem autentica é o filtro, por assinatura sobre o corpo bruto, e ele
-                // recusa com 401 antes que a requisição chegue a qualquer controller. Remover o
-                // filtro sem remover esta linha deixa a rota anônima e gravável.
+                // NÃO existe mais rota de escrita anônima. `/api/v1/webhooks/**` esteve nesta
+                // lista até a V28 (ADR 0031): era o webhook de transportadora, autenticado por
+                // HMAC sobre o corpo bruto em vez de JWT. Com a extensão logística removida, toda
+                // escrita passa pelo JWT — e uma isenção nova aqui exige o mesmo critério que
+                // aquela teve: nasce autenticada, e a isenção só entra JUNTO com o autenticador
+                // que a substitui, nunca antes.
                 auth.requestMatchers(
                         "/api/v1/auth/login",
                         "/api/v1/auth/registrar",
                         "/api/v1/auth/refresh",
-                        "/api/v1/webhooks/**", // autenticado por HMAC, ver HmacWebhookFilter
                         "/api/v1/ping", // health check
                         // Página de demonstração de Spring MVC + Thymeleaf, servida em HTML. É
                         // anônima porque esta API autentica só por Bearer: exigir JWT tornaria a
@@ -201,18 +192,13 @@ public class SecurityConfig {
 
         // Filtros customizados — instanciados aqui, não como @Component, para evitar
         // que o Spring Boot os registre também como filtros de servlet (dupla execução).
-        // Ordem: Hmac → RateLimit → Jwt (rate limiting bloqueia antes de qualquer parse de token).
+        // Ordem: RateLimit → Jwt (rate limiting bloqueia antes de qualquer parse de token).
         //
-        // O HMAC vem PRIMEIRO e tem teto próprio, por transportadora. No balde geral do
-        // RateLimitFilter o webhook seria chaveado por IP, e uma transportadora com laço de retry
-        // consumiria a cota de todas as outras que saíssem do mesmo gateway. O filtro se
-        // auto-limita a `/api/v1/webhooks/` por shouldNotFilter, então não custa nada ao resto.
         // O rateLimitFilter é registrado PRIMEIRO de propósito: `addFilterBefore(x, Y.class)` só
         // resolve a posição se Y já tem ordem conhecida na cadeia. Invertendo as duas linhas, a
         // montagem falha no startup com "The Filter class RateLimitFilter does not have a
         // registered order".
         .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterBefore(new HmacWebhookFilter(parametrosWebhook), RateLimitFilter.class)
         .addFilterAfter(new JwtAuthFilter(jwtService, consultaSessao), RateLimitFilter.class)
 
         // Handlers customizados: retornam ProblemDetail (RFC 9457) em vez do HTML padrão.

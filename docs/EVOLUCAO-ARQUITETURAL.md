@@ -28,6 +28,7 @@ F0→F7 eram invisíveis na leitura do código. O mais caro deles é o desta his
 | **2026-08-11** | **Verificação de backend — quatro correções estruturais** | Autorização reconferida por requisição ([0016](adr/0016-autorizacao-reconferida-por-requisicao.md)); papéis de banco separados ([0017](adr/0017-papeis-de-banco-separados.md)); fronteira do `compartilhado` ([0018](adr/0018-fronteira-do-compartilhado.md)); borda HTTP ([0019](adr/0019-borda-http-cabecalho-nao-confiavel.md)); **estados sem saída** ([0015](adr/0015-destravamento-de-estados-sem-saida.md)) |
 | 2026-08-14 | F8 — fim da entrega falida | Ponto de custódia comercial ([ADR 0020](adr/0020-ponto-de-custodia-comercial-e-proximidade-por-tribo.md)); webhook HMAC ([ADR 0021](adr/0021-verificacao-de-webhook-de-transportadora.md)) |
 | 2026-08-15 | F12c — previsão de risco | Regressão logística interpretável, dados **sintéticos e declarados** ([ADR 0022](adr/0022-previsao-de-risco-de-entrega.md)) |
+| 2026-08-30 | Remoção do eixo logístico | Saem o webhook, o ponto de custódia e o modelo de risco; o patrocinador vira apoiador do bairro e ganha um caminho para o pote ([ADR 0031](adr/0031-remocao-da-extensao-logistica.md)) |
 | 2026-08-15 | Resiliência e gates | Disjuntor próprio ([ADR 0023](adr/0023-resiliencia-de-integracoes-externas.md)); JaCoCo passa a **barrar** o build |
 | 2026-08-16 | F13 — entrega final | Diagramas, comparativo, divergências, e **remedição da conservação** |
 

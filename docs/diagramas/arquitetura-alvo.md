@@ -14,7 +14,7 @@
 ```mermaid
 flowchart TB
     users["👥 Usuários"]
-    carriers["🚚 Transportadoras"]
+    parceiros["🏪 Parceiros do bairro"]
 
     subgraph borda ["BORDA — não implementada"]
         dns["DNS + CDN"]
@@ -48,7 +48,7 @@ flowchart TB
     end
 
     users --> dns --> waf --> lb
-    carriers --> waf
+    parceiros --> waf
     lb --> api1 & api2 & api3
     api1 & api2 & api3 --> primary
     api1 & api2 & api3 --> replica
@@ -81,7 +81,6 @@ flowchart LR
     subgraph sai ["Extraível, nesta ordem"]
         n["1 · notificacoes<br/><i>fan-out é o que mais escala<br/>e não participa da transação</i>"]
         int["2 · integracoes<br/><i>já é adaptador puro,<br/>sem estado próprio</i>"]
-        l["3 · logistica<br/><i>webhook tem perfil de carga<br/>próprio, ditado por terceiro</i>"]
     end
     fica -.->|"evento"| sai
     style fica fill:#eefaf3,stroke:#1f6f4a

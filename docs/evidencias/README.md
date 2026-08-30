@@ -1,5 +1,13 @@
 # Evidências
 
+> **Aviso de 2026-08-30.** Toda evidência deste diretório foi produzida quando o projeto tinha o eixo
+> logístico — webhook de transportadora, ponto de custódia, missão de retirada e modelo de previsão
+> de risco. Aquele eixo foi **removido** ([ADR 0031](../adr/0031-remocao-da-extensao-logistica.md)),
+> e estes arquivos **não foram reescritos**: são registro do que foi medido naquela data, e
+> falsificar medição retroativamente é pior que a divergência. Comando aqui que cite
+> `tools/carrier-mock/` ou `GET /admin/impacto` não roda mais.
+
+
 Saídas **reais** de execução. Nada aqui é escrito à mão: cada arquivo cola o que um comando, um teste
 ou uma consulta devolveu, com a data e o comando que o produziu.
 
@@ -43,7 +51,7 @@ Vale mais que a lista acima, porque é onde uma banca vai empurrar:
 - **Antifraude de geolocalização.** O que os controles de check-in **não** pegam está listado em
   [`../seguranca/antifraude-geolocalizacao.md`](../seguranca/antifraude-geolocalizacao.md) — spoofing
   com root é mitigável e não eliminável, presença não é execução, conluio não é detectado.
-- **Conservação em ENTREGA.** O ciclo de ENTREGA nasce do webhook e envolve ponto de custódia; a
+- **Conservação em ENTREGA.** O ciclo de ENTREGA medido nascia do webhook e envolvia ponto de custódia; a
   medição por categoria refez AJUDA e TRIBO. O caso de ENTREGA (Δ=+60) foi medido na
   [auditoria F7](../auditoria/F7.md).
 - **Ausência de CVE nas dependências.** A varredura OWASP **nunca concluiu**, nem local nem no CI —

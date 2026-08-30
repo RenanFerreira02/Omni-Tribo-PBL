@@ -50,10 +50,6 @@ public interface ConsultasGeoespaciais {
   List<AlvoProximo> missoesNoRaio(
       BigDecimal lat, BigDecimal lon, int raioMetros, String status, String categoria, int limite);
 
-  /** Pontos de custódia ATIVOS no raio, do mais próximo para o mais distante. */
-  List<AlvoProximo> pontosCustodiaNoRaio(
-      BigDecimal lat, BigDecimal lon, int raioMetros, int limite);
-
   /**
    * Tribos com PRESENÇA dentro do raio, da mais próxima para a mais distante.
    *

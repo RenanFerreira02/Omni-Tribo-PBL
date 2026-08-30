@@ -5,6 +5,18 @@
 
 ---
 
+> ## RETIFICADO em 2026-08-30 — ADR 0031
+>
+> **O aporte fica; o vínculo com transportadora sai.** `APORTE_PATROCINADOR` continua sendo o
+> ÚNICO ponto de emissão de token do sistema, por endpoint ADMIN, idempotente e auditado — a
+> correção central deste ADR não foi desfeita.
+>
+> O que muda é quem é o titular: `patrocinador.transportadora_slug` virou `slug`, e a relação
+> descreve um APOIADOR DO BAIRRO. Como a conversão do webhook era o único caminho pelo qual o
+> token aportado entrava no ciclo, o apoiador ganhou o caminho que faltava: financiar o pote de
+> missão comunitária por `POST /tribos/{id}/financiamentos`, reusando `debitarPatrocinador` e o
+> motivo `FINANCIAMENTO_PATROCINADOR`. `FontePote.PATROCINADOR` passa a ser valor histórico.
+
 ## Contexto
 
 Desde o ADR 0009 o projeto afirma que a oferta de TOKEN é conservada: financiar uma missão move

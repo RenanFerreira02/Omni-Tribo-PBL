@@ -1,5 +1,12 @@
 # Texto da release v1.0
 
+> **Esta é a nota da v1.0, de 2026-08-25, e descreve o sistema COMO ELE ERA.** Em 2026-08-30 o eixo
+> logístico foi removido ([ADR 0031](adr/0031-remocao-da-extensao-logistica.md)): saíram o webhook de
+> transportadora, o ponto de custódia, a missão de retirada e o modelo de previsão de risco. O que
+> está abaixo não foi reescrito — nota de release descreve uma versão, e reescrevê-la apagaria o
+> registro do que aquela versão entregou. Ver `CHANGELOG.md`, entrada `v1.1`.
+
+
 > Este arquivo existe para ser **colado** no GitHub (Releases → Draft a new release, tag `v1.0`).
 > Ele fica versionado para que o texto publicado tenha origem rastreável. O `gh` não está instalado
 > na máquina de desenvolvimento, então a publicação é manual.

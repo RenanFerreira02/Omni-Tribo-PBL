@@ -98,15 +98,15 @@ public class FinanciamentoCarteiraService implements FinanciamentoMissao, Estorn
       // zero. Um lançamento de valor zero consumiria uma chave de idempotência sem mover nada, e
       // ck_lancamento_valor_nao_nulo (V13) o recusaria com 500.
       throw new IllegalArgumentException(
-          "Financiamento de patrocinador exige tokens positivos; recebeu " + tokens + ".");
+          "Financiamento de apoiador exige tokens positivos; recebeu " + tokens + ".");
     }
 
     // Primeira leitura desta carteira na transação, então o FOR UPDATE é de fato emitido.
     Carteira carteira = travarCarteiraDe(patrocinadorUsuarioId);
 
-    // VAZIO, não exceção. A encomenda já está no ponto de custódia e a recusa precisa ser GRAVADA
-    // na entrega falida — lançar aqui abortaria a transação e apagaria o registro. Ver o javadoc da
-    // porta e o padrão do check-in rejeitado.
+    // VAZIO, não exceção: a decisão do que fazer com saldo insuficiente é de quem chama, que é o
+    // único com contexto para saber se a recusa vira 422 ou vira linha gravada. Ver o javadoc da
+    // porta — este contrato nasceu do webhook de entrega falida, onde gravar era obrigatório.
     if (carteira.getSaldoTokens() < tokens) {
       return Optional.empty();
     }

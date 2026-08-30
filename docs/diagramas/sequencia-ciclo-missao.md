@@ -16,7 +16,6 @@ sequenceDiagram
     participant GEO as RegistroCheckin<br/>(geolocalizacao)
     participant CAR as CreditoRecompensa<br/>(carteira)
     participant ID as ProgressaoUsuario<br/>(identidade)
-    participant LOG as BaixaCustodia<br/>(logistica)
     participant OBX as PublicadorEventos<br/>(outbox)
     participant DB as PostgreSQL
     participant JOB as DrenadorOutboxJob
@@ -74,8 +73,7 @@ sequenceDiagram
     CAR->>DB: INSERT lancamento (append-only) + UPDATE saldo
     MS->>ID: ⑧ concederXp(xp)
     MS->>DB: ⑨ UPDATE status=CONCLUIDA + INSERT missao_evento
-    MS->>LOG: ⑩ darBaixa (SÍNCRONA, não outbox)
-    MS->>OBX: ⑪ publicar("MissaoConcluida")
+    MS->>OBX: ⑩ publicar("MissaoConcluida")
     OBX->>DB: INSERT outbox
     Note over MS,OBX: tudo isto commita JUNTO ou nada commita
     end

@@ -85,62 +85,18 @@ INSERT INTO usuario (id, nome, email, senha_hash, handle, tribo_id, xp, nivel, s
      90, 1, 1, 4.2, 'USUARIO', 'ATIVO', NOW(), NOW(), 0);
 
 -- -----------------------------------------------------------------------
--- Pontos de custódia (≥1 LOJA; coordenadas reais da região)
--- -----------------------------------------------------------------------
-INSERT INTO ponto_custodia (id, codigo, tipo, apelido, ponto, tribo_id, capacidade, ocupacao, ativo, criado_em) VALUES
-    -- LOJA: Leroy Merlin Pinheiros (R. Teodoro Sampaio)
-    ('cccccccc-0000-0000-0000-000000000001',
-     'LM-PIN-001', 'LOJA',
-     'Leroy Merlin Pinheiros',
-     ST_SetSRID(ST_MakePoint(-46.6934, -23.5640), 4326)::geography,
-     'aaaaaaaa-0000-0000-0000-000000000001',
-     50, 3, TRUE, NOW()),
-
-    -- LOCKER: Consolação
-    ('cccccccc-0000-0000-0000-000000000002',
-     'LK-CON-001', 'LOCKER',
-     'LOCKER Consolação',
-     ST_SetSRID(ST_MakePoint(-46.6573, -23.5558), 4326)::geography,
-     'aaaaaaaa-0000-0000-0000-000000000001',
-     12, 2, TRUE, NOW()),
-
-    -- PORTARIA: Edifício Solar (endereço fictício em Pinheiros)
-    ('cccccccc-0000-0000-0000-000000000003',
-     'PT-PIN-001', 'PORTARIA',
-     'Portaria Ed. Solar Pinheiros',
-     ST_SetSRID(ST_MakePoint(-46.6970, -23.5680), 4326)::geography,
-     'aaaaaaaa-0000-0000-0000-000000000001',
-     5, 1, TRUE, NOW()),
-
-    -- VIZINHO: morador de confiança da tribo Vila Madalena
-    ('cccccccc-0000-0000-0000-000000000004',
-     'VZ-VMA-001', 'VIZINHO',
-     'Vizinho Rua Girassol',
-     ST_SetSRID(ST_MakePoint(-46.6893, -23.5530), 4326)::geography,
-     'aaaaaaaa-0000-0000-0000-000000000002',
-     3, 0, TRUE, NOW()),
-
-    -- LOCKER: Vila Madalena
-    ('cccccccc-0000-0000-0000-000000000005',
-     'LK-VMA-001', 'LOCKER',
-     'LOCKER Vila Madalena',
-     ST_SetSRID(ST_MakePoint(-46.6921, -23.5565), 4326)::geography,
-     'aaaaaaaa-0000-0000-0000-000000000002',
-     10, 4, TRUE, NOW());
-
--- -----------------------------------------------------------------------
 -- Missões (12 — domínio Leroy Merlin: ENTREGA/COLETA/TRIBO/AJUDA)
 -- Coordenadas na região Pinheiros/Vila Madalena, São Paulo
 -- -----------------------------------------------------------------------
 INSERT INTO missao (id, criador_id, executor_id, categoria, titulo, descricao, status,
                     xp_recompensa, valor_brl, tokens_recompensa, complexidade, versao_formula,
-                    origem, destino, ponto_custodia_id,
+                    origem, destino,
                     cep, logradouro, bairro, cidade, uf,
                     raio_checkin_m, peso_kg, volume_l,
                     janela_inicio, janela_fim, criada_em, aceita_em, concluida_em, versao)
 VALUES
 
--- ===== ENTREGA (4) — itens de reforma no ponto de custódia =====
+-- ===== ENTREGA (4) — entregas solidárias entre vizinhos =====
 
 -- E1: Tinta acrílica branca 10L
 ('dddddddd-0000-0000-0000-000000000001',
@@ -148,13 +104,12 @@ VALUES
  'bbbbbbbb-0000-0000-0000-000000000002',  -- executor: alice
  'ENTREGA',
  'Entregar tinta acrílica branca 18L',
- 'Caixa com 2 galões de tinta acrílica premium branca (9L cada) parada no LOCKER Consolação. '
+ 'Caixa com 2 galões de tinta acrílica premium branca (9L cada) para retirar na R. da Consolação. '
  'Item pesado — use carrinho. Entregar ao morador do apt 42.',
  'CONCLUIDA',
  123, 0.00, 41, 'MEDIA', 1,
- ST_SetSRID(ST_MakePoint(-46.6573, -23.5558), 4326)::geography,  -- origem: LOCKER Consolação
+ ST_SetSRID(ST_MakePoint(-46.6573, -23.5558), 4326)::geography,  -- origem: R. da Consolação
  ST_SetSRID(ST_MakePoint(-46.6600, -23.5570), 4326)::geography,  -- destino: endereço do destinatário
- 'cccccccc-0000-0000-0000-000000000002',
  '01302000', 'R. da Consolação', 'Consolação', 'São Paulo', 'SP',
  50, 19.00, 18.0,
  NOW() - INTERVAL '3 days', NOW() - INTERVAL '1 day',
@@ -172,7 +127,6 @@ VALUES
  168, 0.00, 56, 'PESADA', 1,
  ST_SetSRID(ST_MakePoint(-46.6970, -23.5680), 4326)::geography,  -- origem: Portaria Ed. Solar
  ST_SetSRID(ST_MakePoint(-46.6950, -23.5660), 4326)::geography,
- 'cccccccc-0000-0000-0000-000000000003',
  '05427000', 'R. Teodoro Sampaio', 'Pinheiros', 'São Paulo', 'SP',
  50, 28.00, 35.0,
  NOW() - INTERVAL '5 days', NOW() - INTERVAL '2 days',
@@ -190,7 +144,6 @@ VALUES
  69, 0.00, 23, 'LEVE', 1,
  ST_SetSRID(ST_MakePoint(-46.6934, -23.5640), 4326)::geography,  -- origem: LM Pinheiros
  ST_SetSRID(ST_MakePoint(-46.6880, -23.5620), 4326)::geography,
- 'cccccccc-0000-0000-0000-000000000001',
  '05425000', 'R. Teodoro Sampaio', 'Pinheiros', 'São Paulo', 'SP',
  50, 3.20, 5.0,
  NOW() + INTERVAL '1 day', NOW() + INTERVAL '4 days',
@@ -202,13 +155,12 @@ VALUES
  NULL,
  'ENTREGA',
  'Entregar kit de luminárias de teto — 3 peças',
- 'Caixa com 3 luminárias spot LED embutidas. Parada no LOCKER Vila Madalena. '
+ 'Caixa com 3 luminárias spot LED embutidas. Para retirar na Vila Madalena. '
  'Item frágil — transportar na posição vertical.',
  'ABERTA',
  72, 0.00, 24, 'LEVE', 1,
- ST_SetSRID(ST_MakePoint(-46.6921, -23.5565), 4326)::geography,  -- origem: LOCKER Vila Madalena
+ ST_SetSRID(ST_MakePoint(-46.6921, -23.5565), 4326)::geography,  -- origem: Vila Madalena
  ST_SetSRID(ST_MakePoint(-46.6900, -23.5550), 4326)::geography,
- 'cccccccc-0000-0000-0000-000000000005',
  '05434020', 'R. Girassol', 'Vila Madalena', 'São Paulo', 'SP',
  50, 4.50, 15.0,
  NOW() + INTERVAL '2 days', NOW() + INTERVAL '5 days',
@@ -228,7 +180,6 @@ VALUES
  105, 0.00, 35, 'MEDIA', 1,
  ST_SetSRID(ST_MakePoint(-46.6880, -23.5610), 4326)::geography,  -- origem: residência
  ST_SetSRID(ST_MakePoint(-46.6934, -23.5640), 4326)::geography,  -- destino: LM Pinheiros
- NULL,
  '05432020', 'Al. Ministro Rocha Azevedo', 'Jardim Paulista', 'São Paulo', 'SP',
  80, 6.00, 12.0,
  NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day',
@@ -245,8 +196,7 @@ VALUES
  'CONCLUIDA',
  111, 0.00, 37, 'MEDIA', 1,
  ST_SetSRID(ST_MakePoint(-46.6960, -23.5670), 4326)::geography,
- ST_SetSRID(ST_MakePoint(-46.6934, -23.5640), 4326)::geography,
- NULL,
+ ST_SetSRID(ST_MakePoint(-46.6934, -23.5640), 4326)::geography,  -- destino: LM Pinheiros
  '05425020', 'R. Pedroso Alvarenga', 'Pinheiros', 'São Paulo', 'SP',
  80, 10.00, 14.0,
  NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days',
@@ -264,7 +214,6 @@ VALUES
  135, 0.00, 45, 'MEDIA', 1,
  ST_SetSRID(ST_MakePoint(-46.6905, -23.5540), 4326)::geography,
  ST_SetSRID(ST_MakePoint(-46.6870, -23.5500), 4326)::geography,
- NULL,
  '05434010', 'R. Harmonia', 'Vila Madalena', 'São Paulo', 'SP',
  100, 22.00, 60.0,
  NOW() + INTERVAL '1 day', NOW() + INTERVAL '3 days',
@@ -285,7 +234,6 @@ VALUES
  114, 0.00, 38, 'MEDIA', 1,
  ST_SetSRID(ST_MakePoint(-46.6980, -23.5690), 4326)::geography,
  NULL,
- NULL,
  '05426010', 'R. dos Pinheiros', 'Pinheiros', 'São Paulo', 'SP',
  80, NULL, NULL,
  NOW() - INTERVAL '6 days', NOW() - INTERVAL '4 days',
@@ -304,7 +252,6 @@ VALUES
  114, 0.00, 38, 'MEDIA', 1,
  ST_SetSRID(ST_MakePoint(-46.6912, -23.5545), 4326)::geography,
  NULL,
- NULL,
  '05434020', 'R. Harmonia', 'Vila Madalena', 'São Paulo', 'SP',
  80, NULL, NULL,
  NOW() + INTERVAL '3 days', NOW() + INTERVAL '5 days',
@@ -321,7 +268,6 @@ VALUES
  'ABERTA',
  114, 0.00, 38, 'MEDIA', 1,
  ST_SetSRID(ST_MakePoint(-46.6730, -23.5720), 4326)::geography,
- NULL,
  NULL,
  '01310100', 'R. Cardeal Arcoverde', 'Jardim América', 'São Paulo', 'SP',
  80, NULL, NULL,
@@ -341,9 +287,8 @@ VALUES
  'O morador já está no local para receber.',
  'CONCLUIDA',
  240, 0.00, 80, 'PESADA', 1,
- ST_SetSRID(ST_MakePoint(-46.6934, -23.5640), 4326)::geography,  -- ponto de retirada: LM
+ ST_SetSRID(ST_MakePoint(-46.6934, -23.5640), 4326)::geography,  -- ponto de encontro combinado
  ST_SetSRID(ST_MakePoint(-46.6945, -23.5650), 4326)::geography,
- NULL,
  '05425050', 'R. Teodoro Sampaio', 'Pinheiros', 'São Paulo', 'SP',
  60, 68.00, 120.0,
  NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days',
@@ -361,7 +306,6 @@ VALUES
  'ABERTA',
  90, 0.00, 30, 'MEDIA', 1,
  ST_SetSRID(ST_MakePoint(-46.6900, -23.5535), 4326)::geography,
- NULL,
  NULL,
  '05435010', 'R. Wisard', 'Vila Madalena', 'São Paulo', 'SP',
  60, NULL, NULL,

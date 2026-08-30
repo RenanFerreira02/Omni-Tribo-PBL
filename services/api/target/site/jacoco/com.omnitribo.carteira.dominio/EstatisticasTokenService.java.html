@@ -20,8 +20,8 @@ public class EstatisticasTokenService implements EstatisticasToken {
   @Override
   @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
   public ResumoToken resumo() {
-<span class="fc" id="L23">    LancamentoRepository.ResumoTokenProjecao r = lancamentoRepository.resumirTokens();</span>
-<span class="fc" id="L24">    return new ResumoToken(r.getAportados(), r.getResgatados(), r.getEmCarteiras());</span>
+<span class="nc" id="L23">    LancamentoRepository.ResumoTokenProjecao r = lancamentoRepository.resumirTokens();</span>
+<span class="nc" id="L24">    return new ResumoToken(r.getAportados(), r.getResgatados(), r.getEmCarteiras());</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

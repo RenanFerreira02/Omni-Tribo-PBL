@@ -21,10 +21,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Cadastro e consulta de patrocinadores.
+ * Cadastro e consulta de apoiadores do bairro.
  *
- * <p>É o lado de identidade da carteira de patrocinador (ADR 0024). Aqui nasce o TITULAR; quem move
- * token é {@code carteira}, e quem decide se uma missão é patrocinada é {@code missoes}.
+ * <p>É o lado de identidade da carteira de patrocinador (ADR 0024, retificado pelo 0031). Aqui
+ * nasce o TITULAR; quem move token é {@code carteira}, e quem decide se um pote pode receber aquele
+ * token é {@code missoes}.
  *
  * <p><b>Fora de escopo, e continua fora:</b> validação de CNPJ, meio de pagamento e prevenção a
  * lavagem. O cadastro é por endpoint ADMIN justamente porque onboarding financeiro de verdade é
@@ -53,39 +54,36 @@ public class PatrocinadorService implements ConsultaPatrocinador {
 
   @Override
   @Transactional(readOnly = true)
-  public Optional<UUID> usuarioIdDoPatrocinadorAtivo(String transportadoraSlug) {
-    if (transportadoraSlug == null || transportadoraSlug.isBlank()) {
+  public Optional<UUID> usuarioIdDoApoiadorAtivo(UUID patrocinadorId) {
+    if (patrocinadorId == null) {
       return Optional.empty();
     }
-    return patrocinadorRepository.buscarUsuarioIdAtivoPorSlug(
-        transportadoraSlug.toLowerCase(Locale.ROOT));
+    return patrocinadorRepository.buscarUsuarioIdAtivo(patrocinadorId);
   }
 
   /**
-   * Cria o patrocinador: conta-titular, carteira e a relação com a transportadora.
+   * Cria o apoiador: conta-titular, carteira e a relação, os três numa transação só.
    *
-   * <p>Os três numa transação só, e isso não é conveniência. Um patrocinador sem carteira faria o
-   * primeiro webhook estourar com {@code RecursoNaoEncontradoException} lá dentro do caminho de
-   * valor, com o {@code FOR UPDATE} do ponto de custódia na mão — e a transportadora receberia 500
-   * num endpoint cujo contrato é nunca devolver 5xx para estado de negócio.
+   * <p>Não é conveniência. Um apoiador sem carteira faria o primeiro aporte estourar com {@code
+   * RecursoNaoEncontradoException} dentro do caminho de valor, e o ADMIN veria um 404 sobre uma
+   * carteira que ele nem sabia que precisava existir.
    *
    * <p>{@code garantirCarteira} roda com {@code MANDATORY}, então ele EXIGE esta transação; chamar
    * este método fora de uma falharia na hora, que é o comportamento desejado.
    */
   @Auditavel(acao = "PATROCINADOR_CADASTRADO", entidade = "patrocinador")
   @Transactional
-  public PatrocinadorResponse cadastrar(String nome, String transportadoraSlug, Instant agora) {
-    String slug = transportadoraSlug.toLowerCase(Locale.ROOT);
+  public PatrocinadorResponse cadastrar(String nome, String slugInformado, Instant agora) {
+    String slug = slugInformado.toLowerCase(Locale.ROOT);
 
     // Recusa amigável ANTES de escrever. Sem ela, a segunda tentativa com o mesmo slug bateria em
     // uk_patrocinador_slug e viraria 500 com mensagem de driver — que a regra de erro do projeto
     // proíbe expor, e que não diz ao ADMIN o que ele fez de errado.
-    if (patrocinadorRepository.existsByTransportadoraSlug(slug)) {
-      throw new RegraNegocioVioladaException(
-          "Já existe patrocinador para a transportadora " + slug + ".");
+    if (patrocinadorRepository.existsBySlug(slug)) {
+      throw new RegraNegocioVioladaException("Já existe apoiador com o slug " + slug + ".");
     }
 
-    String email = "patrocinador@" + slug + ".local";
+    String email = "apoiador@" + slug + ".local";
     String handle = handleDe(slug);
 
     // Derivados do slug, que é único — então a colisão só acontece se um usuário HUMANO já tiver
@@ -142,12 +140,12 @@ public class PatrocinadorService implements ConsultaPatrocinador {
 
     Patrocinador patrocinador = buscar(patrocinadorId);
 
-    // Patrocínio encerrado não recebe aporte: emitir moeda para uma relação que acabou seria criar
-    // token que nenhuma missão vai gastar, e a conservação passaria a depender de quantos contratos
-    // foram desativados com saldo dentro.
+    // Apoio encerrado não recebe aporte: emitir moeda para uma relação que acabou seria criar token
+    // que nenhuma missão vai gastar, e a conservação passaria a depender de quantos apoios foram
+    // desativados com saldo dentro.
     if (!patrocinador.isAtivo()) {
       throw new RegraNegocioVioladaException(
-          "Patrocinador " + patrocinador.getTransportadoraSlug() + " está inativo.");
+          "Apoiador " + patrocinador.getSlug() + " está inativo.");
     }
 
     ResultadoAporte resultado =
@@ -172,10 +170,10 @@ public class PatrocinadorService implements ConsultaPatrocinador {
   }
 
   /**
-   * {@code transportadora-dev} vira {@code transportadora_dev}.
+   * {@code apoiador-dev} vira {@code apoiador_dev}.
    *
    * <p>O hífen do slug não é aceito em handle pela convenção do projeto, e o handle existe aqui só
-   * para satisfazer {@code uk_usuario_handle} — ninguém procura patrocinador por @.
+   * para satisfazer {@code uk_usuario_handle} — ninguém procura apoiador por @.
    */
   private static String handleDe(String slug) {
     return slug.replace('-', '_');

@@ -38,14 +38,12 @@ public final class MissaoFixture {
             // Recompensa fixa e conhecida: esta fixture alimenta MissaoStateMachineTest, que testa
             // transições e não economia. Passar pela CalculadoraDeRecompensa aqui acoplaria a
             // matriz de 99 combinações à calibração da fórmula, sem ganho nenhum.
-            new CalculadoraDeRecompensa.Recompensa(
-                100, 10L, ComplexidadeMissao.LEVE, 1, BigDecimal.ONE.setScale(2)),
+            new CalculadoraDeRecompensa.Recompensa(100, 10L, ComplexidadeMissao.LEVE, 1),
             // 0.00 e não 25.00: desde o ADR 0009 nenhuma missão remunera em BRL, e
             // ck_missao_economia (V15) recusaria este valor. Passava despercebido porque a fixture
             // constrói a entidade direto, sem passar pela validação de request.
             BigDecimal.ZERO,
             Coordenadas.ponto(new BigDecimal("-23.5629"), new BigDecimal("-46.6996")),
-            null,
             null,
             "05422030",
             "Rua dos Pinheiros",

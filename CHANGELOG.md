@@ -10,6 +10,72 @@ Uma entrada por **fase** do projeto — a numeração de fases é a de
 
 ---
 
+## [v1.1] — 2026-08-30 · Só o eixo social
+
+**Decisão de produto: manter apenas o eixo de Sociedade 5.0.** A extensão logística saiu inteira —
+ver [ADR 0031](docs/adr/0031-remocao-da-extensao-logistica.md), que registra a decisão, o que
+sobreviveu dela e o que se perdeu junto.
+
+### Removido
+
+- **Módulo `logistica` inteiro** (~8.100 linhas): webhook de transportadora (entrada e confirmação),
+  `EntregaFalida`, `PontoCustodia`, o modelo de previsão de risco com treino e dataset sintético, e
+  `POST /api/v1/logistica/previsao-falha`.
+- **Toda a borda de webhook**: `HmacWebhookFilter`, `ParametrosWebhook`, `AtributosWebhook`, os
+  segredos de `app.webhooks` e a isenção de `/api/v1/webhooks/**` no `SecurityConfig`. **Nenhuma
+  rota de escrita da API é anônima hoje.**
+- **Painel de impacto** `GET /admin/impacto` e a tela `impacto.tsx` — era o funil da entrega falida,
+  e sem aquele ciclo os quatro blocos ficavam sem numerador. A visão econômica de ADMIN passa a ser
+  `GET /admin/carteiras/reconciliacao`.
+- **`GET /api/v1/pontos-custodia`** e a camada de pontos de custódia no mapa do app.
+- `tools/carrier-mock/`, `tools/dataset/`, `docs/qualidade/modelo-previsao.md` e
+  `docs/diagramas/sequencia-entrega-falida.md`.
+- Schema, por `V28__remover_extensao_logistica.sql`: `DROP TABLE entrega_falida`, `ponto_custodia`;
+  `missao.faixa_risco` e `missao.ponto_custodia_id`. Seeds `V901`, `V904` e `V905` apagados.
+
+### Alterado
+
+- **Patrocinador → APOIADOR DO BAIRRO.** `patrocinador.transportadora_slug` virou `slug`. O aporte
+  ADMIN continua sendo o único ponto de emissão de token.
+
+### Adicionado
+
+- **`POST /api/v1/admin/missoes/{missaoId}/financiamento-apoiador`** (só ADMIN, idempotente). É o
+  caminho que devolve sentido ao aporte: o apoiador põe token no pote de uma missão comunitária, com
+  motivo `FINANCIAMENTO_PATROCINADOR`. Até a V28 quem levava o token emitido ao pote era a conversão
+  do webhook; sem substituto, o token ficaria parado na carteira do apoiador para sempre e a
+  economia teria só o sumidouro do resgate.
+
+  **É ADMIN por uma razão medida.** A primeira versão desta mudança pôs o desvio dentro de
+  `POST /tribos/{id}/financiamentos`, que tira a identidade do JWT — e a conta do apoiador nasce
+  INATIVA justamente para nunca autenticar. Era código inalcançável, e quem pegou foi a verificação
+  ponta a ponta, não a suíte. `FinanciamentoApoiadorAdminTest` trava o caso.
+- **Fórmula de recompensa na versão 4.** Saíram os dois insumos da extensão — `tokens-por-real
+  -ofertado` e o multiplicador de risco. **Nenhum valor calculado mudou** (`v4ReproduzV1` prova); a
+  versão subiu porque a FORMA da fórmula mudou.
+- **Fan-out de notificação trocou de gatilho**: era `EntregaFalidaConvertida`, virou
+  `MissaoPublicada`. O anúncio "missão nova perto de você" passa a valer para as quatro categorias,
+  em vez de só para a missão de retirada.
+- **Dashboard Angular**: o formulário de `/admin` deixou de cadastrar ponto de custódia e passou a
+  cadastrar benefício de parceiro (`POST /admin/beneficios`); abaixo dele, a integridade do ledger
+  no lugar do painel de impacto.
+- Centro da tribo e proximidade por tribo passam a ter **uma âncora só**, a origem da missão.
+
+### Resolvido, por remoção da causa
+
+- **Pendência #3** (alerta de ponto lotado sem teto — 631 linhas idênticas em 3 minutos, medidas no
+  teste de carga de 2026-08-25). O alerta era gravado pelo webhook; os dois saíram juntos. Não foi
+  corrigido: deixou de existir.
+
+### Perdido, e declarado
+
+- **O eixo "sistema inteligente de apoio à decisão" ficou sem implementação.** O modelo previa falha
+  de ENTREGA e não tinha outro consumidor. Mantê-lo vivo sem quem o chamasse seria pior.
+- `missao.multiplicador_risco` e o valor `PATROCINADOR` de `fonte_pote` viram **histórico inerte**:
+  nenhum código os escreve, e apagá-los apagaria a explicação de dado já creditado.
+
+---
+
 ## [v1.0] — 2026-08-25 · A economia fecha o ciclo
 
 **Primeira entrada com rótulo de versão, e não de fase.** As anteriores são por fase, e continuam

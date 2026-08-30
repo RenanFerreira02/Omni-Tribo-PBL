@@ -26,7 +26,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Cadastro e aporte de patrocinador — o único ponto de EMISSÃO de token do sistema.
+ * Cadastro e aporte de apoiador — o único ponto de EMISSÃO de token do sistema.
  *
  * <p>O foco destes testes é o que torna a emissão defensável: só ADMIN chega aqui, e um retry de
  * rede não pode cunhar duas vezes. Um aporte duplicado NÃO é detectável depois — ledger e projeção
@@ -49,14 +49,14 @@ class PatrocinadorAdminTest extends TesteIntegracaoMvcBase {
 
   @AfterEach
   void limpar() {
-    // Só o que ESTA suíte cria. Os patrocinadores da V905 ficam — outras suítes dependem deles.
+    // Só o que ESTA suíte cria. Os apoiadores da V907 ficam — outras suítes dependem deles.
     jdbcTemplate.update(
         "DELETE FROM lancamento WHERE carteira_id IN"
             + " (SELECT c.id FROM carteira c JOIN patrocinador p ON p.usuario_id = c.usuario_id"
-            + "   WHERE p.transportadora_slug LIKE 'suite-%')");
+            + "   WHERE p.slug LIKE 'suite-%')");
     jdbcTemplate.update(
         "DELETE FROM carteira WHERE usuario_id IN"
-            + " (SELECT usuario_id FROM patrocinador WHERE transportadora_slug LIKE 'suite-%')");
+            + " (SELECT usuario_id FROM patrocinador WHERE slug LIKE 'suite-%')");
     jdbcTemplate.update("DELETE FROM auditoria WHERE entidade = 'patrocinador'");
 
     // A ORDEM importa: patrocinador.usuario_id é FK para usuario, então apagar o titular antes da
@@ -64,9 +64,8 @@ class PatrocinadorAdminTest extends TesteIntegracaoMvcBase {
     // permite apagar o titular depois — a subconsulta deixaria de encontrá-los.
     List<UUID> titulares =
         jdbcTemplate.queryForList(
-            "SELECT usuario_id FROM patrocinador WHERE transportadora_slug LIKE 'suite-%'",
-            UUID.class);
-    jdbcTemplate.update("DELETE FROM patrocinador WHERE transportadora_slug LIKE 'suite-%'");
+            "SELECT usuario_id FROM patrocinador WHERE slug LIKE 'suite-%'", UUID.class);
+    jdbcTemplate.update("DELETE FROM patrocinador WHERE slug LIKE 'suite-%'");
     for (UUID titular : titulares) {
       jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", titular);
     }
@@ -75,7 +74,7 @@ class PatrocinadorAdminTest extends TesteIntegracaoMvcBase {
   @Test
   @DisplayName("cadastro cria titular INATIVO e carteira zerada")
   void cadastroCriaTitularECarteira() throws Exception {
-    String corpo = cadastrar("suite-alfa", "Transportadora Alfa");
+    String corpo = cadastrar("suite-alfa", "Apoiador Alfa");
 
     UUID usuarioId = UUID.fromString(campo(corpo, "usuarioId"));
 
@@ -85,7 +84,7 @@ class PatrocinadorAdminTest extends TesteIntegracaoMvcBase {
         .as("a conta NUNCA autentica: AutenticacaoService recusa status != ATIVO")
         .isEqualTo("INATIVO");
     assertThat(titular.get("tribo_id"))
-        .as("patrocinador não pertence a bairro — é o que o mantém fora da regra de afiliação")
+        .as("apoiador não pertence a bairro — é por isso que ele precisa do desvio de autorização")
         .isNull();
 
     Long saldo =
@@ -99,14 +98,14 @@ class PatrocinadorAdminTest extends TesteIntegracaoMvcBase {
   @Test
   @DisplayName("slug repetido é 422, não 500 de constraint")
   void slugRepetidoEh422() throws Exception {
-    cadastrar("suite-beta", "Transportadora Beta");
+    cadastrar("suite-beta", "Apoiador Beta");
 
     mockMvc
         .perform(
             post(URL)
                 .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"nome\":\"Outra\",\"transportadoraSlug\":\"suite-beta\"}"))
+                .content("{\"nome\":\"Outra\",\"slug\":\"suite-beta\"}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(
             jsonPath("$.type").value("https://omnitribo.dev/problemas/regra-negocio-violada"));
@@ -115,15 +114,15 @@ class PatrocinadorAdminTest extends TesteIntegracaoMvcBase {
   @Test
   @DisplayName("slug com maiúscula ou espaço é 400 na borda")
   void slugMalFormadoEh400() throws Exception {
-    // O filtro de webhook normaliza para minúsculas antes de publicar o atributo verificado. Um
-    // slug gravado com outra caixa nunca seria encontrado, e TODA entrega daquela transportadora
-    // cairia em SEM_PATROCINIO — sintoma indistinguível de saldo zerado.
+    // O serviço normaliza para minúsculas antes de gravar. Recusar na BORDA é o que impede dois
+    // cadastros do mesmo apoiador de atravessarem a UNIQUE só por diferença de caixa — a segunda
+    // linha passaria, e o bairro passaria a ter dois apoiadores que são o mesmo.
     mockMvc
         .perform(
             post(URL)
                 .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"nome\":\"X\",\"transportadoraSlug\":\"Suite-Gama\"}"))
+                .content("{\"nome\":\"X\",\"slug\":\"Suite-Gama\"}"))
         .andExpect(status().isBadRequest());
   }
 
@@ -135,7 +134,7 @@ class PatrocinadorAdminTest extends TesteIntegracaoMvcBase {
             post(URL)
                 .header("Authorization", bearer(ALICE))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"nome\":\"X\",\"transportadoraSlug\":\"suite-delta\"}"))
+                .content("{\"nome\":\"X\",\"slug\":\"suite-delta\"}"))
         .andExpect(status().isForbidden());
 
     mockMvc
@@ -248,7 +247,7 @@ class PatrocinadorAdminTest extends TesteIntegracaoMvcBase {
   }
 
   @Test
-  @DisplayName("aporte em patrocinador inativo é 422")
+  @DisplayName("aporte em apoiador inativo é 422")
   void aporteEmInativoEh422() throws Exception {
     UUID patrocinadorId = UUID.fromString(campo(cadastrar("suite-teta", "Teta"), "id"));
     jdbcTemplate.update("UPDATE patrocinador SET ativo = FALSE WHERE id = ?", patrocinadorId);
@@ -302,7 +301,7 @@ class PatrocinadorAdminTest extends TesteIntegracaoMvcBase {
             post(URL)
                 .header("Authorization", bearer(ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"nome\":\"%s\",\"transportadoraSlug\":\"%s\"}".formatted(nome, slug)))
+                .content("{\"nome\":\"%s\",\"slug\":\"%s\"}".formatted(nome, slug)))
         .andExpect(status().isCreated())
         .andReturn()
         .getResponse()

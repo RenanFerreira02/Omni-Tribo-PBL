@@ -40,8 +40,6 @@ class MigracaoTest extends TesteIntegracaoBase {
             "checkin",
             "carteira",
             "lancamento",
-            "ponto_custodia",
-            "entrega_falida",
             "outbox",
             "alerta");
 
@@ -63,13 +61,10 @@ class MigracaoTest extends TesteIntegracaoBase {
     long tribos = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tribo", Long.class);
     long usuarios = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM usuario", Long.class);
     long missoes = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM missao", Long.class);
-    long pontosCustodia =
-        jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ponto_custodia", Long.class);
 
     assertThat(tribos).isGreaterThanOrEqualTo(3);
     assertThat(usuarios).isGreaterThanOrEqualTo(6);
     assertThat(missoes).isGreaterThanOrEqualTo(12);
-    assertThat(pontosCustodia).isGreaterThanOrEqualTo(5);
 
     // Verifica que há missões ENTREGA com peso e volume preenchidos (domínio correto)
     long entregasComPeso =
@@ -84,67 +79,6 @@ class MigracaoTest extends TesteIntegracaoBase {
             "SELECT COUNT(*) FROM missao WHERE categoria IN ('TRIBO','COLETA') AND valor_brl > 0",
             Long.class);
     assertThat(violacoes).isZero();
-  }
-
-  /**
-   * A tese do produto tem dado dos DOIS lados: entrega falhada que já virou missão, e entrega
-   * parada na custódia esperando alguém criar a missão de retirada.
-   *
-   * <p>A segunda população é a que importa travar: sem nenhuma linha pendente, a tela de
-   * oportunidades do app só poderia ser demonstrada com dados criados à mão, e o seed não
-   * sustentaria a narrativa que dá nome ao challenge.
-   */
-  @Test
-  void seed_tem_entregas_falidas_convertidas_e_pendentes() {
-    long convertidas =
-        jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM entrega_falida WHERE missao_id IS NOT NULL", Long.class);
-    long pendentes =
-        jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM entrega_falida WHERE missao_id IS NULL", Long.class);
-
-    assertThat(convertidas).isPositive();
-    assertThat(pendentes).isPositive();
-
-    // Toda convertida aponta para missão que existe. Não há FK (fronteira logistica→missoes é
-    // deliberadamente sem constraint), então nada além desta assertion impede o seed de apontar
-    // para um UUID inexistente.
-    long orfas =
-        jdbcTemplate.queryForObject(
-            """
-            SELECT COUNT(*) FROM entrega_falida ef
-             WHERE ef.missao_id IS NOT NULL
-               AND NOT EXISTS (SELECT 1 FROM missao m WHERE m.id = ef.missao_id)
-            """,
-            Long.class);
-    assertThat(orfas).as("entrega_falida apontando para missao inexistente").isZero();
-
-    // ocupacao de cada ponto == encomendas fisicamente lá: pendentes + convertidas cuja missão
-    // ainda não concluiu. Encomenda de missão CONCLUIDA já saiu da custódia.
-    //
-    // A V21 acrescentou um terceiro caso que NÃO conta: a entrega RECUSADA por falta de vaga. Ela
-    // é gravada — a transportadora precisa saber o que aconteceu com o pacote — mas nunca entrou
-    // no ponto, então somá-la exigiria ocupacao + 1 num ponto lotado justamente por não caber mais
-    // nada. Sem o filtro de recusada_em, o primeiro webhook recusado reprovaria este teste.
-    long incoerentes =
-        jdbcTemplate.queryForObject(
-            """
-            SELECT COUNT(*) FROM (
-              SELECT pc.id
-                FROM ponto_custodia pc
-                LEFT JOIN entrega_falida ef ON ef.ponto_custodia_id = pc.id
-                                           AND ef.recusada_em IS NULL
-                LEFT JOIN missao m          ON m.id = ef.missao_id
-               GROUP BY pc.id, pc.ocupacao
-              HAVING pc.ocupacao <>
-                     COUNT(*) FILTER (WHERE ef.id IS NOT NULL AND ef.missao_id IS NULL)
-                   + COUNT(*) FILTER (WHERE ef.missao_id IS NOT NULL AND m.status <> 'CONCLUIDA')
-            ) divergentes
-            """,
-            Long.class);
-    assertThat(incoerentes)
-        .as("ponto_custodia.ocupacao divergente das encomendas em custódia")
-        .isZero();
   }
 
   @Test

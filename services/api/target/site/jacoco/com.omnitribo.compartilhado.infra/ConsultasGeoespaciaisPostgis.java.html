@@ -60,13 +60,12 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
       &quot;&quot;&quot;;
 
   /**
-   * Pontos de custódia ATIVOS dentro do raio, do mais próximo para o mais distante.
+   * Parceiros ATIVOS dentro do raio, do mais próximo para o mais distante.
    *
-   * &lt;p&gt;Usa {@code idx_ponto_custodia_ponto}, o índice GiST criado na V8 — a tabela tinha índice
-   * geoespacial desde a F3 e nenhuma consulta que o usasse.
+   * &lt;p&gt;Usa o índice GiST de {@code parceiro} (V24).
    *
-   * &lt;p&gt;{@code ativo} entra no WHERE e não é opcional: um ponto desativado no mapa levaria o
-   * executor a uma loja que não recebe mais encomenda.
+   * &lt;p&gt;{@code ativo} entra no WHERE e não é opcional: um parceiro desativado no mapa levaria a
+   * pessoa a uma loja que não honra mais o benefício.
    */
   static final String SQL_PARCEIROS_NO_RAIO =
       &quot;&quot;&quot;
@@ -87,48 +86,30 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
        LIMIT CAST(:limite AS integer)
       &quot;&quot;&quot;;
 
-  static final String SQL_PONTOS_CUSTODIA_NO_RAIO =
-      &quot;&quot;&quot;
-      SELECT p.id AS id,
-             ST_Distance(
-                 p.ponto,
-                 ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision),
-                                         CAST(:lat AS double precision)), 4326)::geography
-             ) AS distancia_m
-        FROM ponto_custodia p
-       WHERE ST_DWithin(
-                 p.ponto,
-                 ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision),
-                                         CAST(:lat AS double precision)), 4326)::geography,
-                 CAST(:raio AS double precision))
-         AND p.ativo = true
-       ORDER BY distancia_m ASC
-       LIMIT CAST(:limite AS integer)
-      &quot;&quot;&quot;;
-
   /**
    * Centro geográfico de uma tribo, DERIVADO em vez de armazenado.
    *
    * &lt;p&gt;A tabela {@code tribo} tem nome e bairro, nunca uma coordenada. Guardar uma exigiria
    * migration, alguém para preenchê-la e uma decisão sobre o que fazer quando a tribo crescer para
-   * outro lado do bairro. O centroide das missões e dos pontos de custódia da tribo responde à
-   * pergunta que a tela faz — &quot;para onde aponto o mapa quando não sei onde o usuário está?&quot; — e se
-   * atualiza sozinho conforme a tribo se move.
+   * outro lado do bairro. O centroide das missões da tribo responde à pergunta que a tela faz —
+   * &quot;para onde aponto o mapa quando não sei onde o usuário está?&quot; — e se atualiza sozinho conforme
+   * a tribo se move.
+   *
+   * &lt;p&gt;&lt;b&gt;As âncoras eram DUAS até a V28&lt;/b&gt;: as missões e os pontos de custódia da tribo. Com a
+   * extensão logística removida (ADR 0031) sobrou a missão, que é a âncora que sempre descreveu
+   * onde a tribo AGE. O efeito colateral é bem-vindo: era justamente um ponto de custódia distante
+   * — o locker da Consolação, a ~3,8 km — que deslocava o centroide de Pinheiros para fora do
+   * próprio bairro.
    *
    * &lt;p&gt;{@code ST_Collect} sobre zero linhas devolve NULL, o {@code WHERE} externo filtra, e o
-   * método devolve vazio: tribo recém-criada, sem missão nem ponto, não tem centro nenhum — e
-   * inventar um seria pior do que o chamador cair no default configurado.
+   * método devolve vazio: tribo recém-criada, sem missão nenhuma, não tem centro — e inventar um
+   * seria pior do que o chamador cair no default configurado.
    */
   static final String SQL_CENTRO_DA_TRIBO =
       &quot;&quot;&quot;
       SELECT ST_Y(c.centro) AS lat, ST_X(c.centro) AS lon
         FROM (SELECT ST_Centroid(ST_Collect(pontos.geo::geometry)) AS centro
-                FROM (SELECT pc.ponto AS geo
-                        FROM ponto_custodia pc
-                       WHERE pc.tribo_id = CAST(:tribo AS uuid)
-                         AND pc.ativo = true
-                       UNION ALL
-                      SELECT m.origem AS geo
+                FROM (SELECT m.origem AS geo
                         FROM missao m
                         JOIN usuario u ON u.id = m.criador_id
                        WHERE u.tribo_id = CAST(:tribo AS uuid)) pontos) c
@@ -139,9 +120,11 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
    * Tribos com PRESENÇA dentro do raio — isto é, com pelo menos uma âncora (ponto de custódia ou
    * origem de missão) a até {@code raio} metros do alvo.
    *
-   * &lt;p&gt;É o que permite responder &quot;quem está perto deste ponto de custódia?&quot; sem o usuário ter
-   * coordenada: a tabela {@code usuario} não tem, e nenhuma coluna geográfica do schema descreve
-   * onde uma PESSOA está agora. Ver ADR 0020.
+   * &lt;p&gt;É o que permite responder &quot;quem está perto desta missão?&quot; sem o usuário ter coordenada: a
+   * tabela {@code usuario} não tem, e nenhuma coluna geográfica do schema descreve onde uma PESSOA
+   * está agora. Ver ADR 0020.
+   *
+   * &lt;p&gt;A âncora de ponto de custódia saiu na V28 (ADR 0031); sobrou a origem da missão.
    *
    * &lt;p&gt;&lt;b&gt;Distância MÍNIMA, e não distância ao centroide.&lt;/b&gt; A primeira versão usava o mesmo
    * centroide de {@link #SQL_CENTRO_DA_TRIBO}, e um teste a reprovou com um caso que o seed já
@@ -166,12 +149,7 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
                  ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision),
                                          CAST(:lat AS double precision)), 4326)::geography
              )) AS distancia_m
-        FROM (SELECT pc.tribo_id, pc.ponto AS geo
-                FROM ponto_custodia pc
-               WHERE pc.tribo_id IS NOT NULL
-                 AND pc.ativo = true
-               UNION ALL
-              SELECT u.tribo_id, m.origem AS geo
+        FROM (SELECT u.tribo_id, m.origem AS geo
                 FROM missao m
                 JOIN usuario u ON u.id = m.criador_id
                WHERE u.tribo_id IS NOT NULL) pontos
@@ -197,66 +175,52 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
 
   private final JdbcClient jdbc;
 
-<span class="fc" id="L200">  public ConsultasGeoespaciaisPostgis(JdbcClient jdbc) {</span>
-<span class="fc" id="L201">    this.jdbc = jdbc;</span>
-<span class="fc" id="L202">  }</span>
+<span class="fc" id="L178">  public ConsultasGeoespaciaisPostgis(JdbcClient jdbc) {</span>
+<span class="fc" id="L179">    this.jdbc = jdbc;</span>
+<span class="fc" id="L180">  }</span>
 
   @Override
   public List&lt;AlvoProximo&gt; missoesNoRaio(
       BigDecimal lat, BigDecimal lon, int raioMetros, String status, String categoria, int limite) {
-<span class="fc" id="L207">    return jdbc.sql(SQL_MISSOES_NO_RAIO)</span>
-<span class="fc" id="L208">        .param(&quot;lat&quot;, lat)</span>
-<span class="fc" id="L209">        .param(&quot;lon&quot;, lon)</span>
-<span class="fc" id="L210">        .param(&quot;raio&quot;, raioMetros)</span>
-<span class="fc" id="L211">        .param(&quot;status&quot;, status)</span>
-<span class="fc" id="L212">        .param(&quot;categoria&quot;, categoria)</span>
-<span class="fc" id="L213">        .param(&quot;limite&quot;, limite)</span>
-<span class="fc" id="L214">        .query(</span>
+<span class="fc" id="L185">    return jdbc.sql(SQL_MISSOES_NO_RAIO)</span>
+<span class="fc" id="L186">        .param(&quot;lat&quot;, lat)</span>
+<span class="fc" id="L187">        .param(&quot;lon&quot;, lon)</span>
+<span class="fc" id="L188">        .param(&quot;raio&quot;, raioMetros)</span>
+<span class="fc" id="L189">        .param(&quot;status&quot;, status)</span>
+<span class="fc" id="L190">        .param(&quot;categoria&quot;, categoria)</span>
+<span class="fc" id="L191">        .param(&quot;limite&quot;, limite)</span>
+<span class="fc" id="L192">        .query(</span>
             (rs, linha) -&gt;
-<span class="fc" id="L216">                new AlvoProximo(rs.getObject(&quot;id&quot;, UUID.class), rs.getDouble(&quot;distancia_m&quot;)))</span>
-<span class="fc" id="L217">        .list();</span>
-  }
-
-  @Override
-  public List&lt;AlvoProximo&gt; pontosCustodiaNoRaio(
-      BigDecimal lat, BigDecimal lon, int raioMetros, int limite) {
-<span class="fc" id="L223">    return jdbc.sql(SQL_PONTOS_CUSTODIA_NO_RAIO)</span>
-<span class="fc" id="L224">        .param(&quot;lat&quot;, lat)</span>
-<span class="fc" id="L225">        .param(&quot;lon&quot;, lon)</span>
-<span class="fc" id="L226">        .param(&quot;raio&quot;, raioMetros)</span>
-<span class="fc" id="L227">        .param(&quot;limite&quot;, limite)</span>
-<span class="fc" id="L228">        .query(</span>
-            (rs, linha) -&gt;
-<span class="fc" id="L230">                new AlvoProximo(rs.getObject(&quot;id&quot;, UUID.class), rs.getDouble(&quot;distancia_m&quot;)))</span>
-<span class="fc" id="L231">        .list();</span>
+<span class="fc" id="L194">                new AlvoProximo(rs.getObject(&quot;id&quot;, UUID.class), rs.getDouble(&quot;distancia_m&quot;)))</span>
+<span class="fc" id="L195">        .list();</span>
   }
 
   @Override
   public List&lt;AlvoProximo&gt; parceirosNoRaio(
       BigDecimal lat, BigDecimal lon, int raioMetros, int limite) {
-<span class="fc" id="L237">    return jdbc.sql(SQL_PARCEIROS_NO_RAIO)</span>
-<span class="fc" id="L238">        .param(&quot;lat&quot;, lat)</span>
-<span class="fc" id="L239">        .param(&quot;lon&quot;, lon)</span>
-<span class="fc" id="L240">        .param(&quot;raio&quot;, raioMetros)</span>
-<span class="fc" id="L241">        .param(&quot;limite&quot;, limite)</span>
-<span class="fc" id="L242">        .query(</span>
+<span class="fc" id="L201">    return jdbc.sql(SQL_PARCEIROS_NO_RAIO)</span>
+<span class="fc" id="L202">        .param(&quot;lat&quot;, lat)</span>
+<span class="fc" id="L203">        .param(&quot;lon&quot;, lon)</span>
+<span class="fc" id="L204">        .param(&quot;raio&quot;, raioMetros)</span>
+<span class="fc" id="L205">        .param(&quot;limite&quot;, limite)</span>
+<span class="fc" id="L206">        .query(</span>
             (rs, linha) -&gt;
-<span class="fc" id="L244">                new AlvoProximo(rs.getObject(&quot;id&quot;, UUID.class), rs.getDouble(&quot;distancia_m&quot;)))</span>
-<span class="fc" id="L245">        .list();</span>
+<span class="fc" id="L208">                new AlvoProximo(rs.getObject(&quot;id&quot;, UUID.class), rs.getDouble(&quot;distancia_m&quot;)))</span>
+<span class="fc" id="L209">        .list();</span>
   }
 
   @Override
   public List&lt;AlvoProximo&gt; tribosNoRaio(
       BigDecimal lat, BigDecimal lon, int raioMetros, int limite) {
-<span class="fc" id="L251">    return jdbc.sql(SQL_TRIBOS_NO_RAIO)</span>
-<span class="fc" id="L252">        .param(&quot;lat&quot;, lat)</span>
-<span class="fc" id="L253">        .param(&quot;lon&quot;, lon)</span>
-<span class="fc" id="L254">        .param(&quot;raio&quot;, raioMetros)</span>
-<span class="fc" id="L255">        .param(&quot;limite&quot;, limite)</span>
-<span class="fc" id="L256">        .query(</span>
+<span class="nc" id="L215">    return jdbc.sql(SQL_TRIBOS_NO_RAIO)</span>
+<span class="nc" id="L216">        .param(&quot;lat&quot;, lat)</span>
+<span class="nc" id="L217">        .param(&quot;lon&quot;, lon)</span>
+<span class="nc" id="L218">        .param(&quot;raio&quot;, raioMetros)</span>
+<span class="nc" id="L219">        .param(&quot;limite&quot;, limite)</span>
+<span class="nc" id="L220">        .query(</span>
             (rs, linha) -&gt;
-<span class="fc" id="L258">                new AlvoProximo(rs.getObject(&quot;id&quot;, UUID.class), rs.getDouble(&quot;distancia_m&quot;)))</span>
-<span class="fc" id="L259">        .list();</span>
+<span class="nc" id="L222">                new AlvoProximo(rs.getObject(&quot;id&quot;, UUID.class), rs.getDouble(&quot;distancia_m&quot;)))</span>
+<span class="nc" id="L223">        .list();</span>
   }
 
   /**
@@ -265,10 +229,10 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
    */
   @Override
   public Optional&lt;Centro&gt; centroDaTribo(UUID triboId) {
-<span class="fc" id="L268">    return jdbc.sql(SQL_CENTRO_DA_TRIBO)</span>
-<span class="fc" id="L269">        .param(&quot;tribo&quot;, triboId)</span>
-<span class="fc" id="L270">        .query((rs, linha) -&gt; new Centro(rs.getDouble(&quot;lat&quot;), rs.getDouble(&quot;lon&quot;)))</span>
-<span class="fc" id="L271">        .optional();</span>
+<span class="fc" id="L232">    return jdbc.sql(SQL_CENTRO_DA_TRIBO)</span>
+<span class="fc" id="L233">        .param(&quot;tribo&quot;, triboId)</span>
+<span class="fc" id="L234">        .query((rs, linha) -&gt; new Centro(rs.getDouble(&quot;lat&quot;), rs.getDouble(&quot;lon&quot;)))</span>
+<span class="fc" id="L235">        .optional();</span>
   }
 
   /**
@@ -286,13 +250,13 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
   @Override
   public double distanciaMetros(
       BigDecimal latA, BigDecimal lonA, BigDecimal latB, BigDecimal lonB) {
-<span class="fc" id="L289">    return jdbc.sql(SQL_DISTANCIA)</span>
-<span class="fc" id="L290">        .param(&quot;latA&quot;, latA)</span>
-<span class="fc" id="L291">        .param(&quot;lonA&quot;, lonA)</span>
-<span class="fc" id="L292">        .param(&quot;latB&quot;, latB)</span>
-<span class="fc" id="L293">        .param(&quot;lonB&quot;, lonB)</span>
-<span class="fc" id="L294">        .query(Double.class)</span>
-<span class="fc" id="L295">        .single();</span>
+<span class="fc" id="L253">    return jdbc.sql(SQL_DISTANCIA)</span>
+<span class="fc" id="L254">        .param(&quot;latA&quot;, latA)</span>
+<span class="fc" id="L255">        .param(&quot;lonA&quot;, lonA)</span>
+<span class="fc" id="L256">        .param(&quot;latB&quot;, latB)</span>
+<span class="fc" id="L257">        .param(&quot;lonB&quot;, lonB)</span>
+<span class="fc" id="L258">        .query(Double.class)</span>
+<span class="fc" id="L259">        .single();</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

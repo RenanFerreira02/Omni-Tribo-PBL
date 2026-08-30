@@ -14,7 +14,7 @@
 -- Tudo aqui está entre 170 m e 4,1 km desse ponto, distâncias medidas com
 -- ST_Distance sobre geography — nenhuma foi escrita de cabeça.
 --
--- SUFIXO 9xx nos UUIDs: as linhas do V900/V901/V902 vão de ...0001 a ...0012. A
+-- SUFIXO 9xx nos UUIDs: as linhas do V900/V902 vão de ...0001 a ...0012. A
 -- faixa 9xx deixa óbvio, num SELECT qualquer, o que veio deste arquivo — e torna
 -- impossível colidir com o seed anterior.
 --
@@ -67,36 +67,6 @@ INSERT INTO usuario (id, nome, email, senha_hash, handle, tribo_id, xp, nivel, s
      111, 2, 4, 4.7, 'USUARIO', 'ATIVO', NOW() - INTERVAL '40 days', NOW(), 0);
 
 -- -----------------------------------------------------------------------
--- Pontos de custódia — onde a entrega que falhou fica guardada.
---
--- `ocupacao` NÃO é número decorativo: MigracaoTest exige que ele iguale o que está
--- fisicamente no ponto, isto é, encomendas ainda não convertidas em missão MAIS as
--- convertidas cuja missão não concluiu. Encomenda de missão CONCLUIDA já saiu da
--- custódia e não conta. Os valores abaixo derivam das linhas de entrega_falida no
--- fim deste arquivo — mexeu numa, recalcule a outra.
--- -----------------------------------------------------------------------
-INSERT INTO ponto_custodia (id, codigo, tipo, apelido, ponto, tribo_id, capacidade, ocupacao,
-                            ativo, criado_em) VALUES
-    -- 3 encomendas pendentes, nenhuma convertida ainda.
-    ('cccccccc-0000-0000-0000-000000000901',
-     'LM-ARI-001', 'LOJA', 'Leroy Merlin Aricanduva',
-     ST_SetSRID(ST_MakePoint(-46.50630, -23.57260), 4326)::geography,
-     'aaaaaaaa-0000-0000-0000-000000000901', 60, 3, TRUE, NOW()),
-
-    -- 170 m do ponto de referência: é o ponto que aparece primeiro na busca por raio.
-    -- Ocupação 3 = 1 convertida na M1 (ABERTA, ainda lá) + 2 pendentes. A convertida na
-    -- M7 não entra: aquela missão concluiu e a encomenda saiu.
-    ('cccccccc-0000-0000-0000-000000000902',
-     'LK-CLI-001', 'LOCKER', 'LOCKER Cidade Líder',
-     ST_SetSRID(ST_MakePoint(-46.46850, -23.55650), 4326)::geography,
-     'aaaaaaaa-0000-0000-0000-000000000901', 24, 3, TRUE, NOW()),
-
-    ('cccccccc-0000-0000-0000-000000000903',
-     'PT-CLI-002', 'PORTARIA', 'Portaria Ed. Jardim Líder',
-     ST_SetSRID(ST_MakePoint(-46.47120, -23.56020), 4326)::geography,
-     'aaaaaaaa-0000-0000-0000-000000000901', 10, 1, TRUE, NOW());
-
--- -----------------------------------------------------------------------
 -- Missões.
 --
 -- xp_recompensa e tokens_recompensa NÃO foram inventados: saíram de
@@ -113,7 +83,7 @@ INSERT INTO ponto_custodia (id, codigo, tipo, apelido, ponto, tribo_id, capacida
 -- -----------------------------------------------------------------------
 INSERT INTO missao (id, criador_id, executor_id, categoria, titulo, descricao, status,
                     xp_recompensa, valor_brl, tokens_recompensa, complexidade, versao_formula,
-                    pote_tokens, origem, destino, ponto_custodia_id,
+                    pote_tokens, origem, destino,
                     cep, logradouro, bairro, cidade, uf,
                     raio_checkin_m, peso_kg, volume_l,
                     janela_inicio, janela_fim, criada_em, aceita_em, concluida_em, versao)
@@ -127,13 +97,12 @@ VALUES
  NULL,
  'ENTREGA',
  'Entregar caixa de piso vinílico — 12 réguas',
- 'Caixa recusada na primeira tentativa (morador ausente) e guardada no LOCKER Cidade Líder. '
+ 'Caixa que ficou guardada com a vizinha do 12 desde sábado, na Cidade Líder. '
  'Peso considerável para uma pessoa só: leve carrinho. Entregar na Rua Antônio Maria Bessa.',
  'ABERTA',
  132, 0.00, 44, 'MEDIA', 1, 0,
- ST_SetSRID(ST_MakePoint(-46.46850, -23.55650), 4326)::geography,  -- LOCKER Cidade Líder
+ ST_SetSRID(ST_MakePoint(-46.46850, -23.55650), 4326)::geography,  -- origem: casa da vizinha
  ST_SetSRID(ST_MakePoint(-46.46987, -23.55737), 4326)::geography,  -- destino: 170 m
- 'cccccccc-0000-0000-0000-000000000902',
  '08280460', 'Rua Antônio Maria Bessa', 'Cidade Líder', 'São Paulo', 'SP',
  50, 22.00, 45.0,
  NOW() - INTERVAL '6 hours', NOW() + INTERVAL '6 days',
@@ -152,7 +121,6 @@ VALUES
  210, 0.00, 70, 'PESADA', 1, 0,
  ST_SetSRID(ST_MakePoint(-46.50630, -23.57260), 4326)::geography,  -- Leroy Merlin Aricanduva
  ST_SetSRID(ST_MakePoint(-46.46550, -23.55780), 4326)::geography,
- 'cccccccc-0000-0000-0000-000000000901',
  '08280000', 'Avenida Líder', 'Cidade Líder', 'São Paulo', 'SP',
  50, 40.00, 30.0,
  NOW() - INTERVAL '2 hours', NOW() + INTERVAL '9 days',
@@ -164,12 +132,11 @@ VALUES
  'bbbbbbbb-0000-0000-0000-000000000903',  -- executor: jonas
  'ENTREGA',
  'Entregar kit de torneira e sifão',
- 'Pedido recusado por endereço incompleto. Reentregue pela tribo a partir do LOCKER.',
+ 'Compra que ficou na casa de um vizinho e a tribo levou até quem comprou.',
  'CONCLUIDA',
  111, 0.00, 37, 'MEDIA', 1, 0,
  ST_SetSRID(ST_MakePoint(-46.46850, -23.55650), 4326)::geography,
- ST_SetSRID(ST_MakePoint(-46.47120, -23.56020), 4326)::geography,  -- Portaria Ed. Jardim Líder
- 'cccccccc-0000-0000-0000-000000000902',
+ ST_SetSRID(ST_MakePoint(-46.47120, -23.56020), 4326)::geography,  -- destino do trecho
  '08280460', 'Rua Antônio Maria Bessa', 'Cidade Líder', 'São Paulo', 'SP',
  50, 9.00, 25.0,
  NOW() - INTERVAL '5 days', NOW() - INTERVAL '3 days',
@@ -183,13 +150,12 @@ VALUES
  NULL,
  'COLETA',
  'Coletar recicláveis do mutirão da praça',
- 'Papelão e PET separados desde sábado, na praça. Levar ao LOCKER Cidade Líder, '
+ 'Papelão e PET separados desde sábado, na praça. Levar ao ponto de coleta da Cidade Líder, '
  'que tem o contêiner da cooperativa.',
  'ABERTA',
  114, 0.00, 38, 'MEDIA', 1, 38,
  ST_SetSRID(ST_MakePoint(-46.47030, -23.56250), 4326)::geography,  -- praça, 570 m
  ST_SetSRID(ST_MakePoint(-46.46850, -23.55650), 4326)::geography,
- 'cccccccc-0000-0000-0000-000000000902',
  '08280460', 'Praça da Cidade Líder', 'Cidade Líder', 'São Paulo', 'SP',
  60, 8.00, 60.0,
  NOW() - INTERVAL '1 day', NOW() + INTERVAL '5 days',
@@ -203,12 +169,11 @@ VALUES
  'COLETA',
  'Recolher óleo de cozinha usado na escola',
  'A escola junta o óleo das famílias em garrafas PET. Recolher e levar ao ponto de coleta '
- 'do LOCKER. Não misturar com outros resíduos.',
+ 'do bairro. Não misturar com outros resíduos.',
  'ACEITA',
  126, 0.00, 42, 'MEDIA', 1, 42,
  ST_SetSRID(ST_MakePoint(-46.48200, -23.55800), 4326)::geography,  -- escola, 1,24 km
  ST_SetSRID(ST_MakePoint(-46.46850, -23.55650), 4326)::geography,
- 'cccccccc-0000-0000-0000-000000000902',
  '08280460', 'Rua da Escola', 'Cidade Líder', 'São Paulo', 'SP',
  60, 12.00, 70.0,
  NOW() - INTERVAL '12 hours', NOW() + INTERVAL '4 days',
@@ -227,7 +192,6 @@ VALUES
  114, 0.00, 38, 'MEDIA', 1, 38,
  ST_SetSRID(ST_MakePoint(-46.47030, -23.56250), 4326)::geography,
  NULL,
- NULL,
  '08280460', 'Praça da Cidade Líder', 'Cidade Líder', 'São Paulo', 'SP',
  100, NULL, NULL,
  NOW() + INTERVAL '2 days', NOW() + INTERVAL '12 days',
@@ -242,7 +206,6 @@ VALUES
  'ABERTA',
  114, 0.00, 38, 'MEDIA', 1, 38,
  ST_SetSRID(ST_MakePoint(-46.48200, -23.55800), 4326)::geography,
- NULL,
  NULL,
  '08280460', 'Rua da Escola', 'Cidade Líder', 'São Paulo', 'SP',
  100, NULL, NULL,
@@ -262,78 +225,10 @@ VALUES
  60, 0.00, 20, 'LEVE', 1, 0,
  ST_SetSRID(ST_MakePoint(-46.46900, -23.54950), 4326)::geography,  -- UBS, 876 m
  NULL,
- NULL,
  '08280460', 'Rua Antônio Maria Bessa', 'Cidade Líder', 'São Paulo', 'SP',
  80, NULL, NULL,
  NOW() + INTERVAL '1 day', NOW() + INTERVAL '7 days',
  NOW() - INTERVAL '8 hours', NULL, NULL, 0);
-
--- -----------------------------------------------------------------------
--- Entregas falidas — a tese do produto em forma de tabela: o pacote recusado não
--- vira prejuízo, vira trabalho remunerado no bairro.
---
--- Três estados de propósito, porque é a transição que conta a história:
---   • CONVERTIDA e em curso  → M1 (ABERTA). Ainda está no locker, ainda conta ocupação.
---   • CONVERTIDA e encerrada → M7 (CONCLUIDA). Já saiu; não conta ocupação.
---   • PENDENTE (missao_id NULL) → esperando virar missão. É o estoque de trabalho
---     que o produto promete transformar, e o que dá sentido ao número de ocupação.
--- -----------------------------------------------------------------------
-INSERT INTO entrega_falida (id, transportadora, codigo_rastreio, motivo, ponto_custodia_id,
-                            missao_id, recebido_em, assinatura_verificada, convertida_em) VALUES
-    -- LOCKER Cidade Líder — convertida na M1, missão ainda ABERTA.
-    ('88888888-0000-0000-0000-000000000901',
-     'Transportadora Leste', 'BR904471228SP',
-     'Destinatário ausente na segunda tentativa; pacote retido em custódia.',
-     'cccccccc-0000-0000-0000-000000000902',
-     'dddddddd-0000-0000-0000-000000000901',
-     NOW() - INTERVAL '8 hours', TRUE, NOW() - INTERVAL '6 hours'),
-
-    -- LOCKER — convertida na M7, que já concluiu: encomenda entregue, saiu da custódia.
-    ('88888888-0000-0000-0000-000000000902',
-     'Transportadora Leste', 'BR904471301SP',
-     'Endereço incompleto informado no pedido.',
-     'cccccccc-0000-0000-0000-000000000902',
-     'dddddddd-0000-0000-0000-000000000907',
-     NOW() - INTERVAL '6 days', TRUE, NOW() - INTERVAL '5 days'),
-
-    -- LOCKER — duas pendentes, ainda sem missão.
-    ('88888888-0000-0000-0000-000000000903',
-     'Expresso Zona Leste', 'BR771204988SP',
-     'Recusada pelo porteiro: morador não autorizou recebimento.',
-     'cccccccc-0000-0000-0000-000000000902', NULL,
-     NOW() - INTERVAL '2 days', TRUE, NULL),
-
-    ('88888888-0000-0000-0000-000000000904',
-     'Expresso Zona Leste', 'BR771205033SP',
-     'Terceira tentativa sem sucesso; encaminhada para custódia local.',
-     'cccccccc-0000-0000-0000-000000000902', NULL,
-     NOW() - INTERVAL '1 day', FALSE, NULL),
-
-    -- Leroy Merlin Aricanduva — três pendentes.
-    ('88888888-0000-0000-0000-000000000905',
-     'Transportadora Leste', 'BR904471455SP',
-     'Volume acima do limite do veículo da rota.',
-     'cccccccc-0000-0000-0000-000000000901', NULL,
-     NOW() - INTERVAL '3 days', TRUE, NULL),
-
-    ('88888888-0000-0000-0000-000000000906',
-     'Transportadora Leste', 'BR904471460SP',
-     'Cliente ausente e sem ponto alternativo cadastrado.',
-     'cccccccc-0000-0000-0000-000000000901', NULL,
-     NOW() - INTERVAL '2 days', TRUE, NULL),
-
-    ('88888888-0000-0000-0000-000000000907',
-     'Rota Sudeste', 'BR552209117SP',
-     'Área com restrição de circulação no horário da entrega.',
-     'cccccccc-0000-0000-0000-000000000901', NULL,
-     NOW() - INTERVAL '1 day', FALSE, NULL),
-
-    -- Portaria Ed. Jardim Líder — uma pendente.
-    ('88888888-0000-0000-0000-000000000908',
-     'Rota Sudeste', 'BR552209240SP',
-     'Portaria recebeu, mas o morador mudou de endereço.',
-     'cccccccc-0000-0000-0000-000000000903', NULL,
-     NOW() - INTERVAL '4 days', TRUE, NULL);
 
 -- -----------------------------------------------------------------------
 -- Carteiras. Os saldos abaixo são a PROJEÇÃO; o ledger a seguir é a verdade.
@@ -423,7 +318,7 @@ INSERT INTO alerta (id, usuario_id, tipo, titulo, corpo, missao_id, lido, criado
      'bbbbbbbb-0000-0000-0000-000000000901',
      'MISSAO_PROXIMA',
      'Nova missão a 170 m de você',
-     'Uma entrega em custódia no LOCKER Cidade Líder acabou de virar missão.',
+     'Uma entrega guardada aqui perto acabou de virar missão da tribo.',
      'dddddddd-0000-0000-0000-000000000901', FALSE, NOW() - INTERVAL '6 hours'),
 
     ('99999999-0000-0000-0000-000000000902',

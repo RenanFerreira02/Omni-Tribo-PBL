@@ -11,16 +11,13 @@ import jakarta.validation.constraints.Size;
  * Onboarding financeiro com validação de CNPJ e prevenção a lavagem é produto regulado; ver a seção
  * "Fora de escopo, decidido" do CLAUDE.md.
  *
- * @param transportadoraSlug precisa casar EXATAMENTE com a chave de {@code app.webhooks.segredos},
- *     que é o que a transportadora manda em {@code X-Transportadora}. Um slug que não casa produz
- *     um patrocinador que nunca é encontrado, e toda entrega daquela transportadora cai em
- *     SEM_PATROCINIO — sintoma indistinguível de saldo zerado. O {@code Pattern} restringe ao mesmo
- *     alfabeto que o filtro normaliza (minúsculas, dígitos e hífen) para que a divergência seja
- *     impossível por caixa ou por espaço, e não só improvável.
+ * @param slug identificador estável do apoiador, UNIQUE na tabela. O {@code Pattern} restringe ao
+ *     alfabeto que o serviço normaliza (minúsculas, dígitos e hífen) para que dois cadastros do
+ *     mesmo apoiador não passem pela UNIQUE só por diferença de caixa ou espaço.
  */
 public record CadastrarPatrocinadorRequest(
     @NotBlank(message = "Nome é obrigatório") @Size(max = 100) String nome,
-    @NotBlank(message = "Slug da transportadora é obrigatório")
+    @NotBlank(message = "Slug do apoiador é obrigatório")
         @Size(max = 50)
         @Pattern(regexp = "[a-z0-9-]+", message = "Slug aceita apenas minúsculas, dígitos e hífen")
-        String transportadoraSlug) {}
+        String slug) {}
