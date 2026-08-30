@@ -1,6 +1,11 @@
 # ER do banco
 
-14 tabelas de negócio, schema aplicado por Flyway (`V1`–`V22`), seed em faixa separada `V900+`.
+Tabelas de negócio, schema aplicado por Flyway (`V1`–`V28`), seed em faixa separada `V900+`.
+
+> **Atualizado em 2026-08-30 (ADR 0031).** Saíram deste diagrama `PONTO_CUSTODIA` e `ENTREGA_FALIDA`,
+> dropadas pela `V28`, mais as colunas `missao.ponto_custodia_id` e `missao.faixa_risco`.
+> `missao.multiplicador_risco` **continua no banco**, sem entidade que a mapeie: é o que explica a
+> recompensa das missões de retirada já creditadas.
 
 **Linha cheia = foreign key real. Linha pontilhada = referência por UUID puro, deliberadamente
 SEM foreign key** — é a fronteira de módulo materializada no schema.
@@ -8,7 +13,6 @@ SEM foreign key** — é a fronteira de módulo materializada no schema.
 ```mermaid
 erDiagram
     TRIBO ||--o{ USUARIO : "agrupa"
-    TRIBO ||--o{ PONTO_CUSTODIA : "abriga"
 
     USUARIO ||--o{ CONSENTIMENTO : "concede"
     USUARIO ||--o{ REFRESH_TOKEN : "possui"
@@ -22,13 +26,9 @@ erDiagram
     MISSAO ||--o{ MISSAO_EVENTO : "trilha"
     CARTEIRA ||--o{ LANCAMENTO : "ledger"
 
-    ENTREGA_FALIDA }o--|| PONTO_CUSTODIA : "ocupa vaga"
-
     MISSAO ||..o{ CHECKIN : "geolocalizacao → missoes"
     MISSAO ||..o{ LANCAMENTO : "carteira → missoes"
-    MISSAO ||..o| ENTREGA_FALIDA : "logistica → missoes"
     MISSAO ||..o{ ALERTA : "compartilhado → missoes"
-    PONTO_CUSTODIA ||..o{ MISSAO : "missoes → logistica"
 
     TRIBO {
         uuid id PK
@@ -51,7 +51,6 @@ erDiagram
         uuid id PK
         uuid criador_id FK
         uuid executor_id FK
-        uuid ponto_custodia_id "UUID puro, sem FK"
         varchar categoria "ENTREGA|COLETA|TRIBO|AJUDA"
         varchar status "9 estados"
         int xp_recompensa "congelado na criação"
@@ -63,8 +62,7 @@ erDiagram
         int raio_checkin_m
         varchar complexidade
         int versao_formula
-        numeric multiplicador_risco "[1,00; 1,50]"
-        varchar faixa_risco "BAIXO|MEDIO|ALTO"
+        numeric multiplicador_risco "HISTÓRICO: sem escritor desde a V28"
         int nivel_minimo
         timestamptz estado_desde "marco da varredura"
     }
@@ -102,32 +100,10 @@ erDiagram
         uuid contraparte_carteira_id FK
         uuid missao_id "UUID puro, sem FK"
         varchar sinal "CREDITO|DEBITO"
-        varchar motivo "RECOMPENSA_MISSAO|FINANCIAMENTO_TRIBO|ESTORNO|..."
+        varchar motivo "RECOMPENSA_MISSAO|FINANCIAMENTO_TRIBO|APORTE_PATROCINADOR|RESGATE|..."
         bigint valor_tokens
         varchar chave_idempotencia UK
         bigint saldo_apos_tokens "snapshot"
-    }
-    PONTO_CUSTODIA {
-        uuid id PK
-        varchar codigo UK
-        uuid tribo_id FK
-        varchar tipo "LOJA|LOCKER|PORTARIA|VIZINHO"
-        geography ponto "POINT,4326"
-        int capacidade
-        int ocupacao
-        boolean ativo
-    }
-    ENTREGA_FALIDA {
-        uuid id PK
-        varchar transportadora
-        varchar codigo_rastreio "UNIQUE(transportadora, rastreio)"
-        uuid ponto_custodia_id FK
-        uuid missao_id "UUID puro, sem FK"
-        numeric risco_probabilidade "congelado"
-        varchar risco_faixa
-        numeric risco_multiplicador
-        int risco_versao_modelo
-        timestamptz recusada_em "lotação: sem missão"
     }
     OUTBOX {
         uuid id PK
@@ -179,18 +155,18 @@ erDiagram
 > `AUDITORIA` e `OUTBOX` aparecem sem aresta de propósito: a primeira registra ação sobre qualquer
 > entidade e não tem FK para nenhuma; a segunda guarda `agregado_id` genérico.
 
-## As seis referências sem FK
+## As quatro referências sem FK
 
 | Coluna | Fronteira | Por quê |
 |---|---|---|
-| `missao.ponto_custodia_id` | `missoes` → `logistica` | |
 | `checkin.missao_id` | `geolocalizacao` → `missoes` | |
 | `lancamento.missao_id` | `carteira` → `missoes` | |
-| `entrega_falida.missao_id` | `logistica` → `missoes` | |
 | `alerta.missao_id` | `compartilhado` → `missoes` | |
 | `refresh_token.substituido_por` | auto-referência em `identidade` | evita constraint circular na rotação |
 
-As cinco primeiras existem pela mesma razão, documentada nas próprias migrations: **viabilizar a
+Eram seis: `missao.ponto_custodia_id` e `entrega_falida.missao_id` saíram com a `V28`.
+
+As três primeiras existem pela mesma razão, documentada nas próprias migrations: **viabilizar a
 extração futura de cada módulo em serviço independente sem quebrar o schema de quem referencia.** É
 a fronteira do ArchUnit descendo até o banco — de nada adiantaria proibir o import em Java e manter
 uma FK que impede separar as tabelas.

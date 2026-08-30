@@ -103,25 +103,18 @@ class RecompensaCalculadaTest extends TesteIntegracaoMvcBase {
 
     var linha =
         jdbcTemplate.queryForMap(
-            "SELECT complexidade, versao_formula, multiplicador_risco, faixa_risco"
-                + " FROM missao WHERE id = ?",
+            "SELECT complexidade, versao_formula, multiplicador_risco FROM missao WHERE id = ?",
             id);
 
     assertThat(linha.get("complexidade")).isEqualTo("PESADA");
     // Sem a versão, mudar um parâmetro amanhã reinterpretaria esta missão retroativamente.
-    assertThat(linha.get("versao_formula")).isNotNull();
+    assertThat(linha.get("versao_formula")).isEqualTo(4);
 
-    // NEUTRO, e não nulo: desde a v3 a coluna é sempre escrita, e missão criada por usuário recebe
-    // 1,00 porque não passa por avaliação de risco. Gravar o neutro em vez de deixar nulo é o que
-    // torna a coluna legível sem ambiguidade — nulo teria dois significados ("não avaliada" e
-    // "avaliada como neutra") e nenhum jeito de distingui-los.
-    assertThat((java.math.BigDecimal) linha.get("multiplicador_risco"))
-        .isEqualByComparingTo("1.00");
-
-    // A FAIXA continua nula aqui, e a assimetria é a informação: só o webhook de entrega falida
-    // avalia risco. Faixa preenchida numa missão criada por usuário significaria que alguém ligou o
-    // modelo num caminho que não tem as características para alimentá-lo.
-    assertThat(linha.get("faixa_risco")).isNull();
+    // NULA a partir da v4, e a coluna continua no banco: ela é histórico do multiplicador de risco
+    // das missões de retirada, congelado quando a extensão logística existia (V28 §3a). Nenhum
+    // código a escreve desde então, e é isso que este assert trava — uma escrita nova aqui
+    // significaria que alguém religou um modelo de risco sem passar pela decisão de projeto.
+    assertThat(linha.get("multiplicador_risco")).isNull();
   }
 
   @Test

@@ -21,16 +21,6 @@ export type StatusMissao =
 
 export type ComplexidadeMissao = 'LEVE' | 'MEDIA' | 'PESADA';
 
-/**
- * Faixa de risco de falha da entrega, estimada pelo modelo do servidor.
- *
- * Três faixas e não a probabilidade crua: "62%" convida a uma precisão que o modelo não tem — ele
- * foi treinado em dados sintéticos (ver docs/qualidade/modelo-previsao.md) e a incerteza da
- * estimativa é da ordem de pontos percentuais. A faixa comunica a ordem de grandeza sem prometer
- * exatidão que não existe.
- */
-export type FaixaRisco = 'BAIXO' | 'MEDIO' | 'ALTO';
-
 export type PapelUsuario = 'USUARIO' | 'ADMIN';
 
 export type SinalLancamento = 'CREDITO' | 'DEBITO';
@@ -135,19 +125,6 @@ export interface AlertaResponse {
   criadoEm: string;
 }
 
-export interface PontoCustodiaResponse {
-  id: string;
-  codigo: string;
-  tipo: 'LOJA' | 'LOCKER' | 'PORTARIA' | 'VIZINHO';
-  apelido: string;
-  lat: number;
-  lon: number;
-  capacidade: number;
-  ocupacao: number;
-  /** Só na busca por raio; nulo no detalhe por id. */
-  distanciaM: number | null;
-}
-
 export interface ClimaResponse {
   temperaturaC: number;
   sensacaoC: number;
@@ -185,7 +162,6 @@ export interface MissaoResponse {
   origemLon: number | null;
   destinoLat: number | null;
   destinoLon: number | null;
-  pontoCustodiaId: string | null;
 
   /**
    * `cep` e `logradouro` são NULOS para quem não participa da missão.
@@ -226,40 +202,13 @@ export interface MissaoResponse {
   versaoFormula: number;
 
   /**
-   * Nível mínimo para ACEITAR. 1 = sem restrição, que é o caso de toda missão criada por usuário.
-   *
-   * Maior que 1 só em missão gerada a partir de entrega falida: custódia de encomenda de terceiro é
-   * restrita a quem tem reputação consolidada (Regra de Elegibilidade por Reputação do challenge).
+   * Nível mínimo para ACEITAR. 1 = sem restrição, que hoje é o caso de TODA missão: o único
+   * caminho que gravava valor maior era a conversão de entrega falida, removida do servidor.
    *
    * A UI usa isto para DESABILITAR o botão com a explicação certa em vez de deixar a pessoa tocar e
    * levar 422. A checagem do cliente é conveniência; a do servidor é a regra, e continua lá.
    */
   nivelMinimo: number;
-
-  /**
-   * Risco de falha avaliado na criação, CONGELADO junto com `versaoFormula`.
-   *
-   * `null` em toda missão que não veio do webhook de entrega falida — que é a MAIORIA. Trate
-   * ausência como "sem avaliação", nunca como risco baixo: são coisas diferentes, e mostrar
-   * "risco baixo" para uma missão que ninguém avaliou seria inventar uma garantia.
-   *
-   * `multiplicadorRisco` é o que EXPLICA a recompensa: sem ele, duas entregas de mesmo peso e
-   * distância pagariam valores diferentes sem justificativa visível.
-   */
-  multiplicadorRisco: number | null;
-  faixaRisco: FaixaRisco | null;
-
-  /**
-   * Texto pronto do aviso, montado no SERVIDOR, ou `null` quando não há o que avisar.
-   *
-   * Vem pronto de propósito: se o app compusesse a frase a partir da faixa, cada versão instalada
-   * teria a sua, e mudar a orientação exigiria publicar na loja. Só ALTO e MEDIO produzem texto —
-   * um aviso que aparece sempre deixa de ser lido.
-   *
-   * Nunca contém logradouro nem CEP. A resposta da missão recorta endereço a bairro para quem não
-   * participa, e um aviso citando a rua devolveria pela porta de trás o que aquele recorte protege.
-   */
-  avisoRisco: string | null;
 
   versao: number;
 }
@@ -300,12 +249,6 @@ export interface PreviaRecompensaResponse {
   tokensRecompensa: number;
   complexidade: ComplexidadeMissao;
   versaoFormula: number;
-  /**
-   * Sempre `1.00` nesta rota: a prévia serve missão criada por usuário, que não passa por avaliação
-   * de risco. Vem mesmo assim para deixar explícito no contrato que o fator existe na fórmula e que
-   * aqui ele não está agindo.
-   */
-  multiplicadorRisco: number;
 }
 
 /**
@@ -343,7 +286,6 @@ export interface CriarMissaoRequest {
   volumeL?: number;
   janelaInicio: string;
   janelaFim: string;
-  pontoCustodiaId?: string;
 }
 
 /**
@@ -440,78 +382,4 @@ export interface FiltroProximas {
   raioMetros?: number;
   categoria?: CategoriaMissao;
   limite?: number;
-}
-
-/**
- * O painel de impacto — `GET /api/v1/admin/impacto`, só ADMIN.
- *
- * A única resposta do app que fala de VALOR e não de estado: quanto a tese economizou. Tudo aqui é
- * agregado pelo servidor a cada chamada, sobre tabelas que já existem — não há tabela de agregação
- * nem cache, então dois pedidos seguidos podem legitimamente diferir.
- */
-export interface ImpactoResponse {
-  /** Instante da apuração. Exibido porque o número é volátil e um painel sem data é uma afirmação sem validade. */
-  geradoEm: string;
-  entregasFalidas: ImpactoEntregasFalidas;
-  missoesDeRetirada: ImpactoMissoesDeRetirada;
-  custoEvitado: ImpactoCustoEvitado;
-  tokens: ImpactoTokens;
-}
-
-export interface ImpactoEntregasFalidas {
-  recebidas: number;
-  convertidas: number;
-  /**
-   * Recebidas que não viraram missão e não foram recusadas: encomenda parada na custódia.
-   *
-   * É o número que EXPLICA uma taxa de conversão baixa. Sem ele na tela, quem lê conclui que o
-   * bairro não responde — quando a maioria das linhas nunca chegou a ser oferecida a ninguém.
-   */
-  pendentes: number;
-  recusadasPontoLotado: number;
-  recusadasSemPatrocinio: number;
-  /** Fração 0..1, ou `null` quando nada foi recebido. NUNCA renderize `null` como 0%. */
-  taxaConversao: number | null;
-}
-
-export interface ImpactoMissoesDeRetirada {
-  criadas: number;
-  concluidas: number;
-  taxaConclusao: number | null;
-  /** Segundos entre o webhook e o primeiro check-in válido. `null` com amostra vazia. */
-  medianaAteCheckinSegundos: number | null;
-  /** Quantas missões entraram na mediana. Vai para a tela: mediana sem amostra não é interpretável. */
-  amostraMediana: number;
-}
-
-/**
- * A conta que um parceiro compraria — e a premissa que a sustenta, ao lado dela.
- *
- * `reentregasEvitadas` é o MESMO número que `missoesDeRetirada.concluidas`, renomeado. Não são duas
- * evidências: é a interpretação de que a encomenda teria sido re-entregue. A tela diz isso.
- */
-export interface ImpactoCustoEvitado {
-  reentregasEvitadas: number;
-  /**
-   * Premissa vigente em BRL, de `app.impacto.custo-reentrega-brl`.
-   *
-   * `number`, como `valorBrl` e `saldoBrl`: são `BigDecimal` no servidor e Jackson os serializa
-   * como NÚMERO JSON (`25.00`), não como string. O cliente só FORMATA — toda aritmética de dinheiro
-   * acontece no servidor, em `BigDecimal`, e nenhuma conta é refeita aqui.
-   */
-  premissaCustoReentregaBrl: number;
-  baseBrl: number;
-  /** Premissa pela metade. */
-  menos50Brl: number;
-  /** Premissa uma vez e meia. */
-  mais50Brl: number;
-}
-
-export interface ImpactoTokens {
-  aportados: number;
-  emCarteiras: number;
-  emPotes: number;
-  /** `emCarteiras + emPotes` — a conservação do ADR 0027 exibida como número. */
-  emCirculacao: number;
-  resgatados: number;
 }

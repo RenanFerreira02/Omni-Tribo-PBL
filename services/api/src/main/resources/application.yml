@@ -111,19 +111,6 @@ app:
     falhas-para-bloqueio: 10     # falhas consecutivas antes de bloqueio progressivo
     janela-falhas-minutos: 15    # janela de observação para contar falhas
     duracao-bloqueio-minutos: 15 # duração do bloqueio após atingir o limiar
-  impacto:
-    # PREMISSA, NÃO MEDIÇÃO — e o painel diz isso em texto, na tela.
-    #
-    # Quanto se ASSUME que custa à transportadora re-entregar uma encomenda que falhou. Este
-    # projeto não mediu esse número e não tem como medi-lo: não existe operação real, logo não
-    # existe série de custo para observar. Ele mora aqui, e não num literal em Java, exatamente
-    # para que a natureza de premissa fique visível — número no meio de um cálculo parece
-    # resultado, e é assim que suposição vira "dado" no slide de alguém.
-    #
-    # GET /api/v1/admin/impacto devolve a mesma conta com este valor pela METADE e por UMA VEZ E
-    # MEIA. A afirmação defensável não é o total: é a ordem de grandeza que sobrevive à faixa. Se a
-    # conclusão muda quando a premissa varia 50%, ela nunca foi sobre o dado. Ver ADR 0029.
-    custo-reentrega-brl: 25.00
   agendamento:
     # Desligado no perfil de teste: um job mudando status em paralelo tornaria as assertions
     # intermitentes. A regra de expiração continua testada chamando ExpiracaoMissoesJob.varrer().
@@ -148,17 +135,22 @@ app:
     # certo quando foi feito?". CalculadoraDeRecompensaTest.douradoV1 falha de propósito para forçar
     # essa decisão.
     recompensa:
-      # versao 3: a fórmula passou a aceitar um MULTIPLICADOR DE RISCO, que multiplica a base junto
-      # da complexidade. Missões criadas por usuário recebem 1,00 (neutro) e continuam valendo
-      # exatamente o que valiam na v2 — CalculadoraDeRecompensaTest.semRiscoAV3ReproduzAV2 prova
-      # isso. Só o caminho do webhook de entrega falida produz multiplicador diferente de 1.
+      # versao 4: saíram da fórmula os DOIS insumos da extensão logística — o multiplicador de
+      # risco e `tokens-por-real-ofertado` (ADR 0031). Nenhum valor calculado mudou: missão criada
+      # por gente sempre passou neutro nos dois, e o dourado da v3 continua produzindo os mesmos
+      # números na v4. O que mudou foi a FORMA da fórmula, e a versão sobe por isso — sem o
+      # incremento, missões antigas passariam a ser explicadas por uma calibração que não as
+      # produziu.
+      #
+      # versao 3: a fórmula passou a aceitar um MULTIPLICADOR DE RISCO, que multiplicava a base
+      # junto da complexidade. Só o webhook de entrega falida produzia valor diferente de 1.
       #
       # versao 2: a fórmula passou a considerar `tokens-por-real-ofertado`, o valor que a
-      # transportadora declara no webhook de entrega falida. Toda missão criada antes desta mudança
-      # tem versao_formula = 1 gravada e continua explicada pela calibração que a produziu — é
+      # transportadora declarava no webhook. Toda missão criada antes de cada uma dessas mudanças
+      # tem a sua versao_formula gravada e continua explicada pela calibração que a produziu — é
       # exatamente para isso que a coluna existe. CalculadoraDeRecompensaTest tem um dourado por
       # versão; mexer nos números abaixo sem subir este campo faz o dourado falhar de propósito.
-      versao: 3
+      versao: 4
       base-tokens:                 # piso por categoria, antes de multiplicador e adicionais
         ENTREGA: 20
         COLETA: 20
@@ -171,10 +163,6 @@ app:
       tokens-por-km: 2             # deslocamento é o custo mais visível para quem executa
       tokens-por-kg: 0.5
       tokens-por-cem-litros: 5     # volume conta separado do peso: isopor grande não cabe em moto
-      # Meio token por real que um TERCEIRO oferta (transportadora, no webhook de entrega falida).
-      # Baixo de propósito: ordena missões por urgência sem virar cotação token→real, que o ADR
-      # 0009 §6 recusa fixar em qualquer ponto do produto. Zero efeito em missão criada por usuário.
-      tokens-por-real-ofertado: 0.5
       # Teto por missão. Continua existindo mesmo com a fórmula fechada, porque peso e volume ainda
       # vêm do request — é o herdeiro do @Max(1000) que antes era o ÚNICO controle.
       teto-tokens: 1000
@@ -186,30 +174,7 @@ app:
       volume-leve-ate-l: 20
       peso-media-ate-kg: 25
       volume-media-ate-l: 80
-      # Faixa do multiplicador de risco que a ECONOMIA aceita honrar. Precisa concordar com
-      # app.logistica.risco.multiplicador-* — CoerenciaTetoRiscoTest falha se divergirem.
-      #
-      # Duplicado de propósito: lá o teto define como o MODELO mapeia probabilidade em multiplicador;
-      # aqui define quanto a economia se dispõe a CUNHAR. Recalibrar o modelo não deve conseguir,
-      # sozinho, ampliar a emissão de token.
-      multiplicador-risco-minimo: 1.00
-      multiplicador-risco-maximo: 1.50
 
-    # Missão gerada automaticamente a partir de uma entrega falida. Estes números NÃO entram na
-    # fórmula de recompensa — não confundir com `recompensa.*` acima, que tem `versao` justamente
-    # porque mudá-lo reescreve o significado de missões já criadas. Aqui, mudar só afeta as
-    # próximas.
-    entrega-falida:
-      # Regra de Elegibilidade por Reputação do challenge: custódia de pacote de TERCEIRO não fica
-      # visível para toda a base. 2 exige ~100 de XP pela curva de RegraNivel, ou seja, pelo menos
-      # uma missão concluída — é a barreira mais baixa que ainda significa "já executou algo aqui".
-      nivel-minimo: 2
-      # Raio de check-in mais folgado que o padrão: o executor faz o check-in ao ENTREGAR, num
-      # endereço residencial cuja coordenada veio da transportadora e não de conferência nossa.
-      raio-checkin-m: 200
-      # Prazo para alguém aceitar e concluir. Encomenda ocupa vaga física: janela longa demais
-      # entope o ponto, e curta demais expira missão que ninguém teve tempo de ver.
-      prazo-retirada: PT72H
   carteira:
     # Os tetos não existem para limitar uso legítimo — existem para limitar o DANO de uma conta
     # comprometida. Quem rouba um access token pode transferir; o teto por transação impede
@@ -232,44 +197,19 @@ app:
     maximo-tentativas: 5
     backoff-base: PT30S          # exponencial: 30s, 1min, 2min, 4min, 8min
 
-  # Webhook de transportadora — a borda do "Fim da Entrega Falida".
-  #
-  # `segredos` fica VAZIO aqui de propósito. É o único ponto da API que aceita escrita sem JWT, e um
-  # segredo padrão versionado seria uma credencial pública: quem clonasse o repositório poderia
-  # criar missões e movimentar a ocupação de pontos de custódia em qualquer instalação que não
-  # tivesse trocado o valor. Mapa vazio significa "nenhuma transportadora integrada" e todo webhook
-  # leva 401 — falha na direção segura.
-  #
-  # Em produção, uma variável de ambiente por transportadora, que a ligação relaxada do Spring mapeia
-  # para a chave do mapa:
-  #   APP_WEBHOOKS_SEGREDOS_CORREIOS=<segredo combinado com a transportadora>
-  # Os perfis dev e test trazem segredo próprio, que só vale para o carrier-mock.
-  webhooks:
-    segredos: {}
-    # Cinco minutos absorvem deriva de relógio entre servidores sem transformar uma assinatura
-    # interceptada em credencial de longa duração.
-    janela-timestamp: PT5M
-    # Teto por TRANSPORTADORA, não por IP: uma integração em laço de retry não pode consumir a cota
-    # das outras. Folgado porque o pico de entregas falidas é concentrado no fim da rota do dia.
-    requisicoes-por-minuto: 120
-
   notificacoes:
-    # Raio do alerta de missão nova, medido do ponto de custódia até o CENTRO DA TRIBO do
+    # Raio do alerta de missão nova, medido da ORIGEM da missão até o CENTRO DA TRIBO do
     # destinatário (usuario não tem coordenada — ver ADR 0020). 3 km é a escala de "meu bairro e o
     # vizinho" na zona oeste de São Paulo, onde o seed vive.
     raio-alerta-metros: 3000
-    # Teto por usuário por hora. Sem ele, uma rodada de entregas falidas num ponto movimentado
-    # notificaria a mesma pessoa dezenas de vezes em minutos — e a reação a isso é desinstalar o
-    # app, não aceitar missão.
+    # Teto por usuário por hora. Sem ele, uma rodada de publicações no mesmo bairro notificaria a
+    # mesma pessoa dezenas de vezes em minutos — e a reação a isso é desinstalar o app, não aceitar
+    # missão.
     alertas-por-hora: 5
     # Quantas tribos o fan-out considera por evento. Teto de segurança, não de produto: sem ele um
     # ponto numa região densa expandiria um evento em milhares de inserts dentro da transação do
     # lote da outbox.
     tribos-por-evento: 50
-    # Teto por hora só para alertas de risco ALTO. A folga sobre `alertas-por-hora` existe para que
-    # cinco entregas triviais chegando antes não silenciem a difícil pela hora seguinte — que é a que
-    # mais precisa de alguém e a que paga melhor. Folga, não isenção.
-    alertas-alta-prioridade-por-hora: 8
 
   identidade:
     # Conquistas DERIVADAS de xp/nivel/streak — não há tabela. A FÓRMULA é código
@@ -332,93 +272,3 @@ app:
       chamadas-simultaneas: 8
       # Sem TTL de propósito: logradouro de um CEP muda uma vez por década. Só o teto de entradas
       # do Caffeine governa o despejo. Ver EnderecoService.
-  logistica:
-    # Modelo de previsão de risco de falha de entrega. O MODELO é código (PrevisorDeRisco,
-    # CodificadorEntrega, CaracteristicaRisco); os números abaixo são o ARTEFATO TREINADO.
-    #
-    # NÃO EDITE À MÃO. Saíram de TreinadorRegressaoLogistica sobre o dataset sintético de semente
-    # 20260814, e ModeloRiscoTreinoTest re-treina no `verify` e confere cada valor contra o que está
-    # aqui. Mexer num número sem re-treinar quebra o build — de propósito, no mesmo espírito de
-    # CalculadoraDeRecompensaTest.douradoV1. Para republicar: bash tools/dataset/gerar.sh
-    #
-    # HONESTIDADE: estes coeficientes foram aprendidos de dados SINTÉTICOS, com correlações que nós
-    # mesmos injetamos e documentamos em docs/qualidade/modelo-previsao.md. Isto demonstra um
-    # mecanismo; não é um modelo validado contra a operação real. Ver ADR 0022.
-    risco:
-      # MUDOU QUALQUER NÚMERO ABAIXO? SUBA A VERSÃO. O multiplicador derivado daqui é CONGELADO em
-      # missao.multiplicador_risco e a probabilidade em entrega_falida.risco_probabilidade — sem a
-      # versão, some a resposta para "este multiplicador estava certo quando foi aplicado?".
-      versao: 1
-
-      # Log-odds da entrega MÉDIA nas categorias de referência: manhã (06h–11h), dia útil, endereço
-      # RESIDENCIAL, e todas as numéricas na média da partição de treino.
-      intercepto: -1.839341
-
-      # Numéricas: log-odds por 1 DESVIO-PADRÃO. Indicadores: log-odds pela presença, relativo à
-      # categoria de referência. Falta alguma? O boot falha, em vez de virar coeficiente zero.
-      coeficientes:
-        JANELA_MADRUGADA:           0.230863
-        JANELA_TARDE:               0.313348
-        JANELA_NOITE:               0.645797
-        ENDERECO_COMERCIAL:         0.449118
-        ENDERECO_CONDOMINIO:        0.592997
-        ENDERECO_RURAL:             0.645820
-        FIM_DE_SEMANA:              -0.304030
-        COMERCIAL_EM_FIM_DE_SEMANA: 0.977445
-        TAXA_HISTORICA_CEP:         0.350997
-        PESO_KG:                    0.152186
-        VOLUME_L:                   0.000854
-        CHUVA_MM:                   0.144731
-        TEMPERATURA_C:              0.158474
-        TENTATIVAS_ANTERIORES:      0.695670
-
-      # μ e σ da partição de TREINO apenas — calcular sobre o dataset inteiro vazaria informação do
-      # conjunto de teste para dentro do modelo e inflaria as métricas publicadas. A média também é
-      # o valor de IMPUTAÇÃO: característica ausente entra com z-score 0, contribuição nula.
-      padronizacao:
-        TAXA_HISTORICA_CEP:     { media: 0.164030, desvio: 0.085876 }
-        PESO_KG:                { media: 3.729150, desvio: 3.422221 }
-        VOLUME_L:               { media: 48.279303, desvio: 35.463261 }
-        CHUVA_MM:               { media: 1.911100, desvio: 4.198148 }
-        TEMPERATURA_C:          { media: 22.039900, desvio: 4.618493 }
-        TENTATIVAS_ANTERIORES:  { media: 0.423333, desvio: 0.730837 }
-
-      # Escolhido por varredura de 99 limiares na partição de VALIDAÇÃO — nunca na de teste, que
-      # reportaria um recall otimista. Regra: maior recall sujeito a precisão >= 0,35.
-      #
-      # Bem abaixo de 0,50 porque o custo do erro é assimétrico: falso negativo (entrega que vai
-      # falhar e passa despercebida) gera missão subvalorizada, sem prioridade e sem aviso; falso
-      # positivo custa um prêmio limitado em token e uma notificação. Ver SeletorDeLimiar.
-      limiar-alto: 0.19
-      # Metade do limiar de decisão. ALTO coincide com "classificado como falha", para a interface
-      # nunca dizer ALTO num caso que o modelo classificou como sucesso.
-      limiar-medio: 0.10
-
-      # Taxa histórica de falha por prefixo de CEP (3 dígitos), Grande São Paulo. FABRICADAS, não
-      # medidas — precisam ser idênticas a GeradorDatasetEntregas.TAXA_POR_FAIXA_CEP, senão o runtime
-      # resolveria uma taxa diferente da que o treino viu e o coeficiente deixaria de valer.
-      taxa-por-faixa-cep:
-        "010": 0.06
-        "013": 0.09
-        "020": 0.12
-        "031": 0.28
-        "035": 0.22
-        "040": 0.08
-        "043": 0.15
-        "050": 0.11
-        "054": 0.05
-        "055": 0.19
-        "080": 0.31
-        "087": 0.25
-      # CEP fora da tabela cai aqui: a média do treino, ou seja, z-score 0 e contribuição nula. Sem
-      # histórico daquela faixa o modelo não deve ter opinião, nem para mais nem para menos.
-      taxa-cep-padrao: 0.164030
-
-      # Teto do multiplicador de recompensa em TOKEN, aplicado linearmente na probabilidade.
-      #
-      # ESTREITO DE PROPÓSITO. Missões de ENTREGA hoje CUNHAM token — não pagam de pote —, porque o
-      # financiador correto delas é o patrocinador, que ainda não existe (Pendência #1). Sem teto, o
-      # multiplicador multiplicaria essa cunhagem pelo risco. Com ele, a ampliação é limitada,
-      # conhecida e documentada. Mínimo 1,0: risco nunca REDUZ recompensa.
-      multiplicador-minimo: 1.00
-      multiplicador-maximo: 1.50

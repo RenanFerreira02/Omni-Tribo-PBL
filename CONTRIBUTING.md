@@ -68,7 +68,6 @@ Neste projeto, o que costuma vazar e como rotacionar:
 | Segredo | Onde vive | Como rotacionar |
 |---|---|---|
 | Chaves RSA do JWT | `services/api/keys/` (gitignored) | `bash tools/gerar-chaves-dev.sh` — invalida toda sessão emitida |
-| `app.webhooks.segredos.*` | `.env` / variável de ambiente | combine o novo com a transportadora antes de trocar |
 | Senha do Postgres | `.env`, a partir de `.env.example` | `make reset` recria o volume |
 | `NVD_API_KEY` | secret do GitHub | revogue em nvd.nist.gov e gere outra |
 

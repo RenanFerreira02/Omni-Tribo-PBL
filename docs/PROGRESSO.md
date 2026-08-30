@@ -53,6 +53,38 @@ Pendências do CLAUDE.md.
 
 ## Notas de manutenção
 
+- **2026-08-30 — Remoção da extensão logística.** Decisão de produto: manter só o eixo social. Saiu
+  o módulo `logistica` inteiro (webhook de transportadora, `EntregaFalida`, `PontoCustodia`, o modelo
+  de previsão de risco com treino e dataset), a borda HMAC de webhook, o painel `GET /admin/impacto`
+  e a camada de pontos de custódia no app. Registro completo no
+  [ADR 0031](adr/0031-remocao-da-extensao-logistica.md).
+
+  **Três coisas que a remoção obrigou a decidir**, e nenhuma delas era opcional:
+
+  - **A emissão de token.** `APORTE_PATROCINADOR` é o único ponto de emissão do sistema, e quem o
+    recebia era a transportadora. O patrocinador virou **apoiador do bairro** e ganhou o caminho que
+    a conversão do webhook fornecia: financiar o pote de missão comunitária por
+    `POST /tribos/{id}/financiamentos`, com o motivo `FINANCIAMENTO_PATROCINADOR` que o estorno já
+    enxergava. Sem isso, o aporte emitiria token parado numa carteira sem tribo.
+  - **O fan-out de notificação.** O anúncio "missão nova perto de você" era disparado por
+    `EntregaFalidaConvertida`, e por nada mais — ficaria sem produtor. Passou a ouvir
+    `MissaoPublicada`, e agora vale para as quatro categorias.
+  - **A fórmula de recompensa.** Perdeu os dois insumos da extensão e foi para a **versão 4**.
+    Nenhum valor calculado mudou (`CalculadoraDeRecompensaTest.v4ReproduzV1`); a versão subiu porque
+    a FORMA mudou.
+
+  **Efeito colateral bem-vindo:** a Pendência #3 (alerta de ponto lotado sem teto, 631 linhas
+  idênticas medidas no teste de carga de 08-25) desapareceu com a causa, em vez de ser corrigida.
+
+  **Perda declarada:** o eixo "sistema inteligente de apoio à decisão" ficou **sem implementação**.
+
+  **O que NÃO foi reescrito, de propósito:** as auditorias F0–F7 e as evidências datadas descrevem o
+  sistema que tinha o eixo. Falsificar medição retroativamente é pior que a divergência — o
+  `docs/evidencias/README.md` abre com um aviso dizendo isso.
+
+  Verificação: `./mvnw clean verify` (566 testes, 0 falhas, SpotBugs limpo, os dois gates JaCoCo),
+  `npm run typecheck && npm run lint && npm test` no mobile (206 testes) e `ng build` no dashboard.
+
 - **2026-08-25 (1) — F12b** — **A última fase pendente fechou, e o achado não é um número de
   latência.**
 

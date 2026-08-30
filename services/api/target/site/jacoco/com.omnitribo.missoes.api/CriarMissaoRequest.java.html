@@ -14,7 +14,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Corpo de criação de missão.
@@ -33,7 +32,7 @@ import java.util.UUID;
  */
 @CriacaoMissaoVerificador.MissaoCriacaoConsistente
 @Schema(description = &quot;Dados para criar uma missão. A missão nasce em RASCUNHO.&quot;)
-<span class="fc" id="L36">public record CriarMissaoRequest(</span>
+<span class="fc" id="L35">public record CriarMissaoRequest(</span>
     @NotNull(message = &quot;Categoria é obrigatória&quot;) CategoriaMissao categoria,
     @NotBlank(message = &quot;Título é obrigatório&quot;)
         @Size(min = 5, max = 120, message = &quot;Título deve ter entre 5 e 120 caracteres&quot;)
@@ -98,6 +97,5 @@ import java.util.UUID;
         @Digits(integer = 6, fraction = 2, message = &quot;Volume deve ter no máximo 2 decimais&quot;)
         BigDecimal volumeL,
     @NotNull(message = &quot;Início da janela é obrigatório&quot;) Instant janelaInicio,
-    @NotNull(message = &quot;Fim da janela é obrigatório&quot;) Instant janelaFim,
-    UUID pontoCustodiaId) {}
+    @NotNull(message = &quot;Fim da janela é obrigatório&quot;) Instant janelaFim) {}
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

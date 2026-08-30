@@ -60,13 +60,12 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
       """;
 
   /**
-   * Pontos de custódia ATIVOS dentro do raio, do mais próximo para o mais distante.
+   * Parceiros ATIVOS dentro do raio, do mais próximo para o mais distante.
    *
-   * <p>Usa {@code idx_ponto_custodia_ponto}, o índice GiST criado na V8 — a tabela tinha índice
-   * geoespacial desde a F3 e nenhuma consulta que o usasse.
+   * <p>Usa o índice GiST de {@code parceiro} (V24).
    *
-   * <p>{@code ativo} entra no WHERE e não é opcional: um ponto desativado no mapa levaria o
-   * executor a uma loja que não recebe mais encomenda.
+   * <p>{@code ativo} entra no WHERE e não é opcional: um parceiro desativado no mapa levaria a
+   * pessoa a uma loja que não honra mais o benefício.
    */
   static final String SQL_PARCEIROS_NO_RAIO =
       """
@@ -87,48 +86,30 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
        LIMIT CAST(:limite AS integer)
       """;
 
-  static final String SQL_PONTOS_CUSTODIA_NO_RAIO =
-      """
-      SELECT p.id AS id,
-             ST_Distance(
-                 p.ponto,
-                 ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision),
-                                         CAST(:lat AS double precision)), 4326)::geography
-             ) AS distancia_m
-        FROM ponto_custodia p
-       WHERE ST_DWithin(
-                 p.ponto,
-                 ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision),
-                                         CAST(:lat AS double precision)), 4326)::geography,
-                 CAST(:raio AS double precision))
-         AND p.ativo = true
-       ORDER BY distancia_m ASC
-       LIMIT CAST(:limite AS integer)
-      """;
-
   /**
    * Centro geográfico de uma tribo, DERIVADO em vez de armazenado.
    *
    * <p>A tabela {@code tribo} tem nome e bairro, nunca uma coordenada. Guardar uma exigiria
    * migration, alguém para preenchê-la e uma decisão sobre o que fazer quando a tribo crescer para
-   * outro lado do bairro. O centroide das missões e dos pontos de custódia da tribo responde à
-   * pergunta que a tela faz — "para onde aponto o mapa quando não sei onde o usuário está?" — e se
-   * atualiza sozinho conforme a tribo se move.
+   * outro lado do bairro. O centroide das missões da tribo responde à pergunta que a tela faz —
+   * "para onde aponto o mapa quando não sei onde o usuário está?" — e se atualiza sozinho conforme
+   * a tribo se move.
+   *
+   * <p><b>As âncoras eram DUAS até a V28</b>: as missões e os pontos de custódia da tribo. Com a
+   * extensão logística removida (ADR 0031) sobrou a missão, que é a âncora que sempre descreveu
+   * onde a tribo AGE. O efeito colateral é bem-vindo: era justamente um ponto de custódia distante
+   * — o locker da Consolação, a ~3,8 km — que deslocava o centroide de Pinheiros para fora do
+   * próprio bairro.
    *
    * <p>{@code ST_Collect} sobre zero linhas devolve NULL, o {@code WHERE} externo filtra, e o
-   * método devolve vazio: tribo recém-criada, sem missão nem ponto, não tem centro nenhum — e
-   * inventar um seria pior do que o chamador cair no default configurado.
+   * método devolve vazio: tribo recém-criada, sem missão nenhuma, não tem centro — e inventar um
+   * seria pior do que o chamador cair no default configurado.
    */
   static final String SQL_CENTRO_DA_TRIBO =
       """
       SELECT ST_Y(c.centro) AS lat, ST_X(c.centro) AS lon
         FROM (SELECT ST_Centroid(ST_Collect(pontos.geo::geometry)) AS centro
-                FROM (SELECT pc.ponto AS geo
-                        FROM ponto_custodia pc
-                       WHERE pc.tribo_id = CAST(:tribo AS uuid)
-                         AND pc.ativo = true
-                       UNION ALL
-                      SELECT m.origem AS geo
+                FROM (SELECT m.origem AS geo
                         FROM missao m
                         JOIN usuario u ON u.id = m.criador_id
                        WHERE u.tribo_id = CAST(:tribo AS uuid)) pontos) c
@@ -139,9 +120,11 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
    * Tribos com PRESENÇA dentro do raio — isto é, com pelo menos uma âncora (ponto de custódia ou
    * origem de missão) a até {@code raio} metros do alvo.
    *
-   * <p>É o que permite responder "quem está perto deste ponto de custódia?" sem o usuário ter
-   * coordenada: a tabela {@code usuario} não tem, e nenhuma coluna geográfica do schema descreve
-   * onde uma PESSOA está agora. Ver ADR 0020.
+   * <p>É o que permite responder "quem está perto desta missão?" sem o usuário ter coordenada: a
+   * tabela {@code usuario} não tem, e nenhuma coluna geográfica do schema descreve onde uma PESSOA
+   * está agora. Ver ADR 0020.
+   *
+   * <p>A âncora de ponto de custódia saiu na V28 (ADR 0031); sobrou a origem da missão.
    *
    * <p><b>Distância MÍNIMA, e não distância ao centroide.</b> A primeira versão usava o mesmo
    * centroide de {@link #SQL_CENTRO_DA_TRIBO}, e um teste a reprovou com um caso que o seed já
@@ -166,12 +149,7 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
                  ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision),
                                          CAST(:lat AS double precision)), 4326)::geography
              )) AS distancia_m
-        FROM (SELECT pc.tribo_id, pc.ponto AS geo
-                FROM ponto_custodia pc
-               WHERE pc.tribo_id IS NOT NULL
-                 AND pc.ativo = true
-               UNION ALL
-              SELECT u.tribo_id, m.origem AS geo
+        FROM (SELECT u.tribo_id, m.origem AS geo
                 FROM missao m
                 JOIN usuario u ON u.id = m.criador_id
                WHERE u.tribo_id IS NOT NULL) pontos
@@ -210,20 +188,6 @@ public class ConsultasGeoespaciaisPostgis implements ConsultasGeoespaciais {
         .param("raio", raioMetros)
         .param("status", status)
         .param("categoria", categoria)
-        .param("limite", limite)
-        .query(
-            (rs, linha) ->
-                new AlvoProximo(rs.getObject("id", UUID.class), rs.getDouble("distancia_m")))
-        .list();
-  }
-
-  @Override
-  public List<AlvoProximo> pontosCustodiaNoRaio(
-      BigDecimal lat, BigDecimal lon, int raioMetros, int limite) {
-    return jdbc.sql(SQL_PONTOS_CUSTODIA_NO_RAIO)
-        .param("lat", lat)
-        .param("lon", lon)
-        .param("raio", raioMetros)
         .param("limite", limite)
         .query(
             (rs, linha) ->

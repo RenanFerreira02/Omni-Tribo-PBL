@@ -49,28 +49,23 @@ public interface FinanciamentoMissao {
       UUID financiadorId, UUID missaoId, long tokens, String chaveIdempotencia, Instant agora);
 
   /**
-   * Debita o PATROCINADOR para financiar o pote de uma missão de retirada.
+   * Debita o APOIADOR do bairro para financiar o pote de uma missão comunitária.
    *
    * <p>Método separado de {@link #debitar}, e não um parâmetro de motivo, porque o motivo é um tipo
    * de {@code carteira.dominio} e {@code missoes} não pode importá-lo — a regra do ArchUnit é
    * direcional. O lançamento sai com {@code FINANCIAMENTO_PATROCINADOR}, que o estorno enxerga por
    * {@code LancamentoRepository.buscarFinanciamentosDaMissao}.
    *
-   * <p><b>Saldo insuficiente devolve VAZIO, não lança.</b> É a diferença central em relação a
-   * {@link #debitar}, e segue a doutrina de "recusa que precisa ser gravada volta como valor": a
-   * encomenda já está fisicamente na loja quando o webhook chega, e a falta de saldo do
-   * patrocinador é um desfecho de negócio (SEM_PATROCINIO, HTTP 200) que precisa ser REGISTRADO na
-   * entrega falida. Lançar aqui abortaria a transação e apagaria justamente o registro que a
-   * transportadora precisa ler para saber que reenviar não adianta.
+   * <p><b>Saldo insuficiente devolve VAZIO, não lança</b>, e desde a V28 é o CHAMADOR quem decide o
+   * que fazer com o vazio. O chamador original era o webhook de entrega falida, onde a recusa
+   * precisava ser GRAVADA — a encomenda já estava na loja, e lançar abortaria a transação junto com
+   * o registro. Aquele caminho saiu com a extensão logística (ADR 0031); hoje quem chama é {@code
+   * FinanciamentoService}, atendendo uma requisição HTTP, e ele traduz o vazio em 422. O contrato
+   * segue devolvendo valor em vez de lançar porque é o que mantém a decisão com quem tem contexto
+   * para tomá-la.
    *
-   * <p>Trava a carteira do patrocinador com {@code PESSIMISTIC_WRITE} e essa é a PRIMEIRA leitura
-   * dela na transação. A ordem de lock desta operação é {@code ponto_custodia → carteira}: a linha
-   * da missão ainda não existe no banco quando este método roda — o UUID dela é gerado pelo
-   * chamador — então a ordem global {@code missao → carteira} não é violada, porque não há missão
-   * para disputar. Ver ADR 0024 §7.
-   *
-   * <p>Consequência de throughput aceita conscientemente: todo webhook da mesma transportadora
-   * serializa nesta única linha de carteira.
+   * <p>Trava a carteira do apoiador com {@code PESSIMISTIC_WRITE}. O chamador já segura o lock da
+   * missão: ordem global {@code missao} → {@code carteira}, a mesma de {@link #debitar}.
    *
    * @param tokens deve ser positivo. Recompensa zero não chama este método — um lançamento de valor
    *     zero consumiria uma chave de idempotência sem mover nada, e {@code
@@ -78,9 +73,5 @@ public interface FinanciamentoMissao {
    * @return o resultado do débito, ou vazio quando o saldo não cobre {@code tokens}
    */
   Optional<ResultadoFinanciamento> debitarPatrocinador(
-      UUID patrocinadorUsuarioId,
-      UUID missaoId,
-      long tokens,
-      String chaveIdempotencia,
-      Instant agora);
+      UUID apoiadorUsuarioId, UUID missaoId, long tokens, String chaveIdempotencia, Instant agora);
 }

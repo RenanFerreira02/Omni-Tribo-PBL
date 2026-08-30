@@ -9,18 +9,18 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * A relação comercial entre uma transportadora e o titular de carteira que financia o pote das
- * missões de retirada dela.
+ * O apoiador do bairro: o titular de carteira que recebe aporte de token e financia o pote de
+ * missões comunitárias.
  *
- * <p>Existe porque, até a V23, NADA no sistema ligava o slug do cabeçalho {@code X-Transportadora}
- * a um titular. O slug só aparecia como chave do mapa de segredos em {@code ParametrosWebhook}, e o
- * segredo continua lá — segredo em tabela é segredo em backup e em qualquer {@code make psql}. O
- * que mora aqui é a relação, que não é segredo e precisa de FK, de unicidade e de auditoria.
+ * <p>Até a V28 esta linha era a relação comercial com uma TRANSPORTADORA, e o slug casava com o
+ * cabeçalho {@code X-Transportadora} do webhook de entrega falida. O webhook saiu (ADR 0031); a
+ * tabela ficou, porque o aporte que ela sustenta é o ÚNICO ponto de emissão de token do sistema —
+ * sem ele a economia teria só o sumidouro do resgate e a soma cairia até zero.
  *
  * <p>Vive em {@code identidade} porque é uma extensão de {@code usuario}, tabela que este módulo
- * possui. O slug atravessa como {@code String} e não como tipo de {@code logistica}: é chave de
- * negócio, não um conceito importado — mesma disciplina que faz {@code ConsultasGeoespaciais}
- * receber status como String (ADR 0018).
+ * possui. O {@code slug} continua sendo chave de negócio e continua UNIQUE: é por ele que se
+ * reconhece o mesmo apoiador entre cadastros, e duas linhas com o mesmo slug tornariam a resolução
+ * não determinística.
  */
 @Entity
 @Table(name = "patrocinador")
@@ -33,8 +33,8 @@ public class Patrocinador {
   @Column(name = "usuario_id", nullable = false, updatable = false, unique = true)
   private UUID usuarioId;
 
-  @Column(name = "transportadora_slug", nullable = false, updatable = false, length = 50)
-  private String transportadoraSlug;
+  @Column(name = "slug", nullable = false, updatable = false, length = 50)
+  private String slug;
 
   @Column(nullable = false, length = 100)
   private String nome;
@@ -47,15 +47,12 @@ public class Patrocinador {
 
   protected Patrocinador() {}
 
-  public Patrocinador(
-      UUID id, UUID usuarioId, String transportadoraSlug, String nome, Instant criadoEm) {
+  public Patrocinador(UUID id, UUID usuarioId, String slug, String nome, Instant criadoEm) {
     this.id = id;
     this.usuarioId = usuarioId;
-    // Normalizado na ENTRADA, num ponto só. O HmacWebhookFilter publica o slug verificado já em
-    // minúsculas, então guardar com a caixa que o ADMIN digitou faria a resolução do webhook falhar
-    // por "Transportadora-Dev" != "transportadora-dev" — e o sintoma seria toda entrega daquela
-    // transportadora caindo em SEM_PATROCINIO, que é indistinguível de saldo zerado.
-    this.transportadoraSlug = transportadoraSlug.toLowerCase(Locale.ROOT);
+    // Normalizado na ENTRADA, num ponto só: a UNIQUE do banco é sensível a caixa, e "Apoiador-Dev"
+    // criaria um segundo apoiador para o mesmo bairro sem que a constraint reclamasse.
+    this.slug = slug.toLowerCase(Locale.ROOT);
     this.nome = nome;
     this.ativo = true;
     this.criadoEm = criadoEm;
@@ -64,9 +61,9 @@ public class Patrocinador {
   /**
    * Encerra o patrocínio sem apagar a linha.
    *
-   * <p>Os lançamentos deste patrocinador continuam no ledger apontando para a carteira dele; apagar
-   * a relação deixaria o extrato sem explicação. Inativo faz o webhook cair em SEM_PATROCINIO, que
-   * é o desfecho correto — a transportadora fica sabendo que reenviar não adianta.
+   * <p>Os lançamentos deste apoiador continuam no ledger apontando para a carteira dele; apagar a
+   * relação deixaria o extrato sem explicação. Inativo deixa de receber aporte e volta a ser um
+   * titular comum para o financiamento — que, sem tribo, é o mesmo que não poder financiar.
    */
   public void desativar() {
     this.ativo = false;
@@ -84,8 +81,8 @@ public class Patrocinador {
     return usuarioId;
   }
 
-  public String getTransportadoraSlug() {
-    return transportadoraSlug;
+  public String getSlug() {
+    return slug;
   }
 
   public String getNome() {

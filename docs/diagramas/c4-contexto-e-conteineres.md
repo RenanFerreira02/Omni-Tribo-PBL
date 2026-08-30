@@ -20,14 +20,12 @@ flowchart TB
         omni["<b>Omni-Tribo</b><br/>Missões sociais hiperlocais<br/>gamificadas + conversão de<br/>entrega falida em missão"]
     end
 
-    transportadora["🚚 Transportadora<br/><i>sistema externo</i><br/>anuncia entrega falida<br/>via webhook HMAC"]
     meteo["🌦️ Open-Meteo<br/><i>sistema externo</i><br/>clima do destino"]
     viacep["📮 ViaCEP<br/><i>sistema externo</i><br/>endereço por CEP"]
     osm["🗺️ OpenStreetMap<br/><i>sistema externo</i><br/>tiles do mapa"]
 
     morador -->|"usa (HTTPS/JSON)"| omni
     admin -->|"administra"| omni
-    transportadora -->|"POST assinado<br/>HMAC-SHA256"| omni
     omni -->|"consulta (falha = 503,<br/>recurso some da UI)"| meteo
     omni -->|"consulta"| viacep
     morador -.->|"carrega tiles<br/>direto no WebView"| osm
@@ -51,7 +49,6 @@ e resposta 503 uniforme quando o provedor cai.
 ```mermaid
 flowchart TB
     morador["👤 Morador"]
-    transportadora["🚚 Transportadora"]
 
     subgraph sistema ["Omni-Tribo — tudo em uma máquina de desenvolvimento"]
         direction TB
@@ -63,7 +60,6 @@ flowchart TB
             missoes["missoes"]
             geo["geolocalizacao"]
             carteira["carteira"]
-            logistica["logistica"]
             notificacoes["notificacoes"]
             integracoes["integracoes"]
             compartilhado["compartilhado"]
@@ -77,7 +73,6 @@ flowchart TB
 
     morador -->|"HTTP :8080<br/>JWT Bearer"| app
     app -->|"REST /api/v1<br/>JSON"| api
-    transportadora -->|"POST /webhooks/transportadora<br/>HMAC sobre o corpo bruto"| api
     api -->|"JDBC · papel omnitribo_app<br/>(sem UPDATE/DELETE no ledger)"| banco
     api -->|"cache → disjuntor →<br/>bulkhead → retry"| meteo
     api -->|"idem"| viacep

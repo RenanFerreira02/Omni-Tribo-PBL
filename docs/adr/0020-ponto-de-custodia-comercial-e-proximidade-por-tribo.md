@@ -5,6 +5,17 @@
 
 ---
 
+> ## RETIFICADO em 2026-08-30 — ADR 0031
+>
+> **Cai a primeira metade**: o ponto de custódia comercial não existe mais — `ponto_custodia` foi
+> dropada na V28 e o endpoint `/pontos-custodia` saiu com ela.
+>
+> **Continua valendo a segunda**, que é a parte que este ADR tem de mais duradouro: proximidade de
+> tribo é DISTÂNCIA MÍNIMA a uma âncora, não distância ao centroide. As âncoras eram duas (ponto
+> de custódia e origem de missão) e agora é uma só, a missão. O efeito colateral é bem-vindo: era
+> justamente um ponto de custódia distante — o locker da Consolação, a ~3,8 km — que puxava o
+> centroide de Pinheiros para fora do próprio bairro.
+
 ## Contexto
 
 O módulo "Fim da Entrega Falida" é a tese do produto: uma entrega que falhou vira missão comunitária

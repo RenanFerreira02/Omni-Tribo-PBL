@@ -26,8 +26,14 @@ token conversível é dinheiro, com KYC e enquadramento regulatório junto.
 | Eixo do enunciado | Resposta | Onde está |
 |---|---|---|
 | **Sociedade 5.0** | Tecnologia centrada num problema humano concreto — o vizinho que precisa e o vizinho que pode — e não em ampliar conectividade. A recompensa é pertencimento e benefício local, não alcance. | [ADR 0009](adr/0009-economia-do-cuidado-token-como-recompensa.md) |
-| **Sistema inteligente de apoio à decisão** | Regressão logística **interpretável** sobre 14 características, que prioriza missões urgentes no fan-out de notificação e calibra a recompensa (multiplicador limitado a 1,5×, congelado na criação). A resposta devolve os fatores que mais pesaram, em português. | [`CaracteristicaRisco.java`](../services/api/src/main/java/com/omnitribo/logistica/dominio/CaracteristicaRisco.java) · [modelo-previsao.md](qualidade/modelo-previsao.md) |
-| **AI Logistics Extension** | A **extensão**, não o centro: quando uma entrega falha, a encomenda fica num ponto de custódia e a retirada vira missão de ajuda — com a recompensa financiada pela transportadora. É o único caminho em que o dinheiro vem de fora do bairro. | [`WebhookTransportadoraController.java`](../services/api/src/main/java/com/omnitribo/logistica/api/WebhookTransportadoraController.java) · [ADR 0021](adr/0021-verificacao-de-webhook-de-transportadora.md) |
+| **Economia auditável** | Três moedas com fronteiras explícitas, um único ponto de emissão (aporte ADMIN, idempotente) e um sumidouro (o resgate queima token). A invariante é enunciável: a soma de carteiras e potes é constante dentro do ciclo e muda só nas duas pontas. | [ADR 0027](adr/0027-resgate-queima-token.md) · [ADR 0024](adr/0024-carteira-de-patrocinador.md) |
+| **Prova, não confiança** | Check-in geolocalizado validado no servidor com PostGIS, antifraude cinemático, ledger append-only e reconciliação ledger × projeção. O que os controles **não** pegam está escrito. | [antifraude](seguranca/antifraude-geolocalizacao.md) · [integridade](qualidade/integridade-transacional.md) |
+
+> **O projeto respondia a três eixos, e um deles foi REMOVIDO em 2026-08-30.** A extensão logística —
+> webhook de transportadora, ponto de custódia, missão de retirada e o modelo de previsão de risco —
+> saiu inteira. A decisão, o que sobreviveu e o que se perdeu com ela estão no
+> [ADR 0031](adr/0031-remocao-da-extensao-logistica.md). **O eixo "sistema inteligente de apoio à
+> decisão" ficou sem implementação**, e isso está dito lá em vez de maquiado aqui.
 
 As quatro categorias de missão: **AJUDA** (uma mão para montar, carregar, instalar), **TRIBO**
 (mutirão de rua), **COLETA** (recicláveis) e **ENTREGA** (levar algo a alguém, incluindo o caso
@@ -56,7 +62,7 @@ backend Java/Spring Boot e app **React Native + Expo SDK 57** (RN 0.86.2), TypeS
 
 ### O que foi implementado
 
-**13 telas** mais uma rota-porta (`app/index.tsx`, um `<Redirect>` que decide entre onboarding,
+**12 telas** mais uma rota-porta (`app/index.tsx`, um `<Redirect>` que decide entre onboarding,
 autenticação e abas durante a renderização — não num `useEffect`, que deixaria a tela protegida
 montar antes de redirecionar).
 
@@ -77,26 +83,24 @@ destoa, e é onde a tese do produto é dita ao usuário dentro do app.
 
 **Concluído antes desta fase**
 - Backend F0–F8: autenticação JWT, missões com máquina de 9 estados e 17 transições, geolocalização
-  PostGIS, carteira com ledger append-only, logística, notificações, integrações externas
+  PostGIS, carteira com ledger append-only, notificações, integrações externas
 - Mobile F9–F12: 12 telas, design system, sessão segura, radar geoespacial, carteira
-- F12b: medição de carga (k6, três cenários) · F12c: modelo de risco interpretável
+- F12b: medição de carga (k6, três cenários)
 - F13: entrega acadêmica, diagramas, matriz de rastreabilidade
 
 **Feito NESTA fase**
 - **Parte 3 completa**: dashboard administrativo em Angular 22.1 (`apps/dashboard`), do zero
 - **Parte 2**: página Spring MVC + Thymeleaf (`GET /status`), completando o requisito
-- Endpoint de escrita para ponto de custódia (`POST /api/v1/pontos-custodia`, só ADMIN) — não
-  existia, e sem ele o formulário do dashboard não teria o que gravar
+- Formulário de escrita no dashboard, ligado a `POST /api/v1/admin/beneficios` (só ADMIN)
 - CORS configurado para o dashboard, com correção de um defeito que bloqueava cinco endpoints
 - **Reposicionamento social** do produto: tese, documentação e textos de UI
 - Tela **Sobre** no mobile, com `Image` e `Button`
 
 **Próximas fases**
-- Fechar as três pendências diagnosticadas e registradas em `CLAUDE.md`: a outbox abandona evento em
-  silêncio após 5 tentativas (sem carta-morta); nada localiza pote de token imobilizado em missão
-  parada; o alerta de ponto lotado não tem teto nem deduplicação
-- Validar o modelo de risco com **dado real** — hoje os coeficientes são treinados em dados
-  sintéticos, e isso está declarado em todo lugar onde o modelo aparece
+- Fechar as duas pendências diagnosticadas e registradas em `CLAUDE.md`: a outbox abandona evento em
+  silêncio após 5 tentativas (sem carta-morta); e nada localiza pote de token imobilizado em missão
+  parada. Havia uma terceira — o alerta de ponto lotado sem teto —, que **deixou de existir** com a
+  remoção do eixo logístico em vez de ser corrigida
 - Acessibilidade: passada de TalkBack no Android (lacuna L4 da auditoria mobile)
 
 ---
@@ -113,8 +117,8 @@ Módulo só acessa outro por porta pública ou evento — **regra verificada por
 disciplina.
 
 Superfície principal: `/auth`, `/missoes` (lista, radar geoespacial, criação e 10 ações de
-transição), `/carteira`, `/tribos`, `/beneficios`, `/resgates`, `/alertas`, `/pontos-custodia`,
-`/usuarios`, `/logistica/previsao-falha`, e os webhooks de transportadora.
+transição), `/carteira`, `/tribos`, `/beneficios`, `/resgates`, `/alertas`, `/usuarios`, `/clima` e
+`/enderecos`, mais a área `/admin`. **Nenhuma rota de escrita é anônima.**
 
 ### Autenticação e autorização
 
@@ -177,7 +181,7 @@ concorrência multi-thread.
 | `( )` event binding | 9 — `(ngSubmit)`, `(click)` |
 | `[( )]` two-way | 9 — `[(ngModel)]` nos 7 campos do formulário |
 | `*ngIf` | 40 · **`*ngFor`** 12 |
-| Formulário funcional | cadastro de ponto de custódia em `/admin` |
+| Formulário funcional | cadastro de benefício de parceiro em `/admin` |
 | Feedback visual | estados de carregando, vazio, erro e sucesso, com cor e mensagem |
 
 **O formulário tem validação no cliente espelhando a do servidor — e o documento diz que ela não o
@@ -200,7 +204,7 @@ O enunciado pede React Navigation. O app usa **Expo Router 57**, o roteador ofic
 rotas baseadas em arquivos. **Medido:** `expo-router@57.0.11` depende de `standard-navigation`, e
 `@react-navigation` **não existe** em `node_modules` — nesta versão o Expo Router **não** embrulha o
 React Navigation, ao contrário do que se costuma afirmar. Não migramos porque a troca reescreveria
-as 13 telas, os quatro layouts de grupo, o guard de sessão e os 18 arquivos de teste — e é o Expo
+as telas, os quatro layouts de grupo, o guard de sessão e os arquivos de teste — e é o Expo
 Router que sustenta a demonstração pelo Expo Go. A decisão é consciente, e está aqui em vez de
 escondida.
 
@@ -211,12 +215,13 @@ faz consulta geoespacial com índice; PostGIS faz, com GiST, e há evidência de
 provando o uso do índice sobre 200 mil linhas. Além disso a carteira exige transação com
 `SELECT ... FOR UPDATE` e ordem determinística de lock.
 
-**3. Modelo de risco treinado em dados sintéticos.**
-Os coeficientes vêm de um dataset gerado com correlações injetadas e documentadas. Isso está
-declarado no documento do modelo, na resposta da API e neste texto. Validação com dado real é o
-próximo passo — não existe operação, logo não existe entrega falida real para treinar.
+**3. Um eixo do enunciado ficou sem implementação.**
+O "sistema inteligente de apoio à decisão" era a regressão logística que previa falha de entrega, e
+ela saiu junto com a extensão logística que a consumia (ADR 0031). O modelo era treinado em dados
+SINTÉTICOS, e isso sempre esteve declarado; removê-lo é uma perda deliberada de escopo, não um
+esquecimento — e preferimos declará-la a manter um modelo vivo sem ninguém que o chame.
 
-**4. Três pendências conhecidas e não corrigidas**, listadas no roadmap acima. Estão registradas
+**4. Duas pendências conhecidas e não corrigidas**, listadas no roadmap acima. Estão registradas
 como decisão pendente porque fechá-las muda contrato de entrega de notificação.
 
 **5. A documentação em PDF da Fase 4** (`documentacao/`) é um PETI e **não é fonte de verdade

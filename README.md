@@ -33,10 +33,11 @@ retribuído. Quem monta o móvel do vizinho, puxa o mutirão da rua ou tira os r
 trabalho real e recebe zero. O Omni-Tribo dá a esse trabalho um registro, uma prova (o check-in
 geolocalizado) e uma retribuição que circula no próprio bairro.
 
-**E há um caso em que quem paga vem de fora.** Quando uma entrega falha e a encomenda fica num ponto
-de custódia, a retirada pelo vizinho também é ajuda — só que aí a transportadora financia a
-recompensa, porque para ela a segunda tentativa custa mais caro. É a prova de que o modelo se conecta
-a um evento externo real, e não um segundo produto.
+**E há um caso em que quem paga vem de fora.** Um APOIADOR do bairro — comércio local, associação,
+qualquer titular de carteira que queira que aquilo aconteça — recebe um aporte de token por endpoint
+ADMIN e financia o pote de uma missão comunitária. É a prova de que a economia do cuidado consegue
+receber recurso externo sem deixar de ser comunitária: quem financia não decide quem executa nem
+recebe nada de volta.
 
 ## Como este projeto responde ao Smart HAS
 
@@ -46,12 +47,14 @@ tabela, o arquivo linkado é quem decide.
 | Eixo do enunciado | Como este projeto responde | Onde isso está |
 |---|---|---|
 | **Sociedade 5.0** | Missões sociais hiperlocais, tribo de bairro, **economia do cuidado**: a tecnologia é centrada em resolver um problema humano concreto — o vizinho que precisa e o vizinho que pode —, **não em ampliar conectividade**. A recompensa é XP e token comunitário resgatável no bairro, não alcance nem engajamento. | [`ADR 0009`](docs/adr/0009-economia-do-cuidado-token-como-recompensa.md) · [O problema](#o-problema) |
-| **Sistema inteligente de apoio à decisão** | O **modelo de risco** do módulo `logistica`: regressão logística **interpretável** sobre **14 características** da entrega, que ordena missões por urgência no fan-out e **calibra a recompensa** — o multiplicador é limitado a 1,5× e congelado na criação da missão. Interpretável de propósito: a resposta traz os fatores que mais pesaram, em português. Os coeficientes foram **treinados em dados sintéticos**, e isso está declarado no próprio documento do modelo. | [`CaracteristicaRisco.java`](services/api/src/main/java/com/omnitribo/logistica/dominio/CaracteristicaRisco.java) · [`docs/qualidade/modelo-previsao.md`](docs/qualidade/modelo-previsao.md) · [`ADR 0022`](docs/adr/0022-previsao-de-risco-de-entrega.md) |
-| **AI Logistics Extension** | A **extensão** do produto social, não o seu centro: o módulo `logistica` e o **webhook de entrega falida** recebem um evento de terceiro (a transportadora reporta a falha, autenticada por HMAC) e o convertem em **missão de ajuda** no ponto de custódia, com a recompensa já financiada por quem tem interesse nela. É o único caminho em que o dinheiro vem de fora do bairro. | [`WebhookTransportadoraController.java`](services/api/src/main/java/com/omnitribo/logistica/api/WebhookTransportadoraController.java) · [`ADR 0021`](docs/adr/0021-verificacao-de-webhook-de-transportadora.md) · [diagrama da entrega falida](docs/diagramas/sequencia-entrega-falida.md) |
+| **Economia auditável** | Três moedas com fronteiras explícitas: XP não circula, TOKEN circula na tribo e é queimado no resgate, BRL está **fora** do ciclo de missões. Um único ponto de emissão, auditado e idempotente, e uma invariante enunciável sobre a soma de carteiras e potes. | [`ADR 0027`](docs/adr/0027-resgate-queima-token.md) · [`ADR 0024`](docs/adr/0024-carteira-de-patrocinador.md) · [A economia](#a-economia-e-o-defeito-que-ela-teve) |
+| **Prova, não confiança** | Check-in **geolocalizado** validado no servidor com PostGIS, antifraude cinemático, ledger append-only e um endpoint de reconciliação que compara ledger e projeção. O que os controles **não** pegam está escrito. | [`ADR 0007`](docs/adr/0007-consultas-geoespaciais-centralizadas.md) · [antifraude](docs/seguranca/antifraude-geolocalizacao.md) |
 
-> **O mesmo produto é também a entrega do Challenge Leroy Merlin** (Sociedade 5.0 e Logística), cujo
-> repositório é [`RenanFerreira02/Omni-Tribo`](https://github.com/RenanFerreira02/Omni-Tribo).
-> **Este repositório é o recorte do PBL**: o mesmo sistema, lido pelos eixos do Smart HAS.
+> **O projeto teve um SEGUNDO eixo — a extensão logística — e ele foi removido em 2026-08-30.**
+> Webhook de transportadora, ponto de custódia, missão de retirada e o modelo de previsão de risco
+> de entrega saíram inteiros; a decisão, o que sobreviveu e por quê estão no
+> [`ADR 0031`](docs/adr/0031-remocao-da-extensao-logistica.md). Documento datado deste repositório
+> que fale em entrega falida é **histórico**, não pendência.
 
 ### Se você chegou aqui pela Fase 4 procurando Flutter
 
@@ -90,17 +93,17 @@ Quatro categorias, e três delas não têm nada de logística:
 | **AJUDA** | Uma mão para montar um móvel, carregar, instalar — o pedido direto de um vizinho |
 | **TRIBO** | Mutirão da rua: consertar a calçada, pintar o muro, cuidar da praça |
 | **COLETA** | Recicláveis e descarte que ninguém sozinho consegue tirar dali |
-| **ENTREGA** | Levar algo até alguém — inclui o caso patrocinado, abaixo |
+| **ENTREGA** | Levar algo até alguém: a compra que ficou com o vizinho, a encomenda que precisa chegar |
 
-**Onde a logística entra, e por que ela não é o centro.** Existe uma dor logística vizinha: a entrega
-falida. Ninguém em casa, o pacote volta para o centro de distribuição, e o varejista paga re-entrega,
-armazenagem e risco de perder o cliente. Se o pacote ficar num ponto de custódia e um vizinho for
-remunerado para retirá-lo, o custo do fracasso vira renda comunitária.
+**Quem financia o pote, e por que não é quem cria a missão.** Publicar uma missão comunitária exige
+que o pote já cubra a recompensa — e quem o forma são OUTROS: membros da tribo que querem que aquilo
+aconteça, ou um apoiador do bairro. Quem cria não paga, e quem paga não escolhe quem executa nem
+recebe nada de volta. É o que impede a missão de virar contratação disfarçada de favor.
 
-Isso importa por um motivo específico e limitado: **é o único caso em que a recompensa é financiada
-por um ator de fora do bairro**, e não pelo pote da própria comunidade. É o que prova que a economia
-do cuidado consegue receber dinheiro externo sem deixar de ser comunitária — e é a "AI Logistics
-Extension" do enunciado. Uma extensão, não o produto.
+**O projeto teve um segundo eixo aqui, e ele saiu.** Até 2026-08-30 uma entrega falida virava missão
+de retirada num ponto de custódia, com a transportadora financiando o pote. Aquilo respondia à "AI
+Logistics Extension" do enunciado; a decisão de manter só o eixo social, e o que sobreviveu dela,
+estão no [ADR 0031](docs/adr/0031-remocao-da-extensao-logistica.md).
 
 ## Estado
 
@@ -148,7 +151,7 @@ o que estava errado era *quem* e *quando*. Três mudanças, todas com ADR e migr
 
 | Data | Mudança | Registro |
 |---|---|---|
-| 2026-08-20 | Carteira de patrocinador: a transportadora financia o pote da missão de retirada na própria conversão | [ADR 0024](docs/adr/0024-carteira-de-patrocinador.md), `V23` |
+| 2026-08-20 | Carteira de patrocinador: a emissão vira um aporte ADMIN explícito, e quem o recebe financia o pote | [ADR 0024](docs/adr/0024-carteira-de-patrocinador.md), `V23` |
 | 2026-08-21 | AJUDA passa a pagar do pote como TRIBO | [ADR 0025](docs/adr/0025-ajuda-paga-do-pote.md) |
 | 2026-08-22 | Resgate de benefício vira o **sumidouro**: o lançamento debita e não credita ninguém | [ADR 0027](docs/adr/0027-resgate-queima-token.md), `V24`–`V26` |
 
@@ -164,24 +167,26 @@ com `integro=true` em todos os pontos
 ([evidência](docs/evidencias/f14-conservacao-quatro-categorias.md)).
 
 **3. O que sobrou, e continua dito em voz alta.** A última cunhagem do sistema é a **ENTREGA criada
-por um humano** — não tem transportadora, logo não tem patrocinador a debitar. Ela é `FontePote
-.CUNHAGEM`, declarada na linha da missão em vez de escondida num `if` ([ADR 0024 §8](docs/adr/0024-carteira-de-patrocinador.md)).
+por um humano**: ela é `FontePote.CUNHAGEM`, declarada na linha da missão em vez de escondida num
+`if` ([ADR 0024 §8](docs/adr/0024-carteira-de-patrocinador.md)).
 
-E três armadilhas diagnosticadas seguem abertas, cada uma pelo motivo escrito na seção final do
+E duas armadilhas diagnosticadas seguem abertas, cada uma pelo motivo escrito na seção final do
 [`CLAUDE.md`](CLAUDE.md): a **outbox abandona evento em silêncio** depois de cinco tentativas, sem
-carta-morta; **nada acha pote imobilizado** em missão parada — a mitigação que existe é preventiva,
-não detectiva; e o **alerta de ponto lotado não tem teto nem deduplicação**, o que o teste de carga
-mostrou em 631 linhas idênticas. As três estão registradas como decisão pendente, não como
-esquecimento — fechá-las muda contrato.
+carta-morta; e **nada acha pote imobilizado** em missão parada — a mitigação que existe é preventiva,
+não detectiva. As duas estão registradas como decisão pendente, não como esquecimento — fechá-las
+muda contrato. Havia uma terceira, o alerta de ponto lotado sem teto que o teste de carga mostrou em
+631 linhas idênticas; ela **deixou de existir** com o eixo logístico, em vez de ser corrigida.
 
 ## Arquitetura
 
-**Monólito modular** — oito módulos, um pacote cada, com `api/` (controllers, DTOs, portas),
+**Monólito modular** — sete módulos, um pacote cada, com `api/` (controllers, DTOs, portas),
 `dominio/` (entidades, regras) e `infra/` (repositórios, clientes):
 
 ```
-compartilhado · identidade · missoes · geolocalizacao · carteira · logistica · notificacoes · integracoes
+compartilhado · identidade · missoes · geolocalizacao · carteira · notificacoes · integracoes
 ```
+
+Eram oito: `logistica` saiu inteiro com a extensão logística ([ADR 0031](docs/adr/0031-remocao-da-extensao-logistica.md)).
 
 **Módulo só acessa outro por `api/` pública ou por evento** — nunca repositório ou entidade JPA
 alheia. A regra é verificada por ArchUnit (`RegrasArquiteturaTest`), não por disciplina, e é o que
@@ -190,7 +195,7 @@ razão de seis referências entre módulos serem UUID puro **sem** foreign key n
 
 Diagramas em [`docs/diagramas/`](docs/diagramas/): [contexto e contêineres](docs/diagramas/c4-contexto-e-conteineres.md) ·
 [máquina de estados](docs/diagramas/maquina-estados.md) · [ciclo da missão](docs/diagramas/sequencia-ciclo-missao.md) ·
-[entrega falida](docs/diagramas/sequencia-entrega-falida.md) · [fluxo econômico](docs/diagramas/fluxo-economico.md) ·
+[fluxo econômico](docs/diagramas/fluxo-economico.md) ·
 [ER do banco](docs/diagramas/er-banco.md) · [arquitetura-alvo em escala](docs/diagramas/arquitetura-alvo.md).
 
 ## Stack, e por que cada peça
@@ -269,8 +274,8 @@ make up      # sobe o PostgreSQL + PostGIS e cria o .env
 make ps      # o container deve aparecer como "Up"
 ```
 
-O Flyway aplica o schema e, nos perfis `dev`/`test`, também o seed — com tribos, usuários, missões e
-pontos de custódia prontos para uso.
+O Flyway aplica o schema e, nos perfis `dev`/`test`, também o seed — com tribos, usuários, missões,
+parceiros e benefícios prontos para uso.
 
 | Comando | O que faz |
 |---|---|
@@ -495,11 +500,11 @@ Referência completa:
 | [`docs/adr/`](docs/adr/) | 30 decisões com alternativas descartadas e o motivo real de cada recusa |
 | [`docs/auditoria/`](docs/auditoria/) | 12 documentos de auditoria, com evidência executada (SQL, `curl`, `EXPLAIN`) |
 | [`docs/evidencias/`](docs/evidencias/) | saídas reais de medição — [índice](docs/evidencias/README.md) |
-| [`docs/qualidade/`](docs/qualidade/) | evidência de build, concorrência, modelo de risco e a [matriz de rastreabilidade](docs/qualidade/matriz-rastreabilidade.md) requisito→teste→evidência |
+| [`docs/qualidade/`](docs/qualidade/) | evidência de build, concorrência, mutação e a [matriz de rastreabilidade](docs/qualidade/matriz-rastreabilidade.md) requisito→teste→evidência |
 | [`docs/seguranca/`](docs/seguranca/) | modelo de ameaça de autenticação e limites do antifraude |
 | [`docs/COMPARATIVO-TECNOLOGIAS.md`](docs/COMPARATIVO-TECNOLOGIAS.md) | Flutter × Kotlin nativo × React Native, com o custo real de cada escolha |
 | [`docs/INFRA.md`](docs/INFRA.md) | containers, credenciais de dev, lista completa de usuários seed |
 | [`CHANGELOG.md`](CHANGELOG.md) | uma entrada por fase, de F0 até a v1.0 |
 | `CONTRIBUTING.md` | Conventional Commits e checklist pré-commit |
-| `tools/carrier-mock/` · `tools/dataset/` · `tools/evidencias/` · `tools/carga/` | webhook de transportadora · dataset e treino do modelo de risco · scripts de medição · teste de carga k6 |
+| `tools/evidencias/` · `tools/carga/` | scripts de medição · teste de carga k6 (`tools/carrier-mock/` e `tools/dataset/` saíram com a extensão logística) |
 | `documentacao/` | PDF da entrega acadêmica. **Não é fonte de verdade técnica** — ver as divergências |

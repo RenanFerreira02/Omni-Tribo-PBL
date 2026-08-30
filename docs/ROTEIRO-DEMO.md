@@ -7,10 +7,10 @@ opcional.
 **O único bloco que depende de rede externa é o 5.** Todos os outros rodam contra `localhost`. Cada
 bloco tem plano B.
 
-O fio condutor é **um ciclo econômico completo, com uma pessoa só**: o patrocinador aporta → uma
-entrega falha → nasce a missão → o vizinho faz check-in → a transportadora confirma e ele é creditado
-→ ele resgata um benefício no bairro, e o token é queimado. Tudo na zona leste, tribo Cidade Líder,
-com `renan@omnitribo.dev`.
+O fio condutor é **um ciclo econômico completo, com uma pessoa só**: o apoiador aporta → um vizinho
+pede ajuda e a missão nasce → outro vizinho financia o pote → o executor aceita e faz o check-in → o
+criador confirma e ele é creditado → ele resgata um benefício no bairro, e o token é queimado. Tudo
+na zona leste, tribo Cidade Líder, com `renan@omnitribo.dev`.
 
 ---
 
@@ -52,16 +52,16 @@ RENAN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
 
 ---
 
-## 0:00–1:00 · O problema, e por que os dois lados se resolvem juntos
+## 0:00–1:00 · O problema
 
 Sem tela. Duas frases:
 
-> "Entrega falida custa cara: o entregador não encontra ninguém, o pacote volta, e o varejista paga
-> re-entrega, armazenagem e o risco de perder o cliente. Do outro lado da mesma rua, existe gente
-> que passaria em frente a uma loja de qualquer jeito."
+> "O cuidado de vizinhança já acontece e não é reconhecido. Quem monta o móvel do vizinho, puxa o
+> mutirão da rua ou tira os recicláveis do prédio faz trabalho real e recebe zero — e quem precisa
+> não tem como pedir sem parecer que está pedindo favor."
 >
-> "A tese do projeto é que **a segunda tentativa de entrega é mais cara que uma missão de bairro**.
-> Então o custo do fracasso vira renda comunitária — é o mesmo evento resolvendo os dois problemas."
+> "A tese do projeto é dar a esse trabalho três coisas que ele não tem: um **registro**, uma
+> **prova** — o check-in geolocalizado — e uma **retribuição** que circula no próprio bairro."
 
 **Plano B:** nenhum. Não depende de nada.
 
@@ -95,45 +95,70 @@ funcionando.
 
 ---
 
-## 2:00–4:00 · A entrega falida vira missão, e o vizinho é pago
+## 2:00–4:00 · O ciclo da missão, do pedido ao crédito
 
-O coração do projeto, num comando:
+O coração do projeto. Use o app (Expo Go) para criar e aceitar, e o terminal para mostrar o que o
+servidor decidiu.
+
+**1. Prévia da recompensa, ANTES de criar.** É o servidor calculando — o app nunca duplica a fórmula:
 
 ```bash
-EXECUTOR=renan@omnitribo.dev \
-PONTO_CUSTODIA=cccccccc-0000-0000-0000-000000000902 \
-CHECKIN_LAT=-23.55650 CHECKIN_LON=-46.46850 \
-DESTINO_LAT=-23.55737 DESTINO_LON=-46.46987 \
-bash tools/carrier-mock/enviar.sh
+curl -s -X POST http://localhost:8080/api/v1/missoes/previa-recompensa \
+  -H "Authorization: Bearer $ALICE" -H 'Content-Type: application/json' \
+  -d '{"categoria":"AJUDA","complexidade":"MEDIA","origemLat":-23.5640,"origemLon":-46.6934,
+       "cep":"05422030","logradouro":"Rua dos Pinheiros, 500","bairro":"Pinheiros",
+       "cidade":"São Paulo","uf":"SP","raioCheckinM":50,"valorBrl":0,
+       "janelaInicio":"2026-09-01T12:00:00Z","janelaFim":"2026-09-02T12:00:00Z"}' | jq
 ```
 
-**Doze cenários** em poucos segundos, incluindo o ciclo completo. Comente **três** enquanto rolam:
+> "A recompensa é **calculada pelo servidor e congelada na criação**, junto com a `versaoFormula`. O
+> DTO de criação não tem campo de recompensa — mandá-lo seria silenciosamente ignorado, e o criador
+> veria um número na tela e outro na missão publicada."
 
-| Cenário | O que dizer |
-|---|---|
-| caminho feliz → 200 | "a transportadora anuncia a falha; nasce uma missão de retirada, publicada no ponto de custódia, com o pote já financiado pela transportadora" |
-| **ponto lotado → 200 RECUSADA** | "não é 4xx de propósito: devolver erro faria a transportadora reenviar em laço contra um ponto que continuará lotado. Recusar é desfecho de negócio, e fica registrado" |
-| assinatura inválida → 401 | "HMAC sobre o **corpo bruto**, com o carimbo de tempo dentro do material assinado. As quatro causas de 401 são indistinguíveis — dizer qual metade o atacante acertou seria ajudá-lo" |
+**2. Publicar exige pote.** Crie a missão pelo app, tente publicar, e mostre o 422:
 
-O bloco que fecha o argumento é o ciclo completo, e ele imprime o número sozinho:
+> "Missão que paga do pote só é publicável com o pote já cobrindo a recompensa. Sem essa guarda, ela
+> chegaria em AGUARDANDO_CONFIRMACAO sem poder ser concluída — e o executor teria feito o trabalho
+> para receber um erro."
 
+**3. Quem financia não é quem cria.** Use o apoiador do bloco anterior — é o token que você acabou
+de emitir entrando no ciclo:
+
+```bash
+curl -s -X POST "http://localhost:8080/api/v1/admin/missoes/$MISSAO/financiamento-apoiador" \
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: demo-fin-$(date +%s)" \
+  -d "{\"patrocinadorId\":\"$APOIADOR\",\"tokens\":30}" | jq
 ```
-        executor: renan@omnitribo.dev  saldo ANTES: 124 tokens
-  ..  aceitar                                ACEITA
-  ..  iniciar                                EM_ANDAMENTO
-  ..  check-in                               AGUARDANDO_CONFIRMACAO
-  OK   confirmação → executor creditado   HTTP 200
-        saldo DEPOIS: 190 tokens  (creditados: 66)
-  OK   saldo subiu exatamente a recompensa: +66
+
+> "Quem cria a missão **não paga** — essa é a premissa do produto. O pote é formado por outros:
+> membros da tribo, pelo app, ou o apoiador do bairro, que é quem recebeu o aporte de um minuto
+> atrás. Repare que a soma em circulação **não muda aqui**: o aporte emitiu, este passo só move o
+> token para o pote."
+
+Se quiser mostrar o caminho do vizinho, financie pelo app com um segundo usuário da MESMA tribo —
+`POST /tribos/{id}/financiamentos`, com a identidade vindo do JWT. Vale dizer por que são duas rotas:
+
+> "O apoiador é uma conta que **nunca autentica** — nasce inativa de propósito, para que aquela
+> carteira só seja movida por caminho auditado. Por isso o financiamento dele é ADMIN: uma rota que
+> lesse o JWT dele seria código que nunca roda."
+
+**4. Aceitar → iniciar → check-in → confirmar.** Faça no app, com o GPS. O check-in é o momento:
+
+> "A distância é medida pelo **PostGIS no servidor**, contra a origem da missão. O app manda
+> coordenada, nunca distância — se mandasse, seria o cliente decidindo se esteve lá."
+
+E o fecho, no terminal:
+
+```bash
+curl -s http://localhost:8080/api/v1/carteira -H "Authorization: Bearer $BOB" | jq .saldoTokens
 ```
 
-> "**Quem confirma é a transportadora, não o executor.** O check-in prova presença, não recebimento —
-> confirmar ali faria o executor confirmar a si mesmo. E `CONCLUIDA` é o **único** estado que credita:
-> aceitar não credita, que era exatamente o que o protótipo descartado fazia errado."
+> "`CONCLUIDA` é o **único** estado que credita: aceitar não credita, que era exatamente o que o
+> protótipo descartado fazia errado."
 
-**Plano B:** o script é 100% local — só precisa do backend de pé. Se falhar, o backend caiu.
-**Se o check-in reprovar por distância**, as quatro variáveis de coordenada acima estão erradas para
-o ponto escolhido: a missão exige check-in a menos de 200 m da origem.
+**Plano B:** se o GPS do aparelho não colaborar, faça o check-in por `curl` com as coordenadas da
+origem da missão — o servidor não distingue, e é justamente esse o ponto: quem valida é ele.
 
 ---
 
@@ -201,8 +226,8 @@ curl -s "http://localhost:8080/api/v1/clima?lat=-23.564&lon=-46.6934" | jq
 ```
 
 > "É o comportamento projetado: 503 com um `type` estável, e a reação de UI é **esconder** o recurso
-> — o app não mostra erro de clima, ele simplesmente não mostra clima. Provedor externo fora do ar
-> nunca vira 5xx no registro de uma entrega falida, senão a transportadora reenviaria em laço."
+> — o app não mostra erro de clima, ele simplesmente não mostra clima. Um card de conveniência fora
+> do ar não pode derrubar a tela do mapa."
 
 **Ensaie este plano B.** Ele responde à pergunta "e se cair?" com uma demonstração em vez de uma
 promessa.
@@ -243,8 +268,8 @@ Feche mostrando que ela fechou, e o que sobrou:
 
 > "Hoje as quatro categorias conservam. A emissão virou um ponto só — o aporte que vocês viram no
 > começo — e o resgate virou o sumidouro. A soma não é constante: ela **sobe no aporte e desce no
-> resgate**, e não muda em mais lugar nenhum. O que ainda cunha é ENTREGA criada por um humano, que
-> não tem transportadora para debitar — e isso está declarado na linha da missão, não escondido."
+> resgate**, e não muda em mais lugar nenhum. O que ainda cunha é ENTREGA criada por um humano — e
+> isso está declarado na linha da missão, em `fonte_pote`, não escondido num `if`."
 
 **Plano B:** se o script falhar, os mesmos números estão em
 [`evidencias/f14-conservacao-quatro-categorias.md`](evidencias/f14-conservacao-quatro-categorias.md),
@@ -252,27 +277,30 @@ já executados. Abra o arquivo.
 
 ---
 
-## 8:00–9:00 · O painel que fecha o ciclo *(opcional)*
+## 8:00–9:00 · A integridade do ledger *(opcional)*
 
 ```bash
-curl -s http://localhost:8080/api/v1/admin/impacto -H "Authorization: Bearer $ADMIN" | jq .tokens
+curl -s http://localhost:8080/api/v1/admin/carteiras/reconciliacao \
+  -H "Authorization: Bearer $ADMIN" | jq
 ```
 
 ```json
-{ "aportados": 10500, "emCarteiras": 11108, "emPotes": 222,
-  "emCirculacao": 11330, "resgatados": 15 }
+{ "carteirasVerificadas": 12, "integro": true, "divergencias": [] }
 ```
 
-> "`aportados` e `resgatados` são exatamente as duas pontas que acabamos de percorrer ao vivo — e
-> `resgatados` era zero há cinco minutos. O painel agrega tudo na hora, sem tabela de agregação e sem
-> cache: uma segunda fonte de verdade para números que existem para serem conferidos seria pior que a
-> consulta a mais."
+> "Ele compara, carteira a carteira, o saldo projetado com a soma do ledger. É a resposta para
+> 'algum token apareceu ou sumiu sem lançamento?'."
 
-Vale dizer em voz alta o que o painel **não** é:
+Vale dizer em voz alta o que ele **não** é — e é o ponto mais forte deste bloco:
 
-> "O custo evitado é uma **premissa declarada**, não uma medição — por isso a resposta ecoa o valor
-> usado e traz a mesma conta com ele em ±50%. E 're-entrega evitada' é a missão concluída renomeada,
-> não uma segunda medição."
+> "Isto **não prova conservação**. São invariantes diferentes: a reconciliação passa enquanto a
+> conservação pode estar sendo violada, e foi exatamente assim que o defeito econômico ficou
+> invisível por semanas — ledger e projeção batendo, com token cunhado do nada. Quem prova
+> conservação é a medição de soma antes-e-depois, no bloco anterior."
+
+> **Havia aqui um painel de impacto**, `GET /admin/impacto`, com o funil da entrega falida e o custo
+> de re-entrega evitado. Ele saiu junto com o eixo logístico (ADR 0031): sem aquele ciclo, os quatro
+> blocos ficavam sem numerador.
 
 **Plano B:** corte este bloco. É o único opcional.
 
@@ -284,10 +312,9 @@ Mostre, sem rodar (o `verify` leva ~1 min e não cabe aqui):
 
 | Abra | Diga |
 |---|---|
-| [`evidencias/f21-carga.md`](evidencias/f21-carga.md) | "14.967 requisições, **zero 5xx**. O radar não tem joelho até 74,6 req/s. E o achado não é a latência: é que o alerta de ponto lotado escreve 631 linhas idênticas sem teto — está registrado como pendência, não corrigido às pressas" |
+| [`evidencias/f21-carga.md`](evidencias/f21-carga.md) | "14.967 requisições, **zero 5xx**. O radar não tem joelho até 74,6 req/s. O achado da medição foi o alerta de ponto lotado escrevendo 631 linhas idênticas sem teto — ele foi registrado como pendência em vez de corrigido às pressas, e **deixou de existir** quando o eixo logístico saiu" |
 | [`evidencias/f6-explain-analyze.md`](evidencias/f6-explain-analyze.md) | "`EXPLAIN ANALYZE` real provando uso do índice GiST — não é 'usamos índice', é a saída do planejador" |
 | [`qualidade/integridade-transacional.md`](qualidade/integridade-transacional.md) | "100 threads, deadlock cruzado, rollback. E a seção **'o que esta fase NÃO garante'**" |
-| [`qualidade/modelo-previsao.md`](qualidade/modelo-previsao.md) | "o modelo abre declarando que os dados são **sintéticos** — e o diagrama de confiabilidade responde 'é melhor que um chute?' com Brier: 17,4% do erro eliminado" |
 | [`qualidade/mutacao.md`](qualidade/mutacao.md) | "teste de mutação sem gate: o número vai para o relatório, não para a porta. O valor está nos sobreviventes — quatro fronteiras de saldo sem teste no valor exato" |
 | [`EVOLUCAO-ARQUITETURAL.md`](EVOLUCAO-ARQUITETURAL.md) | "**cinco dos sete defeitos da rodada F0→F7 eram invisíveis lendo o código**" |
 
@@ -305,12 +332,13 @@ Frase de encerramento:
 | Pergunta | Resposta curta | Documento |
 |---|---|---|
 | "Por que monólito e não microsserviços?" | Um time, um deploy, uma transação. A fronteira está pronta para extrair, e há ordem definida | [ADR 0001](adr/0001-monolito-modular.md) · [arquitetura-alvo](diagramas/arquitetura-alvo.md) |
-| "A acurácia do seu modelo não é menor que um chute?" | É — e o Brier é 17,4% melhor que o do chute constante. Acurácia é a métrica errada em dado desbalanceado, e o documento mostra as duas | [modelo-previsao.md](qualidade/modelo-previsao.md) |
+| "Cadê o sistema inteligente de apoio à decisão?" | Existiu, previa falha de entrega, e saiu com a extensão logística. O eixo ficou **sem implementação**, e a decisão está registrada com o que se perdeu | [ADR 0031](adr/0031-remocao-da-extensao-logistica.md) |
 | "Quem garante que o token não é inflacionado?" | A emissão tem um ponto só, auditado; a conservação foi medida nas quatro categorias com Δ=0 | [ADR 0024](adr/0024-carteira-de-patrocinador.md) · [f14](evidencias/f14-conservacao-quatro-categorias.md) |
 | "Cadê os 50 metros do brief?" | Divergimos, por três razões medidas — inclusive porque "está em casa" não é observável sem rastreamento contínuo | [ADR 0020](adr/0020-ponto-de-custodia-comercial-e-proximidade-por-tribo.md) · [divergências](DIVERGENCIAS-DOCUMENTACAO.md) |
+| "Por que a extensão logística saiu?" | Decisão de produto: manter só o eixo social. O que ela sustentava — a emissão de token e o fan-out de notificação — foi preservado com outro dono | [ADR 0031](adr/0031-remocao-da-extensao-logistica.md) |
 | "Isso escala?" | Não como está, e o desenho de como escalaria está separado e marcado como não implementado. A carga medida é de uma máquina, 5 min por cenário | [arquitetura-alvo](diagramas/arquitetura-alvo.md) · [f21-carga](evidencias/f21-carga.md) |
 | "Por que React Native e não nativo?" | Custo de demonstrar. E o que a escolha cobrou está listado | [comparativo](COMPARATIVO-TECNOLOGIAS.md) |
-| "Como sei que o crédito de seis meses atrás estava certo?" | `versao_formula` e multiplicador ficam congelados na missão; há teste que falha se a calibração mudar sem subir a versão | [ADR 0009](adr/0009-economia-do-cuidado-token-como-recompensa.md) |
+| "Como sei que o crédito de seis meses atrás estava certo?" | `versao_formula` fica congelada na missão; há teste dourado que falha se a calibração mudar sem subir a versão — foi ele que forçou a v4 | [ADR 0009](adr/0009-economia-do-cuidado-token-como-recompensa.md) |
 
 ---
 
@@ -325,5 +353,5 @@ Frase de encerramento:
 - [ ] telefone no modo não perturbe
 
 > **Se você ensaiou, rode `make reset` de novo antes da apresentação.** O ensaio gasta o saldo do
-> patrocinador, ocupa vagas do ponto de custódia e queima tokens no resgate — e o bloco 7 fica com
-> `resgatados` diferente de zero antes de você resgatar ao vivo, que é justamente o efeito.
+> apoiador, deixa missões em estados intermediários e queima tokens no resgate — e a soma que você
+> vai mostrar no bloco da economia já não parte do baseline limpo.

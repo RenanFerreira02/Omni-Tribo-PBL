@@ -1,9 +1,17 @@
 # 0022 — Previsão de risco de entrega: regressão logística em Java puro, treinada no build
 
 **Data:** 2026-08-15
-**Status:** Aceito
+**Status:** REVOGADO por [0031](./0031-remocao-da-extensao-logistica.md)
 
 ---
+
+> ## REVOGADO em 2026-08-30 — ADR 0031
+>
+> O modelo previa falha de ENTREGA e tinha três consumidores, todos no eixo logístico: o
+> multiplicador da recompensa, a prioridade no fan-out e o aviso no detalhe da missão. Os três
+> saíram na V28, e o modelo com eles — junto do treino no `verify`, do dataset sintético e de
+> `docs/qualidade/modelo-previsao.md`. A honestidade que este ADR registrou (dados sintéticos,
+> validação com dado real como próximo passo) permanece como o registro do que NÃO foi feito.
 
 ## Contexto
 

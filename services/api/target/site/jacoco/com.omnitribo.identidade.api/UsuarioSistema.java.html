@@ -24,7 +24,7 @@ public final class UsuarioSistema {
   private UsuarioSistema() {}
 
   /** Mesmo UUID gravado pela V21. Mudar aqui sem migration deixa a FK órfã no primeiro webhook. */
-<span class="fc" id="L27">  public static final UUID ID = UUID.fromString(&quot;00000000-0000-0000-0000-000000000001&quot;);</span>
+<span class="nc" id="L27">  public static final UUID ID = UUID.fromString(&quot;00000000-0000-0000-0000-000000000001&quot;);</span>
 
   public static boolean ehSistema(UUID usuarioId) {
 <span class="nc" id="L30">    return ID.equals(usuarioId);</span>

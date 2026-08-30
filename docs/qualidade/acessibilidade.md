@@ -1,5 +1,12 @@
 # Acessibilidade — matriz de conformidade e roteiro de verificação
 
+> **Nota de 2026-08-30.** Este inventário foi levantado quando o app tinha a tela de impacto e a
+> camada de pontos de custódia no radar. As duas saíram com a extensão logística
+> ([ADR 0031](../adr/0031-remocao-da-extensao-logistica.md)), e as linhas que as citam descrevem
+> componentes que não existem mais. O restante — contraste, alvo de toque, rótulo, ordem de foco e
+> anúncio — continua valendo, e a **lacuna L4 (passada de TalkBack) segue aberta**.
+
+
 **Data:** 2026-08-24
 **HEAD:** `d251471` (branch `develop`, com F18 e F19 mergeadas)
 **Telas avaliadas:** login · radar (mapa) · radar (lista) · detalhe com check-in · carteira

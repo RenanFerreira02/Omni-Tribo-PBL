@@ -6,6 +6,12 @@
 
 ---
 
+> ## RETIFICADO em 2026-08-30 — ADR 0031
+>
+> A decisão deste ADR não muda: AJUDA paga do pote da tribo. O que muda é o contraste que ele
+> usava — `FontePote.PATROCINADOR` era a fonte da missão de retirada e passou a valor histórico
+> na V28, porque nenhuma missão nova nasce com ela. ENTREGA criada por humano segue em CUNHAGEM.
+
 ## Contexto
 
 O ADR 0024 fechou a cunhagem de ENTREGA e deixou duas categorias em `FontePote.CUNHAGEM`: AJUDA e

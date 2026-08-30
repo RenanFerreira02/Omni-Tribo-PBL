@@ -2,7 +2,6 @@ package com.omnitribo.missoes.dominio;
 
 import com.omnitribo.carteira.api.ComandoCreditoConclusao;
 import com.omnitribo.carteira.api.CreditoRecompensa;
-import com.omnitribo.carteira.api.FinanciamentoMissao;
 import com.omnitribo.carteira.api.ResultadoCredito;
 import com.omnitribo.compartilhado.api.ConsultasGeoespaciais;
 import com.omnitribo.compartilhado.api.ConsultasGeoespaciais.AlvoProximo;
@@ -19,11 +18,7 @@ import com.omnitribo.geolocalizacao.api.RegistroCheckin;
 import com.omnitribo.geolocalizacao.api.ResultadoCheckin;
 import com.omnitribo.identidade.api.ProgressaoUsuario;
 import com.omnitribo.identidade.api.ResultadoProgressao;
-import com.omnitribo.identidade.api.UsuarioSistema;
-import com.omnitribo.logistica.api.BaixaCustodia;
 import com.omnitribo.missoes.api.AtualizarMissaoRequest;
-import com.omnitribo.missoes.api.ConfirmacaoRetirada;
-import com.omnitribo.missoes.api.ConversaoEntregaFalida;
 import com.omnitribo.missoes.api.CriarMissaoRequest;
 import com.omnitribo.missoes.api.MissaoFiltroRequest;
 import com.omnitribo.missoes.api.MissaoProximaFiltroRequest;
@@ -61,7 +56,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** Orquestra o ciclo de vida de missões. Toda mudança de status passa pela máquina de estados. */
 @Service
-public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirada {
+public class MissaoService {
 
   private static final Logger log = LoggerFactory.getLogger(MissaoService.class);
 
@@ -90,12 +85,6 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
   private final CreditoRecompensa creditoRecompensa;
   private final ProgressaoUsuario progressaoUsuario;
   private final PublicadorEventos publicadorEventos;
-  private final BaixaCustodia baixaCustodia;
-
-  // Só o financiamento pelo PATROCINADOR passa por aqui. O financiamento comunitário continua em
-  // FinanciamentoService, que é onde vivem as regras de tribo e o endpoint que as expõe — este
-  // serviço não deve ganhar aquelas regras junto.
-  private final FinanciamentoMissao financiamentoMissao;
 
   // Exceção deliberada à regra acima: EstornoFinanciamentoService é do PRÓPRIO módulo missoes, e
   // por isso pode ser injetado como classe concreta.
@@ -104,10 +93,6 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
   // Calibração da fórmula de recompensa. Injetada como record de properties para que ajustar os
   // números não exija recompilar — a FÓRMULA é código, os NÚMEROS são configuração.
   private final ParametrosRecompensa parametrosRecompensa;
-
-  // Calibração da missão gerada por entrega falida. Separada da recompensa de propósito: mudar um
-  // prazo aqui não pode exigir subir a versao da FÓRMULA.
-  private final ParametrosEntregaFalida parametrosEntregaFalida;
 
   public MissaoService(
       MissaoRepository missaoRepository,
@@ -118,11 +103,8 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
       CreditoRecompensa creditoRecompensa,
       ProgressaoUsuario progressaoUsuario,
       PublicadorEventos publicadorEventos,
-      BaixaCustodia baixaCustodia,
-      FinanciamentoMissao financiamentoMissao,
       EstornoFinanciamentoService estornoFinanciamentoService,
-      ParametrosRecompensa parametrosRecompensa,
-      ParametrosEntregaFalida parametrosEntregaFalida) {
+      ParametrosRecompensa parametrosRecompensa) {
     this.missaoRepository = missaoRepository;
     this.missaoEventoRepository = missaoEventoRepository;
     this.consultasGeoespaciais = consultasGeoespaciais;
@@ -131,11 +113,8 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
     this.creditoRecompensa = creditoRecompensa;
     this.progressaoUsuario = progressaoUsuario;
     this.publicadorEventos = publicadorEventos;
-    this.baixaCustodia = baixaCustodia;
-    this.financiamentoMissao = financiamentoMissao;
     this.estornoFinanciamentoService = estornoFinanciamentoService;
     this.parametrosRecompensa = parametrosRecompensa;
-    this.parametrosEntregaFalida = parametrosEntregaFalida;
   }
 
   // A trilha de auditoria fica no serviço, não no controller: é onde a escrita acontece e onde o
@@ -167,7 +146,6 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
             BigDecimal.ZERO,
             Coordenadas.ponto(req.origemLat(), req.origemLon()),
             Coordenadas.ponto(req.destinoLat(), req.destinoLon()),
-            req.pontoCustodiaId(),
             req.cep(),
             req.logradouro(),
             req.bairro(),
@@ -207,174 +185,18 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
 
     return CalculadoraDeRecompensa.calcular(
         new CalculadoraDeRecompensa.Insumos(
-            req.categoria(),
-            req.complexidade(),
-            req.pesoKg(),
-            req.volumeL(),
-            distanciaM,
-            // Missão criada por usuário nunca tem valor ofertado: o DTO não tem o campo e não deve
-            // ter — quem cria a missão não paga (ADR 0009). Só a conversão de entrega falida
-            // preenche isto, com o valor que a TRANSPORTADORA declarou.
-            null),
+            req.categoria(), req.complexidade(), req.pesoKg(), req.volumeL(), distanciaM),
         parametrosRecompensa);
   }
 
   /**
-   * Converte uma entrega falida em missão de retirada, já ABERTA. Implementa {@link
-   * ConversaoEntregaFalida}.
+   * Regra de Elegibilidade por Reputação: missão pode exigir nível mínimo de quem a aceita.
    *
-   * <p><b>Roda na transação do webhook</b> ({@code REQUIRED}, que é o default), que já segura o
-   * {@code FOR UPDATE} do ponto de custódia. A missão e o incremento da ocupação precisam commitar
-   * juntos: separados, existe um instante em que a vaga está ocupada por uma encomenda sem missão
-   * que a retire.
-   *
-   * <p><b>Nasce ABERTA, não RASCUNHO.</b> Rascunho existe para o criador revisar antes de publicar,
-   * e aqui não há criador humano — a encomenda já está fisicamente na loja quando o webhook chega.
-   * A transição passa pela {@code MissaoStateMachine} mesmo assim, e não por um {@code
-   * StatusMissao.ABERTA} no construtor: é o que grava a linha PUBLICADA em {@code missao_evento}. A
-   * regra "status de missão muda SEMPRE pela máquina de estados" não tem exceção para código nosso.
-   *
-   * <p><b>Não exige pote.</b> {@code validarPoteSuficienteParaPublicar} devolve cedo para ENTREGA,
-   * e é deliberado: exigir pote aqui faria os vizinhos custearem a logística do varejista, que é o
-   * inverso do modelo. O token de ENTREGA é cunhado até a carteira de patrocinador existir — a
-   * lacuna documentada da Pendência #1.
-   */
-  @Override
-  @Transactional
-  public Optional<MissaoDeRetirada> abrirMissaoDeRetirada(Encomenda encomenda) {
-    Double distanciaM = null;
-    if (encomenda.destinoLat() != null && encomenda.destinoLon() != null) {
-      distanciaM =
-          consultasGeoespaciais.distanciaMetros(
-              encomenda.origemLat(),
-              encomenda.origemLon(),
-              encomenda.destinoLat(),
-              encomenda.destinoLon());
-    }
-
-    // Complexidade DERIVADA de peso e volume, como em toda ENTREGA — o webhook não declara, e o
-    // verificador de criação recusaria se declarasse.
-    CalculadoraDeRecompensa.Recompensa recompensa =
-        CalculadoraDeRecompensa.calcular(
-            new CalculadoraDeRecompensa.Insumos(
-                CategoriaMissao.ENTREGA,
-                null,
-                encomenda.pesoKg(),
-                encomenda.volumeL(),
-                distanciaM,
-                encomenda.valorOfertadoBrl(),
-                // Único caminho do sistema que produz multiplicador diferente de 1: só a entrega
-                // falida passa por avaliação de risco. Missão criada por usuário usa o construtor
-                // curto de Insumos e recebe o neutro.
-                encomenda.multiplicadorRisco()),
-            parametrosRecompensa);
-
-    Instant fimDaJanela = encomenda.agora().plus(parametrosEntregaFalida.prazoRetirada());
-
-    // O id é gerado AQUI, antes da entidade existir, porque o financiamento precisa dele para
-    // gravar `lancamento.missao_id` — e o financiamento precisa acontecer ANTES de a missão ser
-    // salva. A ordem não é estilo: se o patrocinador não puder pagar, nada pode ter sido escrito.
-    UUID missaoId = UUID.randomUUID();
-
-    // FINANCIAMENTO PRIMEIRO. Se voltar vazio, a transação continua viva e o chamador grava a
-    // recusa na entrega falida — nenhuma missão nasce, nenhum lançamento existe, e a ocupação do
-    // ponto de custódia não é incrementada.
-    //
-    // Recompensa zero não financia nada: um lançamento de valor zero consumiria uma chave de
-    // idempotência sem mover moeda, e ck_lancamento_valor_nao_nulo (V13) o recusaria. A missão
-    // nasce
-    // patrocinada do mesmo jeito — pote zero cobrindo recompensa zero é coerente, e a conclusão
-    // pula o débito do pote pela guarda `tokens > 0`.
-    if (recompensa.tokens() > 0
-        && financiamentoMissao
-            .debitarPatrocinador(
-                encomenda.patrocinadorUsuarioId(),
-                missaoId,
-                recompensa.tokens(),
-                ChaveIdempotencia.financiamentoPatrocinador(
-                    encomenda.patrocinadorUsuarioId(), missaoId),
-                encomenda.agora())
-            .isEmpty()) {
-      log.warn(
-          "Entrega falida {} sem conversão: patrocinador {} não tem saldo para {} tokens.",
-          encomenda.entregaFalidaId(),
-          encomenda.patrocinadorUsuarioId(),
-          recompensa.tokens());
-      return Optional.empty();
-    }
-
-    Missao missao =
-        new Missao(
-            missaoId,
-            // O criador é o próprio sistema. É o que destrava a publicação sem inventar evento
-            // novo: AtorEsperado.CRIADOR compara identidade, e AtorMissao aceita usuarioId com
-            // papel SISTEMA.
-            UsuarioSistema.ID,
-            CategoriaMissao.ENTREGA,
-            tituloDaRetirada(encomenda.descricaoDoItem()),
-            descricaoDaRetirada(encomenda),
-            StatusMissao.RASCUNHO,
-            recompensa,
-            // ZERO literal. O valor ofertado pela transportadora já entrou na recompensa em TOKEN
-            // acima; copiá-lo para cá violaria ck_missao_economia e o ADR 0009.
-            BigDecimal.ZERO,
-            Coordenadas.ponto(encomenda.origemLat(), encomenda.origemLon()),
-            Coordenadas.ponto(encomenda.destinoLat(), encomenda.destinoLon()),
-            encomenda.pontoCustodiaId(),
-            encomenda.cep(),
-            encomenda.logradouro(),
-            encomenda.bairro(),
-            encomenda.cidade(),
-            encomenda.uf(),
-            parametrosEntregaFalida.raioCheckinM(),
-            encomenda.pesoKg(),
-            encomenda.volumeL(),
-            encomenda.agora(),
-            fimDaJanela,
-            encomenda.agora());
-
-    missao.exigirNivelMinimo(parametrosEntregaFalida.nivelMinimo());
-    missao.registrarFaixaRisco(encomenda.faixaRisco());
-
-    // A missão passa a PATROCINADOR e o pote recebe o que o patrocinador acabou de pagar. Os dois
-    // juntos, aqui, ANTES do PUBLICAR: `validarPoteSuficienteParaPublicar` não roda neste caminho
-    // — a transição abaixo chama a máquina de estados direto, sem passar por `aplicar` —, então
-    // nada além desta ordem impede uma missão patrocinada de nascer com o pote vazio.
-    missao.financiadaPeloPatrocinador();
-    if (recompensa.tokens() > 0) {
-      missao.creditarPote(recompensa.tokens());
-    }
-    missaoRepository.save(missao);
-
-    AtorMissao sistema = new AtorMissao(UsuarioSistema.ID, AtorMissao.PapelAtor.SISTEMA);
-    MissaoEvento trilha =
-        MissaoStateMachine.transicionar(
-            missao,
-            EventoMissao.PUBLICAR,
-            sistema,
-            serializar(
-                Map.of("origem", "ENTREGA_FALIDA", "entregaFalidaId", encomenda.entregaFalidaId())),
-            encomenda.agora());
-    missaoRepository.save(missao);
-    missaoEventoRepository.save(trilha);
-
-    // Aqui a invalidação NÃO é no-op, ao contrário da de `criar`: esta missão nasce ABERTA e o
-    // radar de proximidade devolve exatamente ABERTA. Sem isto, quem consultou a região nos últimos
-    // 30 segundos continuaria sem ver a missão até o TTL vencer.
-    cacheMissoesProximas.invalidarAposCommit();
-
-    return Optional.of(
-        new MissaoDeRetirada(
-            missao.getId(), recompensa.xp(), recompensa.tokens(), missao.getNivelMinimo()));
-  }
-
-  /**
-   * Regra de Elegibilidade por Reputação: missão com custódia de encomenda de TERCEIRO não é
-   * aceitável por qualquer conta recém-criada.
-   *
-   * <p>Sai cedo no caso comum ({@code nivelMinimo == 1}, que é toda missão criada por usuário) para
-   * não pagar uma consulta de XP em cada aceite do sistema inteiro por causa de uma regra que só
-   * vale para entrega falida.
+   * <p><b>Hoje nenhuma missão exige.</b> O único caminho que gravava {@code nivel_minimo > 1} era a
+   * conversão de entrega falida, removida na V28 (ADR 0031), e o DTO de criação nunca expôs o
+   * campo. A validação continua aqui, e a coluna continua no banco, porque o gate é regra de
+   * produto e não da extensão que o usava: voltar a exigir reputação é acrescentar um ESCRITOR, não
+   * reconstruir o mecanismo. Enquanto não houver um, este método sai cedo em toda missão.
    *
    * <p>SISTEMA e ADMIN não são isentos, e isso é deliberado: nenhum dos dois aceita missão em nome
    * de ninguém — {@code AtorEsperado} para ACEITAR já é o executor —, então uma isenção aqui só
@@ -388,39 +210,6 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
     if (nivelAtual < missao.getNivelMinimo()) {
       throw new NivelInsuficienteException(missao.getNivelMinimo(), nivelAtual);
     }
-  }
-
-  private static String tituloDaRetirada(String descricaoDoItem) {
-    String titulo = "Retirar e entregar: " + descricaoDoItem;
-    // O título tem limite de 120 no schema, e a descrição do item vem de terceiro. Truncar é melhor
-    // que estourar o INSERT com um 500 no webhook de um parceiro.
-    return titulo.length() <= 120 ? titulo : titulo.substring(0, 117) + "...";
-  }
-
-  /**
-   * O check-in acontece na RETIRADA, no ponto de custódia — e o texto precisa dizer isso.
-   *
-   * <p>{@code registrarCheckin} valida a proximidade contra {@code missao.getOrigem()}, que aqui é
-   * o ponto de custódia. Não é limitação: a origem é a coordenada da LOJA, que é dado nosso e
-   * conferido, enquanto o destino veio da transportadora. Usar o destino como centro do geofence
-   * seria deixar um terceiro escolher onde o nosso controle antifraude acredita que alguém esteve.
-   */
-  private static String descricaoDaRetirada(Encomenda encomenda) {
-    // Concatenação, e não String.formatted: o texto tem quebras de linha, e o SpotBugs
-    // (VA_FORMAT_STRING_USES_NEWLINE) exige %n em format string. %n emitiria o separador de linha
-    // da PLATAFORMA dentro de um texto que vai para o banco e depois para o app — CRLF no servidor
-    // Windows, LF no Linux, para a mesma missão. A descrição é dado, não saída de console.
-    return """
-           Uma entrega falhou e a encomenda está guardada num ponto de custódia do bairro.
-
-           Item: """
-        + encomenda.descricaoDoItem()
-        + """
-
-           Faça o check-in geolocalizado AO RETIRAR, no ponto de custódia, e leve a encomenda ao \
-           endereço de destino informado.
-
-           Você recebe XP e tokens — esta missão não paga em reais.""";
   }
 
   @Transactional(readOnly = true)
@@ -796,37 +585,6 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
   }
 
   /**
-   * Implementa {@link ConfirmacaoRetirada}: a transportadora confirma que a encomenda chegou.
-   *
-   * <p>Reusa {@link #confirmar} inteiro — mesmo evento, mesma transição, mesmo crédito. O que muda
-   * é só QUEM assina o ato, e nem isso exigiu mexer na autorização: o criador da missão de retirada
-   * é o usuário-sistema, e {@code AtorMissao.ehMesmo} compara identidade, então este ator satisfaz
-   * {@code AtorEsperado.CRIADOR} por construção. É o mesmo ator de PUBLICAR em {@code
-   * abrirMissaoDeRetirada}, e o conjunto de transições continua o mesmo.
-   *
-   * <p><b>Não generaliza para missão criada por humano</b>, e a garantia não está aqui: está em
-   * quem chama. {@code logistica} resolve o {@code missaoId} a partir de uma linha de {@code
-   * entrega_falida}, então esta porta só alcança missão de retirada. Uma missão criada por gente
-   * continua exigindo o criador de carne e osso.
-   *
-   * <p>A justificativa vai para a trilha porque destravar-por-terceiro precisa de motivo
-   * registrado: quem lê {@code missao_evento} meses depois tem de saber que não foi o criador
-   * humano que confirmou.
-   */
-  @Override
-  @Transactional
-  public long confirmarRetirada(UUID missaoId) {
-    MissaoResponse confirmada =
-        concluirComCredito(
-            missaoId,
-            EventoMissao.CONFIRMAR,
-            new AtorMissao(UsuarioSistema.ID, AtorMissao.PapelAtor.SISTEMA),
-            payloadJustificativa(
-                "Transportadora confirmou o recebimento pelo destinatário, por webhook."));
-    return confirmada.tokensRecompensa();
-  }
-
-  /**
    * ADMIN destrava uma missão parada: CANCELADA, com estorno do pote aos financiadores.
    *
    * <p>Porta manual para o que a varredura por prazo não cobre — missão legítima em disputa
@@ -981,15 +739,6 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
     missaoRepository.save(missao);
     missaoEventoRepository.save(trilha);
 
-    // Baixa da custódia: a encomenda saiu do ponto e a vaga volta a existir. No-op para toda missão
-    // que não veio de entrega falida, que é a maioria.
-    //
-    // SÍNCRONA, dentro desta transação, e não pela outbox. A outbox é at-least-once, e um
-    // decremento de ocupação redespachado liberaria uma vaga que nunca existiu — divergência que só
-    // apareceria muito depois, quando um ponto aceitasse mais encomendas do que cabe. Aqui, ou a
-    // conclusão inteira commita, ou nada muda.
-    baixaCustodia.darBaixa(missaoId, agora);
-
     // Mesma transação do crédito: se a conclusão der rollback, o anúncio não sobrevive; se ela
     // commitar, o anúncio está durável e o drenador o entrega com retry. Ver PublicadorEventos.
     publicadorEventos.publicar(
@@ -1079,6 +828,27 @@ public class MissaoService implements ConversaoEntregaFalida, ConfirmacaoRetirad
     missaoRepository.save(missao);
     // Mesma transação da missão: status e trilha não têm como divergir.
     missaoEventoRepository.save(trilha);
+
+    // Anúncio da missão nova para as tribos do raio. Na MESMA transação da publicação, pela outbox:
+    // anunciar antes do commit prometeria o que o rollback desfaz, e notificar direto perderia o
+    // anúncio se o despachante falhasse. Quem faz o fan-out é DespachanteAlertaService.
+    //
+    // O gatilho era `EntregaFalidaConvertida`, publicado pelo webhook; passou para cá na V28 (ADR
+    // 0031), quando a extensão logística saiu e o anúncio de bairro ficou sem produtor. As
+    // coordenadas vão no payload porque o despachante não pode consultar `missoes` — é a fronteira
+    // que a outbox existe para manter.
+    if (evento == EventoMissao.PUBLICAR) {
+      publicadorEventos.publicar(
+          "MissaoPublicada",
+          missaoId,
+          Map.of(
+              "missaoId", missaoId.toString(),
+              "titulo", missao.getTitulo(),
+              "lat", Coordenadas.latitude(missao.getOrigem()).toPlainString(),
+              "lon", Coordenadas.longitude(missao.getOrigem()).toPlainString(),
+              "tokensRecompensa", missao.getTokensRecompensa(),
+              "nivelMinimo", missao.getNivelMinimo()));
+    }
 
     // Ponto único de invalidação para publicar/aceitar/iniciar/desistir/cancelar/contestar — todas
     // entram ou saem de ABERTA, que é o que o radar devolve.

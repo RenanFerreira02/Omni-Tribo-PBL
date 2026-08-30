@@ -7,12 +7,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## O que é
 
 App de missões sociais hiperlocais gamificadas. Usuários recebem missões no bairro (entregas
-solidárias, coleta de recicláveis, mutirões, ajuda), fazem check-in geolocalizado e recebem XP, BRL e
-tokens. Tese do produto: uma entrega que falhou vira missão comunitária remunerada.
+solidárias, coleta de recicláveis, mutirões, ajuda), fazem check-in geolocalizado e recebem XP e
+tokens. Tese do produto: **vizinho ajuda vizinho, e o bairro remunera esse cuidado** — o trabalho de
+vizinhança ganha registro, prova e retribuição que circula no próprio bairro.
 Projeto acadêmico FIAP — Sistemas de Informação, RM 555833.
 
 Reconstrução de um protótipo Flutter descartado. NÃO copie padrões do protótipo: lá distância e valor
 eram String, não havia autenticação, e aceitar missão creditava recompensa imediatamente.
+
+**O produto TEVE um segundo eixo, e ele foi removido em 2026-08-30** (ADR 0031): a extensão
+logística — webhook de transportadora, ponto de custódia, missão de retirada e o modelo de previsão
+de risco de entrega. Encontrar referência a qualquer um deles em documento datado é histórico, não
+pendência. O que sobreviveu daquele eixo está declarado no ADR 0031, e é só isto: a carteira de
+apoiador (a emissão de token) e o fan-out de notificação, que trocou de gatilho.
 
 ## Escopo
 
@@ -25,14 +32,14 @@ deliberadamente cortados do MVP. Se achar que algum é necessário, me pergunte 
 Estes dez foram avaliados e recusados. A linha diz o MOTIVO, não só a proibição: sem ele a decisão
 é refeita do zero a cada fase, e a recusa vira esquecimento aos olhos de quem chega depois.
 
-- **Cotação token→real.** O patrocinador aporta em TOKEN, e o valor que a transportadora oferta
-  entra na fórmula de recompensa como INSUMO DE CALIBRAÇÃO (`tokens-por-real-ofertado`, fórmula
-  versão 3), para ordenar missões por urgência — não é câmbio. A relação é unidirecional: nenhum
-  ator compra token com dinheiro, e token não é resgatável em reais. O que está fora de escopo é a
-  cotação inversa, token→real: token conversível *é* dinheiro, com KYC e enquadramento regulatório
-  junto (ADR 0009 §6). Contraexemplo conhecido: a conversão 1:2 do seed (ADR 0009) é migração única
-  de saldo legado, não taxa vigente.
-- **Pagamento real, KYC e CNPJ de patrocinador.** O cadastro é por endpoint ADMIN. Onboarding com
+- **Cotação token→real.** O apoiador aporta em TOKEN e nada mais entra na fórmula em reais: até a
+  versão 3 havia `tokens-por-real-ofertado`, o valor que a transportadora declarava, e ele saiu com
+  a extensão logística na versão 4. A relação segue unidirecional: nenhum ator compra token com
+  dinheiro, e token não é resgatável em reais. O que está fora de escopo é a cotação inversa,
+  token→real: token conversível *é* dinheiro, com KYC e enquadramento regulatório junto (ADR 0009
+  §6). Contraexemplo conhecido: a conversão 1:2 do seed (ADR 0009) é migração única de saldo legado,
+  não taxa vigente.
+- **Pagamento real, KYC e CNPJ de apoiador.** O cadastro é por endpoint ADMIN. Onboarding com
   validação de CNPJ, meio de pagamento e prevenção a lavagem é produto financeiro, não MVP
   acadêmico: é a mesma obrigação regulatória que o item acima existe para manter fora.
 - **Push remoto (FCM/APNs).** O módulo `notificacoes` é caixa de entrada in-app e **resolve o
@@ -68,10 +75,10 @@ Estes dez foram avaliados e recusados. A linha diz o MOTIVO, não só a proibiç
   está registrada até hoje**: é a LACUNA L4 da auditoria mobile, planejada para a F18. O que não
   for verificado continua declarado como não verificado — afirmar suporte que ninguém executou é
   pior que a lacuna, porque impede que alguém vá conferir.
-- **Recalibração do modelo de risco e validação com dado real.** Não existe operação, logo não
-  existe entrega falida real para treinar — recalibrar sobre mais dado sintético só aumentaria a
-  confiança num número sem melhorar a previsão. Segue registrada como o próximo passo do ADR 0022,
-  e não como trabalho desta entrega.
+- **Qualquer modelo preditivo.** O único que existiu previa falha de entrega e saiu inteiro com a
+  extensão logística (ADR 0031) — treino no `verify`, dataset sintético e endpoint. Não existe
+  operação real neste projeto, logo não existe série histórica para treinar coisa nenhuma: um modelo
+  novo repetiria o problema que o ADR 0022 declarava em voz alta, que é confiança sem previsão.
 - **Internacionalização, Detox e Maestro.** O produto é hiperlocal, de um bairro, com domínio em
   português até nos nomes de classe: i18n adicionaria uma camada de indireção em toda string para
   um segundo idioma que não existe. Detox e Maestro exigem build nativo e aparelho no CI — o mesmo
@@ -82,50 +89,47 @@ Estes dez foram avaliados e recusados. A linha diz o MOTIVO, não só a proibiç
 
 Monólito modular (ver docs/adr/0001). Raiz do pacote Java: `com.omnitribo` — sem prefixo `br.`.
 Um pacote por módulo, `com.omnitribo.<modulo>.{api,dominio,infra}`:
-compartilhado · identidade · missoes · geolocalizacao · carteira · logistica · notificacoes · integracoes
+compartilhado · identidade · missoes · geolocalizacao · carteira · notificacoes · integracoes
 Cada um com api/ (controllers, DTOs, portas), dominio/ (entidades, regras), infra/ (repositórios,
 clientes). Regra verificada por ArchUnit: módulo só acessa outro por api/ pública ou evento. Nunca
 repositório ou entidade JPA alheia. carteira referencia missao_id como UUID puro, sem FK,
 deliberadamente.
 
+**Eram OITO módulos até a V28.** `logistica` foi removido inteiro com a extensão logística
+(ADR 0031), e saiu junto do array `MODULOS` de `RegrasArquiteturaTest`.
+
 Maturidade real por módulo (o alvo é o de cima; o de hoje é este):
 - Três camadas povoadas: `compartilhado`, `identidade`, `missoes`, `carteira`, `geolocalizacao`.
   `geolocalizacao/api/` são só portas — o endpoint de check-in vive em `missoes`, porque a missão é
   o agregado que a transição pertence.
-- Também com três camadas: `logistica` (ponto de custódia), `notificacoes` (caixa de entrada) e
-  `integracoes` (clima e CEP — módulo NOVO, ver ADR 0011). Nenhum módulo está vazio hoje.
+- Também com três camadas: `notificacoes` (caixa de entrada) e `integracoes` (clima e CEP — ver
+  ADR 0011). Nenhum módulo está vazio hoje.
 
 Módulo só fala com módulo por porta em `api/`. As de hoje:
-- `carteira/api/` — `CreditoRecompensa`, `FinanciamentoMissao` (o `debitarPatrocinador` devolve
-  `Optional` VAZIO em saldo insuficiente, em vez de lançar: a encomenda já está na loja e a recusa
-  precisa ser GRAVADA), `EstornoPote`, `ProvisionamentoCarteira`,
+- `carteira/api/` — `CreditoRecompensa`, `FinanciamentoMissao` (tem DUAS operações de débito:
+  `debitar`, do membro da tribo, e `debitarPatrocinador`, do APOIADOR do bairro, que devolve
+  `Optional` VAZIO em saldo insuficiente em vez de lançar — quem chama decide se o vazio vira 422 ou
+  vira linha gravada), `EstornoPote`, `ProvisionamentoCarteira`,
   `AporteToken` (o ÚNICO ponto de emissão de token do sistema — ver Economia)
-- `missoes/api/` — `ConversaoEntregaFalida` (o webhook de transportadora cria a missão de retirada
-  por aqui; `logistica` não pode importar `missoes.dominio`), `ConfirmacaoRetirada` (a contraparte:
-  a transportadora confirma o recebimento e a missão conclui pagando o executor — ADR 0026)
-- `logistica/api/` — `BaixaCustodia` (a contraparte: a conclusão da missão libera a vaga). São DUAS
-  classes de serviço em `logistica/dominio` de propósito — juntas fechariam o ciclo de beans
-  `MissaoService → EntregaFalidaService → MissaoService`
-- `integracoes/api/` — `ConsultaClima` (o webhook alimenta o modelo de risco; devolve `Optional` e
-  NUNCA lança, porque provedor externo fora do ar não pode transformar em 5xx o registro de uma
-  entrega falida — a transportadora reenviaria em laço. Ver ADR 0022)
-- `identidade/api/` — `ConsultaPatrocinador` (slug da transportadora → titular de carteira ATIVO;
-  `logistica` a consulta no webhook. Devolve vazio para inexistente, inativo E desconhecido, de
-  propósito — os três dão no mesmo desfecho e distingui-los vazaria estado financeiro de terceiro),
+- `identidade/api/` — `ConsultaPatrocinador` (`usuarioIdDoApoiadorAtivo`: resolve o id da RELAÇÃO de
+  apoio → titular da carteira. Vazio cobre "não existe" e "apoio desativado" de propósito — os dois
+  dão no mesmo desfecho, e o filtro por `ativo` mora na QUERY para que um `if` esquecido não aceite
+  financiamento de um apoio encerrado),
   `ProgressaoUsuario` (concede XP, deriva nível e filtra por nível em lote),
   `ConsultaAfiliacao`, `ConsultaConsentimento` (quem pode ser notificado — consulta em MASSA, porque
   `ConsentimentoService.listar` resolve o estado atual em Java e não escala para o fan-out),
-  `UsuarioSistema` (o UUID fixo do criador das missões automáticas), `ConsultaSessao` (o `JwtAuthFilter`
-  a consulta a cada requisição — é o que faz papel e anonimização serem reconferidos; ADR 0016)
+  `UsuarioSistema` (o UUID fixo do ator SISTEMA da varredura de expiração e do destravamento),
+  `ConsultaSessao` (o `JwtAuthFilter` a consulta a cada requisição — é o que faz papel e anonimização
+  serem reconferidos; ADR 0016)
 - `geolocalizacao/api/` — `RegistroCheckin` (`missoes` injeta pela INTERFACE, porque é o tipo
   declarado no campo que o ArchUnit inspeciona — injetar a implementação passaria a compilar e
   quebraria o teste de arquitetura)
 - `notificacoes/api/` — `DespachoAlerta` (`compartilhado` injeta pela INTERFACE: é isento como
   ALVO, mas continua sendo ORIGEM, e nomear a implementação reprovaria o ArchUnit)
+- `integracoes/api/` — `ClimaResponse` e `EnderecoResponse` são o contrato do controller; a porta
+  `ConsultaClima`, que servia o modelo de risco, saiu na V28 junto com o consumidor
 - `compartilhado/api/` — `PublicadorEventos`, `PaginaResponse`, `RecursoAuditavel`,
   `AuditoriaPersistencia`, `ConsultasGeoespaciais`, `EmissorDeToken`, `ControleDeTentativasLogin`,
-  `AtributosWebhook` (a chave do atributo onde o filtro HMAC publica a transportadora VERIFICADA —
-  o controller lê de lá, nunca do cabeçalho cru),
   `EnderecoDoCliente` (ÚNICO ponto que decide o IP de quem chamou — e **não lê `X-Forwarded-For`**:
   quem resolve proxy é a `RemoteIpValve` do Tomcat, por `server.tomcat.remoteip.trusted-proxies`,
   ausente em dev/test. Ler o cabeçalho direto dava chave nova a cada tentativa e o bloqueio
@@ -142,15 +146,15 @@ F6 e derrubava até o login (ver Notas de manutenção de 2026-08-07).
 
 O schema de TODOS já existe desde V4–V7: o banco está à frente do código. Encontrar tabela sem
 código correspondente é o estado esperado, não resíduo. Mesma coisa fora de `services/api/`:
-`tools/seed/` (`make seed`) é diretório reservado, hoje vazio. `tools/carrier-mock/` tem
-`enviar.sh`, que exercita o webhook contra o servidor de pé, e `tools/dataset/` tem `gerar.sh` mais
-os artefatos do modelo de risco (CSV, coeficientes, relatório de métricas).
+`tools/seed/` (`make seed`) é diretório reservado, hoje vazio. `tools/carga/` tem o cenário k6 da
+medição de 2026-08-25. `tools/carrier-mock/` e `tools/dataset/` foram removidos com a extensão
+logística.
 
-`RegrasArquiteturaTest` aplica a regra aos 7 módulos de negócio; `compartilhado` fica fora do array
+`RegrasArquiteturaTest` aplica a regra aos 6 módulos de negócio; `compartilhado` fica fora do array
 `MODULOS` porque é shared por design. Mas **`compartilhado/infra` tem regra própria** e é fechado a
 todo mundo: `dominio` é kernel (livre), `api` é porta (livre), `infra` é adaptador PRIVADO. A
-assimetria é medida — há 46 imports legítimos de `compartilhado.dominio` vindos de outros módulos, e
-proteger o módulo inteiro deixaria o teste vermelho em quase todo arquivo.
+assimetria é medida — há dezenas de imports legítimos de `compartilhado.dominio` vindos de outros
+módulos, e proteger o módulo inteiro deixaria o teste vermelho em quase todo arquivo.
 
 Por isso `ConsultasGeoespaciais`, `EmissorDeToken` (impl `JwtService`) e `ControleDeTentativasLogin`
 (impl `BloqueioLoginService`) são **interfaces em `compartilhado/api`**. Antes eram classes concretas
@@ -171,19 +175,22 @@ ela ter sido violada em silêncio pelo ADR 0004. A recompensa é XP + TOKEN, **c
 e congelada na criação** — o DTO de criação NÃO tem `xpRecompensa` nem `tokensRecompensa`.
 
 `CalculadoraDeRecompensa` (`missoes/dominio`) é função pura: recebe categoria, complexidade,
-distância, peso, volume e **multiplicador de risco**, e devolve XP + tokens + complexidade efetiva +
-`versaoFormula` + multiplicador aplicado. Calibração em `app.missoes.recompensa.*` — a FÓRMULA é
-código, os NÚMEROS são configuração.
+distância, peso e volume, e devolve XP + tokens + complexidade efetiva + `versaoFormula`.
+Calibração em `app.missoes.recompensa.*` — a FÓRMULA é código, os NÚMEROS são configuração.
 
-**O multiplicador de risco entra na BASE, junto da complexidade — nunca sobre o total.** Multiplicar
-o total escalaria também distância, peso e volume, e a recompensa explodiria de forma não linear no
-caso extremo. Vem de `PrevisorDeRisco` (`logistica/dominio`), é limitado a **[1,00; 1,50]** e é
-CONGELADO em `missao.multiplicador_risco` junto com `versao_formula`. Missão criada por usuário
-recebe 1,00 — só o webhook de entrega falida avalia risco. Ver ADR 0022.
+**A fórmula está na versão 4, e a v4 é a v1 de volta em FORMA.** As versões 2 e 3 tinham dois
+insumos a mais, os dois da extensão logística: `tokens-por-real-ofertado` (o valor que a
+transportadora declarava) e o multiplicador de risco. Os dois saíram na V28 (ADR 0031). Missão criada
+por gente sempre passou nulo em ambos, então **nenhum valor calculado mudou** — `CalculadoraDe
+RecompensaTest.v4ReproduzV1` é quem prova. A versão subiu porque a FORMA mudou; sem o incremento,
+missões antigas passariam a ser explicadas por uma calibração que não as produziu.
 
-**Mudou parâmetro no YAML? Suba `versao` junto.** `CalculadoraDeRecompensaTest.douradoV1` falha de
-propósito para forçar a decisão: sem isso, missões antigas passam a ser explicadas por uma calibração
-que não as produziu, e some a resposta para "este crédito estava certo quando foi feito?".
+**Mudou parâmetro no YAML? Suba `versao` junto.** `CalculadoraDeRecompensaTest.douradoV1` e
+`douradoV4` falham de propósito para forçar a decisão: sem isso, some a resposta para "este crédito
+estava certo quando foi feito?".
+
+`missao.multiplicador_risco` continua no banco, **sem campo JPA**, como histórico: é o que explica a
+recompensa das missões de retirada já creditadas. Nenhum código a escreve desde a V28.
 
 **Complexidade: derivada onde há dado.** ENTREGA e COLETA exigem peso e volume, e o servidor deriva —
 declarar junto é 400. TRIBO e AJUDA declaram, porque não movem objeto. A conclusão LÊ o congelado,
@@ -193,7 +200,7 @@ a fórmula.
 XP: reputação, não transferível, monotônico, sem ledger. Nível é DERIVADO do XP por `RegraNivel`,
 nunca incrementado — a coluna `usuario.nivel` é cache recalculado a cada concessão.
 TOKEN: moeda comunitária, transferível na mesma tribo. **Recompensa de TODAS as categorias.**
-Resgatável em benefício de parceiro do bairro — esse resgate é o sumidouro real (F8+).
+Resgatável em benefício de parceiro do bairro — esse resgate é o sumidouro real.
 BRL: **fora do ciclo de missões.** `ck_missao_economia` (V15) exige `valor_brl = 0` em toda missão, e
 `app.carteira.saque-habilitado` é `false` por padrão. Colunas e `SaqueService` permanecem, testados,
 como infraestrutura da conversão patrocinada futura — não remova.
@@ -201,11 +208,22 @@ como infraestrutura da conversão patrocinada futura — não remova.
 Regra: nenhuma missão pode ter valor_brl > 0. Quem tentar recebe 400 apontando o campo.
 
 Conservação do TOKEN: quem paga do pote é decidido por **`missao.fonte_pote`**, congelada na
-criação — não pela categoria (ADR 0024). `COMUNIDADE` (TRIBO/COLETA) tem pote financiado por membros;
-`PATROCINADOR` (entrega falida) tem pote financiado pela transportadora na própria conversão;
-`CUNHAGEM` emite na conclusão e, desde o ADR 0025, é só ENTREGA criada por humano — AJUDA passou a
-pagar do pote como TRIBO, porque o argumento que a mantinha fora ("vizinhos custeando logística de
-varejista") descreve ENTREGA e nunca foi sobre ela.
+criação — não pela categoria (ADR 0024). `COMUNIDADE` (TRIBO, COLETA e, desde o ADR 0025, AJUDA) tem
+pote financiado por OUTROS — membros da tribo ou o apoiador do bairro; `CUNHAGEM` emite na conclusão
+e é só ENTREGA criada por humano. `PATROCINADOR` é valor **HISTÓRICO** desde a V28: era a missão de
+retirada, financiada dentro da conversão do webhook, e nenhuma missão nova nasce com ela.
+
+**Quem financia um pote pode ser de dois tipos, e cada um tem ENDPOINT e motivo próprios.** Membro da
+tribo usa `POST /tribos/{id}/financiamentos` e grava `FINANCIAMENTO_TRIBO`; o APOIADOR do bairro é
+financiado por ADMIN, em `POST /admin/missoes/{id}/financiamento-apoiador`, e grava
+`FINANCIAMENTO_PATROCINADOR` — porque "financiamento de tribo" na carteira de quem não tem tribo
+afirmaria um pertencimento inexistente, e o extrato mostra o motivo cru.
+
+**Por que o caminho do apoiador é ADMIN, e não um desvio dentro da rota de tribo:** a conta dele
+nasce INATIVA para nunca autenticar, então não existe JWT dele e a rota de tribo — que tira a
+identidade do token — jamais o alcançaria. A primeira versão da V28 pôs o desvio lá e criou código
+inalcançável; quem pegou foi a verificação ponta a ponta, e
+`FinanciamentoApoiadorAdminTest.apoiadorNaoAutentica` é o registro executável disso.
 
 **A cunhagem não sumiu — mudou de lugar, e é isso que a torna defensável.** O único ponto de emissão
 é `APORTE_PATROCINADOR`, por endpoint ADMIN, auditado e idempotente.
@@ -215,9 +233,7 @@ partes que não podem ser encurtadas numa:
 `SUM(carteira.saldo_tokens) + SUM(missao.pote_tokens)` é constante **dentro do ciclo de missões**,
 nas quatro categorias — e muda nas DUAS pontas: **sobe** no `APORTE_PATROCINADOR` (emite) e **desce**
 no `RESGATE` (queima). Nenhuma outra operação a altera; todas as demais movem token de lugar.
-Dizer só "a soma é constante" descreve um estoque fechado, que nunca foi o desenho. Antes da V23 a emissão acontecia na CONCLUSÃO de toda
-ENTREGA e AJUDA, implícita, por missão e invisível para a reconciliação — ledger e projeção batem
-quando se cria token do nada.
+Dizer só "a soma é constante" descreve um estoque fechado, que nunca foi o desenho.
 
 Publicar exige pote cobrindo a recompensa (senão a missão chegaria em AGUARDANDO_CONFIRMACAO sem
 poder ser concluída); cancelar ou expirar estorna o pote aos financiadores, senão os tokens ficam
@@ -335,7 +351,14 @@ sem ela o plugin aborta com "Invalid API Key, length of 0". Não configure a cha
 `/api/v1/carteira` — `GET` (saldo) · `GET /lancamentos` (extrato paginado) · `POST /transferencias`
 · `POST /saques`. Os dois POST exigem header `Idempotency-Key`.
 
-`/api/v1/tribos/{triboId}/financiamentos` — `POST`, com `Idempotency-Key`.
+`/api/v1/tribos/{triboId}/financiamentos` — `POST`, com `Idempotency-Key`. Membro da tribo financia
+o pote; motivo `FINANCIAMENTO_TRIBO`. A identidade vem do JWT.
+
+`/api/v1/admin/missoes/{missaoId}/financiamento-apoiador` — `POST`, só ADMIN, com `Idempotency-Key`.
+Motivo `FINANCIAMENTO_PATROCINADOR`. **É ADMIN porque a conta do apoiador NUNCA autentica** (nasce
+INATIVA), então ela não tem JWT e não alcança a rota acima — um desvio lá dentro seria código
+inalcançável, e foi o defeito que a verificação ponta a ponta pegou. Sem este endpoint o token que o
+aporte emite fica parado na carteira do apoiador para sempre.
 
 `/api/v1/beneficios` — `GET` (catálogo paginado; por proximidade `?lat&lon&raioMetros` OU por
 `?triboId`, nunca os dois). Só benefício ativo de parceiro ativo. A distância vem do PostGIS a cada
@@ -353,21 +376,13 @@ publicaria a cotação token→real que o ADR 0009 §6 recusa.
 `/api/v1/admin/resgates/{id}` — `PATCH`, só ADMIN. `PENDENTE → UTILIZADO`, idempotente. **Sem caminho
 de volta**: reverter ressuscitaria token queimado.
 
-`/api/v1/admin/impacto` — `GET`, só ADMIN. **A única resposta do sistema sobre VALOR**, e não sobre
-estado: funil da entrega falida (recebidas → convertidas → concluídas), tempo mediano até o check-in
-do executor, custo evitado estimado e circulação do token. Tudo agregado na hora — **sem migration,
-sem tabela de agregação e sem cache**, porque uma segunda fonte de verdade para números que existem
-para serem conferidos é pior que a consulta a mais. Mora em `compartilhado` e compõe uma porta nova
-de cada módulo dono do dado. Três coisas que o painel diz em voz alta e o código trava por teste:
-`app.impacto.custo-reentrega-brl` é **PREMISSA, não medição** (por isso a resposta ecoa o valor e
-traz a mesma conta com ele em **±50%**); **"re-entrega evitada" é a missão concluída RENOMEADA**, não
-uma segunda medição; e **taxa com denominador zero é `null`, nunca 0%**. Ver ADR 0029.
+`/api/v1/admin/carteiras/reconciliacao` — `GET`, só ADMIN. **É a única visão econômica de ADMIN
+desde a V28** — o painel `/admin/impacto` era o funil da entrega falida e saiu com ela (ADR 0031).
 
-`/api/v1/admin/carteiras/reconciliacao` — `GET`, só ADMIN.
-
-`/api/v1/admin/patrocinadores` — `POST` (cadastra titular + carteira + relação com o slug) · `GET`
-(lista, SEM saldo de propósito) · `POST /{id}/aportes` (**EMITE token**; exige `Idempotency-Key`) ·
-`DELETE /{id}` (encerra sem apagar). Todos só ADMIN. Ver ADR 0024.
+`/api/v1/admin/patrocinadores` — `POST` (cadastra titular + carteira + a relação de APOIADOR, por
+`slug`) · `GET` (lista, SEM saldo de propósito) · `POST /{id}/aportes` (**EMITE token**; exige
+`Idempotency-Key`) · `DELETE /{id}` (encerra sem apagar). Todos só ADMIN. Ver ADR 0024 e a
+retificação do ADR 0031.
 
 `/api/v1/usuarios` — `GET busca?handle=` (acha um vizinho pelo `@` EXATO, só na MESMA tribo de quem
 pergunta; devolve id, handle, nome e tribo). **Não há listagem de membros e não haverá** — daria um
@@ -382,18 +397,11 @@ conquistas) · `GET me/dados` (exportação LGPD) · `GET|PUT me/consentimentos[
 outra coisa**: a checagem barata do boot, resolvida só dos claims do JWT. Não a enriqueça: trocaria
 essa checagem por uma consulta com joins em toda abertura do app.
 
-`/api/v1/tribos` — `GET` (lista) · `GET /{id}` (com centro geográfico DERIVADO por `ST_Centroid`).
+`/api/v1/tribos` — `GET` (lista) · `GET /{id}` (com centro geográfico DERIVADO por `ST_Centroid`
+sobre as ORIGENS das missões da tribo — a segunda âncora, o ponto de custódia, saiu na V28).
 
 `/api/v1/alertas` — `GET` (paginado, `?apenasNaoLidos`) · `PATCH /{id}/lido` ·
 `GET /nao-lidos/contagem`.
-
-`/api/v1/pontos-custodia` — `GET /{id}` · `GET ?lat&lon&raioMetros` (ativos, por distância).
-
-`POST /api/v1/logistica/previsao-falha` — probabilidade de uma entrega falhar, faixa de risco e
-`fatoresPrincipais` (os termos que mais pesaram). Regressão logística interpretável, coeficientes em
-`app.logistica.risco`. É POST sem escrita: o contexto tem nove campos e espremê-los em query string
-poria CEP e peso do destinatário no log de acesso de todo proxy. **Coeficientes treinados em dados
-SINTÉTICOS** — ver ADR 0022 e `docs/qualidade/modelo-previsao.md`.
 
 `/api/v1/clima?lat&lon` e `/api/v1/enderecos/{cep}` — provedores EXTERNOS (Open-Meteo, ViaCEP)
 atrás da nossa fronteira. Falha do provedor responde **503** com
@@ -403,25 +411,12 @@ retry fica POR DENTRO do disjuntor para que uma rajada de tentativas conte como 
 checagem do `{"erro":true}` do ViaCEP fica FORA da região protegida, porque o provedor respondeu 200
 — movê-la para dentro faria CEP errado digitado abrir o circuito de um provedor saudável.
 
-`POST /api/v1/webhooks/transportadora/confirmacao` — a transportadora confirma que a encomenda
-chegou ao destinatário, e o executor é creditado NA HORA. Mesmo HMAC, mesma idempotência por
-`(transportadora, codigoRastreio)`. Existe porque o criador da missão de retirada é o
-usuário-sistema e `AtorEsperado.CRIADOR` compara IDENTIDADE — nenhum humano confirma, nem ADMIN.
-**A varredura de prazo continua** como rede de segurança para quando a transportadora não confirma.
-Rastreio desconhecido ou entrega que nunca virou missão é **404**, não 200: ao contrário do ponto
-lotado, aqui não há fato novo a gravar. Ver ADR 0026.
-
-`POST /api/v1/webhooks/transportadora` — entrada de entregas falidas. **Único endpoint de escrita
-sem JWT**, autenticado por HMAC-SHA256 sobre o CORPO BRUTO (cabeçalhos `X-Transportadora`,
-`X-Timestamp`, `X-Assinatura`). Idempotente por `(transportadora, codigoRastreio)`. **Três desfechos, todos 200:** `CONVERTIDA`,
-`RECUSADA` (ponto lotado) e `SEM_PATROCINIO` (sem patrocinador ativo ou sem saldo para o pote).
-Existe um QUARTO estado na tabela que o webhook **não** produz: `missao_id` nulo *e* `motivo_recusa`
-nulo — encomenda na custódia que nunca virou missão. É o formato do seed V901 (16 das 28 linhas do
-banco de dev), e o painel de impacto o conta como `pendentes` em vez de deixá-lo sumir num resto.
-Nenhum é erro HTTP — devolver 4xx faria a transportadora reenviar em laço contra uma condição que o
-reenvio não muda. Ver ADR 0021 e ADR 0024.
-
 `GET /api/v1/ping`, do `PingController` em `compartilhado`.
+
+**NÃO existe mais rota de escrita anônima.** `/api/v1/webhooks/**` era a única, autenticada por HMAC
+sobre o corpo bruto, e saiu inteira na V28 — com o filtro, os segredos e a isenção no
+`SecurityConfig`. O critério do ADR 0021 continua valendo para o futuro: uma isenção de JWT nasce
+JUNTO com o autenticador que a substitui, nunca antes.
 
 ## Automação
 
@@ -484,13 +479,11 @@ CI (`.github/workflows/`), três workflows:
   - Os que mudam como se escreve código aqui: 0006 (máquina de estados) · 0007 (geoespacial
     centralizado) · 0008 (ledger e idempotência) · 0009 (economia) · 0010 (uma URI de erro por
     REAÇÃO DE UI) · 0018 (fronteira de `compartilhado`) · 0020 (proximidade é distância MÍNIMA, não
-    ao centroide) · 0022 (risco entra na BASE, teto 1,5×) · 0023 (retry POR DENTRO do disjuntor).
+    ao centroide) · 0023 (retry POR DENTRO do disjuntor).
+  - **0031 é o que REMOVEU o eixo logístico**, e ele lista o que cada ADR revogado ainda ensina.
+    0021, 0022, 0026 e 0029 estão marcados REVOGADO no topo; 0020, 0024, 0025 e 0027, RETIFICADO.
 - `docs/qualidade/integridade-transacional.md` — evidência de concorrência da carteira (100 threads,
   deadlock, rollback) e a seção "O que esta fase NÃO garante". É o documento a defender oralmente.
-- `docs/qualidade/modelo-previsao.md` — métricas do modelo de risco, matriz de confusão, correlações
-  injetadas e a discussão falso positivo × falso negativo. **Abre declarando que os dados são
-  sintéticos** e fecha com o que a fase não garante. É o outro documento a defender oralmente, e a
-  resposta preparada para "sua acurácia é menor que a de um chute?" está nele.
 - `docs/qualidade/mutacao.md` — score de mutação (PIT) de `missoes.dominio` e `carteira.dominio`, e
   os SOBREVIVENTES comentados, que são a entrega de verdade: quatro fronteiras de saldo e de teto sem
   teste no valor exato, um equivalente que **não** se conserta (a ordem do lock), e uma superfície
@@ -548,23 +541,23 @@ Banco
 - Flyway é a ÚNICA fonte de schema. ddl-auto é sempre validate. Nunca resolva divergência mudando
   ddl-auto — escreva migration.
 - **Versão de migration é sequência GLOBAL, não por diretório.** Duas faixas, separadas de propósito:
-  - `db/migration` — schema, **V1–V8 e V11–V27**; único location do perfil default/prod.
-    Próxima é **V28**. **V9 e V10 estão queimadas — nunca as reutilize.** Foram os arquivos de seed
+  - `db/migration` — schema, **V1–V8 e V11–V28**; único location do perfil default/prod.
+    Próxima é **V29**. **V9 e V10 estão queimadas — nunca as reutilize.** Foram os arquivos de seed
     antes da renomeação para `V900__seed_dev.sql`, então um banco de dev criado antes dela tem as
     versões 9 e 10 gravadas no `flyway_schema_history` com descrição de seed. Um `V9__*.sql` novo em
     `db/migration` passaria em clone novo e falharia em máquina antiga com erro de checksum ou
     "detected applied migration not resolved locally" — divergência que não aparece no CI.
   - `db/seed` — só dev e test (via `application-dev.yml` / `application-test.yml`), faixa **900+**.
-    Hoje são sete: `V900__seed_dev.sql`, `V901__seed_entregas_falidas.sql`,
-    `V902__seed_alertas_consentimentos.sql`, `V903__seed_cidade_lider.sql` (dados de demonstração
-    na zona leste — ver docs/INFRA.md) e `V904__seed_entrega_falida_fixtures.sql` (ponto LOTADO e
-    os dois únicos usuários com NOTIFICACAO+LOCALIZACAO vigentes, sem os quais dois caminhos do
-    webhook não têm fixture) e `V905__seed_patrocinador.sql` (os patrocinadores de `transportadora-dev`
-    e `transportadora-teste`, mais o backfill de `fonte_pote` que a V23 sozinha não alcança — os
-    seeds rodam DEPOIS dela. `outra-transportadora` fica sem patrocinador de propósito: é a fixture
-    do desfecho SEM_PATROCINIO) e `V906__seed_beneficios.sql` (parceiros e benefícios da Cidade
-    Líder, com um parceiro INATIVO e um benefício INATIVO como fixtures de catálogo).
-    **Próximo seed é V907.**
+    Hoje são cinco: `V900__seed_dev.sql`, `V902__seed_alertas_consentimentos.sql`,
+    `V903__seed_cidade_lider.sql` (dados de demonstração na zona leste — ver docs/INFRA.md),
+    `V906__seed_beneficios.sql` (parceiros e benefícios da Cidade Líder, com um parceiro INATIVO e um
+    benefício INATIVO como fixtures de catálogo) e `V907__seed_apoiadores.sql` (os dois apoiadores
+    que sustentam a emissão de token em dev e em test, a Fernanda e o Gustavo — o par que separa
+    consentimento de reputação no fan-out — e o backfill de `fonte_pote` que a V23 sozinha não
+    alcança, porque os seeds rodam DEPOIS dela).
+    **V901, V904 e V905 foram APAGADAS na V28** (ADR 0031): as duas primeiras semeavam entrega falida
+    e ponto de custódia, tabelas que a V28 dropa — como o seed roda DEPOIS do schema, elas quebrariam
+    o boot. A V905 virou a V907. **Próximo seed é V908.**
   - A faixa 900+ garante por construção que o seed roda depois de todo schema. Seed novo continua na
     faixa e NUNCA usa um número que o schema possa alcançar. Ver ADR 0006, Notas de manutenção.
   - Como o seed é o último, ele grava dados em forma final: não conte com migration posterior para
@@ -667,11 +660,12 @@ entrega é um relatório em `docs/auditoria/FN.md`, e só ele.
 ## Estado atual
 
 **Backend fechado até F7 e auditado fase a fase, F8 implementada, mobile F9–F12 implementadas,
-F13 (entrega final) concluída em 2026-08-16.** Build verde, 0 falhas, SpotBugs limpo, os dois gates
-JaCoCo passando. As duas auditorias do mobile acharam **dois defeitos que uma
-revisão comum deixou passar** — a aba de missões gastando o prompt de permissão sem justificativa, e
-a conta anonimizada continuando a escrever por 15 minutos. **Os dois estão corrigidos** (o segundo na
-verificação de 2026-08-11 — ver Pendências). Detalhe por fase em `docs/PROGRESSO.md`.
+F13 (entrega final) concluída em 2026-08-16. Em 2026-08-30 o eixo logístico foi REMOVIDO** — ver
+ADR 0031 e a nota de manutenção no `docs/PROGRESSO.md`. Build verde, 0 falhas, SpotBugs limpo, os
+dois gates JaCoCo passando. As duas auditorias do mobile acharam **dois defeitos que uma revisão
+comum deixou passar** — a aba de missões gastando o prompt de permissão sem justificativa, e a conta
+anonimizada continuando a escrever por 15 minutos. **Os dois estão corrigidos.** Detalhe por fase em
+`docs/PROGRESSO.md`.
 
 **O histórico do git engana na numeração das fases**: o commit "F8 - Fundação Mobile" entregou, na
 verdade, F9–F11, e a branch `feat/f13-previsao-risco-entrega` entregou **F12c** — a F13 de verdade
@@ -684,33 +678,31 @@ infira fase do `git log`.
 esse nome por pedido explícito, contra a convenção `f<fase>-<assunto>.md` do próprio diretório. O
 `PROGRESSO.md` é a fonte da fase, não o nome do arquivo.
 
-**F8 — "Fim da Entrega Falida".** O webhook de transportadora, autenticado por HMAC sobre o corpo
-bruto (ADR 0021), converte entrega falida em missão de retirada ABERTA no ponto de custódia
-(ADR 0020): valida vaga sob `FOR UPDATE`, incrementa ocupação, congela recompensa em XP+TOKEN,
-notifica por tribo com consentimento e teto por hora, e dá baixa na custódia quando a missão conclui.
-`tools/carrier-mock/enviar.sh` exercita o caminho feliz e os cinco negativos contra o servidor de pé.
-**F8 fechou em 2026-08-20 com a carteira de patrocinador** (ADR 0024): a missão de retirada nasce com
-o pote já financiado pela transportadora, e a antiga cunhagem por missão virou um aporte ADMIN
-auditado e idempotente.
+**O que foi removido em 2026-08-30 (ADR 0031), e por que você ainda encontra rastro:** o módulo
+`logistica` inteiro, o webhook de transportadora (entrada e confirmação), `EntregaFalida`,
+`PontoCustodia`, o modelo de previsão de risco com treino e dataset, `POST /logistica/previsao-falha`
+e o painel `GET /admin/impacto`. As **auditorias F0–F7 e as evidências datadas descrevem o sistema
+que tinha aquele eixo** e não foram reescritas — falsificar medição retroativamente é pior que a
+divergência. Documento datado que fala em entrega falida é histórico.
 
-**Mobile: F9 a F12 implementadas** em `apps/mobile/` — 11 telas mais a rota-porta `app/index.tsx`
+**Três coisas sobreviveram à remoção, e é importante saber por quê:**
+- a **carteira de apoiador** (era do patrocinador-transportadora), porque o aporte é o único ponto de
+  emissão de token — sem ele a economia teria só o sumidouro;
+- o **fan-out de notificação**, que trocou de gatilho: era `EntregaFalidaConvertida`, virou
+  `MissaoPublicada`, e agora anuncia TODA missão publicada em vez de só a de retirada;
+- `missao.nivel_minimo` e o gate em `MissaoService.validarNivelParaAceitar`, sem escritor: **nenhuma
+  missão exige nível hoje**, e exigir de novo é acrescentar um escritor, não reconstruir o mecanismo.
+
+**Mobile: F9 a F12 implementadas** em `apps/mobile/` — 10 telas mais a rota-porta `app/index.tsx`
 (um `<Redirect>` que decide entre onboarding, `(auth)` e `(tabs)` durante a renderização, não num
 `useEffect`), design system, sessão com access token só em memória e refresh em
 `expo-secure-store`, rotas `(auth)`/`(tabs)`/`(app)` protegidas — toda tela autenticada fora das
-abas vive em `(app)/` —, radar geoespacial e carteira. O detalhe está em `apps/mobile/CLAUDE.md`,
-que carrega sozinho ao trabalhar lá. O catálogo de erro foi ampliado antes da primeira tela — ver
-**ADR 0010**.
+abas vive em `(app)/` —, radar geoespacial e carteira. A tela de impacto e a camada de pontos de
+custódia do mapa saíram na V28. O detalhe está em `apps/mobile/CLAUDE.md`, que carrega sozinho ao
+trabalhar lá. O catálogo de erro foi ampliado antes da primeira tela — ver **ADR 0010**.
 
 Módulo `missoes`: 9 estados e **17** transições em `StatusMissao` + `MissaoStateMachine` (ADR 0006),
 aceite com lock pessimista, radar de proximidade com cache, expiração por `@Scheduled`.
-
-**F12c — previsão de risco de falha de entrega.** Regressão logística interpretável em Java puro
-(`logistica/dominio`), treinada dentro do `./mvnw verify` sobre dataset sintético de 5.000 registros
-com correlações injetadas e documentadas. O score vira três coisas: multiplicador congelado da
-recompensa em TOKEN (teto 1,5×), prioridade no fan-out (`alerta.prioridade`, com carve-out no teto
-por hora para risco ALTO), e aviso acionável no detalhe da missão. `POST /logistica/previsao-falha`
-devolve probabilidade, faixa e os fatores que mais pesaram. **Os dados são sintéticos e isso está
-declarado em todo lugar** — validação com dados reais é o próximo passo (ADR 0022).
 
 `CONCLUIDA` continua sendo o ÚNICO estado que credita — a regra que o protótipo descartado violava.
 
@@ -772,18 +764,7 @@ varredura por prazo (`ExpiracaoMissoesService`) e a porta de ADMIN (`POST /misso
 tiram a missão do limbo. O que falta é o instrumento de DIAGNÓSTICO — ver Pendência #1, que é o
 mesmo formato de problema.
 
-**3. O alerta de ponto lotado não tem teto nem deduplicação.** Achado no teste de carga de
-2026-08-25 (`docs/evidencias/f21-carga.md` §6): uma rajada de webhooks contra um ponto de custódia
-cheio gravou **631 linhas idênticas** em `alerta`, para o mesmo ponto, em menos de 3 minutos.
-
-O alerta é **global de propósito** (`usuario_id` nulo — ver `DespachanteAlertaService
-.gravarPontoLotado`), então o teto de `app.notificacoes.alertas-por-hora`, que é POR USUÁRIO,
-corretamente não se aplica: não é notificação de ninguém, é sinal de operação. A intenção do javadoc
-é boa — "um ponto que recusa encomendas com frequência é exatamente o dado que justifica negociar
-mais capacidade".
-
-**Mas 631 linhas com a mesma frase não são esse dado — são o apagamento dele**, e são amplificação
-de escrita sem limite disparada por evento externo que o sistema não controla: uma transportadora em
-laço de retry contra um ponto cheio escreve indefinidamente. Não corrigido de propósito — a medição
-foi pedida sem ajuste, e a correção (deduplicar por `(ponto, janela)`, ou contador em vez de linha)
-muda o contrato do alerta operacional. **Não decida sozinho.**
+> **A Pendência #3 saiu em 2026-08-30, junto com a causa.** Era o alerta de ponto lotado sem teto —
+> 631 linhas idênticas em menos de 3 minutos, medidas no teste de carga de 2026-08-25. O alerta era
+> gravado pelo webhook de entrega falida, e os dois saíram na V28 (ADR 0031). Não foi corrigido:
+> deixou de existir.

@@ -54,9 +54,10 @@ export class PainelService {
    * Contagens por status, para os cards.
    *
    * <p><b>Por que uma requisição por status, e não uma só.</b> A API não tem endpoint de agregação
-   * acessível a usuário comum: o único que resume números é `GET /admin/impacto`, restrito a ADMIN
-   * por `@PreAuthorize`, e ele responde sobre o funil da ENTREGA FALIDA — não sobre missões por
-   * status. Então o painel compõe.
+   * de missões: o único endpoint que resume números é `GET /admin/carteiras/reconciliacao`, restrito
+   * a ADMIN, e ele responde sobre a integridade do ledger — não sobre missões por status. Então o
+   * painel compõe. (Havia um `GET /admin/impacto`, sobre o funil da entrega falida; saiu com a
+   * extensão logística — ver ADR 0031.)
    *
    * <p>E compõe lendo `totalElementos`, com `tamanho=1`, em vez de baixar as missões e contar em
    * JavaScript. Contar no cliente contaria a PÁGINA, não o conjunto: com mais de 100 missões o card
@@ -81,8 +82,8 @@ export class PainelService {
           chave: status,
           rotulo: rotuloDeStatus(status),
           valor: contagens[i],
-          // Denominador zero vira `null`, nunca 0% — mesma regra do painel de impacto do backend.
-          // Uma barra de 0% e "não há o que dividir" são coisas diferentes.
+          // Denominador zero vira `null`, nunca 0%. Uma barra de 0% e "não há o que dividir" são
+          // coisas diferentes, e a segunda não é desempenho ruim: é ausência de dado.
           total: soma > 0 ? soma : null,
         }));
       }),
@@ -106,65 +107,79 @@ export class PainelService {
   }
 
   /**
-   * Pontos de custódia ativos em volta de uma coordenada.
+   * Catálogo de benefícios em volta de uma coordenada.
    *
-   * <p>A API **não tem** listagem sem coordenada: `GET /pontos-custodia` exige `lat` e `lon` e
-   * responde por raio, com a distância medida pelo PostGIS. Não há como pedir "todos". Por isso o
-   * painel busca a partir de um centro com raio largo, e a tela diz qual centro usou — apresentar
-   * o resultado como "todos os pontos" seria afirmar mais do que a resposta sustenta.
+   * <p>A API **não tem** listagem sem recorte: `GET /beneficios` exige proximidade (`lat`, `lon`,
+   * `raioMetros`) OU `triboId`, nunca os dois. Não há como pedir "todos". Por isso o painel busca a
+   * partir de um centro com raio largo, e a tela diz qual centro usou — apresentar o resultado como
+   * "todos os benefícios" seria afirmar mais do que a resposta sustenta.
+   *
+   * <p>Só benefício ATIVO de parceiro ATIVO volta daqui, e a distância é medida pelo PostGIS a cada
+   * consulta: ela depende de onde está quem pergunta, então nunca vem de coluna.
    */
-  pontosCustodia(
+  beneficios(
     lat: number,
     lon: number,
     raioMetros = 20000,
-    limite = 100,
-  ): Observable<PontoCustodia[]> {
-    return this.http.get<PontoCustodia[]>(`${API_BASE_URL}/pontos-custodia`, {
+    tamanho = 100,
+  ): Observable<Pagina<Beneficio>> {
+    return this.http.get<Pagina<Beneficio>>(`${API_BASE_URL}/beneficios`, {
       params: new HttpParams()
         .set('lat', lat)
         .set('lon', lon)
         .set('raioMetros', raioMetros)
-        .set('limite', limite),
+        .set('tamanho', tamanho),
     });
   }
 
-  cadastrarPontoCustodia(pedido: NovoPontoCustodia): Observable<PontoCustodia> {
-    return this.http.post<PontoCustodia>(`${API_BASE_URL}/pontos-custodia`, pedido);
+  cadastrarBeneficio(pedido: NovoBeneficio): Observable<Beneficio> {
+    return this.http.post<Beneficio>(`${API_BASE_URL}/admin/beneficios`, pedido);
+  }
+
+  /** Integridade do ledger contra a projeção de saldo. Só ADMIN — 403 para usuário comum. */
+  reconciliacao(): Observable<Reconciliacao> {
+    return this.http.get<Reconciliacao>(`${API_BASE_URL}/admin/carteiras/reconciliacao`);
   }
 }
 
-/** Recorte de `PontoCustodiaResponse`. `distanciaM` é nula fora da busca por raio. */
-export interface PontoCustodia {
+/** Recorte de `BeneficioResponse`. `distanciaM` é nula no recorte por tribo. */
+export interface Beneficio {
   id: string;
-  codigo: string;
+  titulo: string;
+  descricao: string;
+  custoTokens: number;
   tipo: string;
-  apelido: string;
-  lat: number;
-  lon: number;
-  capacidade: number;
-  ocupacao: number;
+  parceiroId: string;
+  parceiroNome: string;
+  bairro: string | null;
   distanciaM: number | null;
 }
 
 /**
- * Corpo de `POST /api/v1/pontos-custodia`.
+ * Corpo de `POST /api/v1/admin/beneficios`.
  *
- * <p>Sem `ocupacao` e sem `ativo`, espelhando o DTO do servidor. Não é economia de digitação: o
- * servidor descarta campo que não declara (`fail-on-unknown-properties: false`), então mandá-los
- * daqui não daria erro nenhum — só criaria a impressão, para quem lesse este arquivo, de que o
- * cliente controla a ocupação. Ele não controla, e não deve.
+ * <p>Sem `ativo` e sem preço em moeda corrente, espelhando o DTO do servidor. A ausência do preço em
+ * reais não é esquecimento: um benefício anunciado como "R$ 10 de desconto" por 30 tokens publica
+ * uma COTAÇÃO implícita, e token conversível em moeda corrente é dinheiro — com KYC e enquadramento
+ * regulatório junto (ADR 0009 §6). O servidor recusa com 400, e `ck_beneficio_sem_reais` (V24) é a
+ * barreira final.
  */
-export interface NovoPontoCustodia {
-  codigo: string;
+export interface NovoBeneficio {
+  parceiroId: string;
+  titulo: string;
+  descricao: string;
+  custoTokens: number;
   tipo: string;
-  apelido: string;
-  lat: number;
-  lon: number;
-  capacidade: number;
-  triboId?: string;
 }
 
-export const TIPOS_PONTO = ['LOJA', 'LOCKER', 'PORTARIA', 'VIZINHO'] as const;
+/** Recorte de `ReconciliacaoResponse`. */
+export interface Reconciliacao {
+  carteirasVerificadas: number;
+  integro: boolean;
+  divergencias: { carteiraId: string; saldoProjetado: number; somaLedger: number }[];
+}
+
+export const TIPOS_BENEFICIO = ['BEM', 'PERCENTUAL'] as const;
 
 export function rotuloDeStatus(status: string): string {
   const rotulos: Record<string, string> = {

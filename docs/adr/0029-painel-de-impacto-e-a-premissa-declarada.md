@@ -1,9 +1,20 @@
 # 0029 — Painel de impacto: composição por portas, e a premissa declarada como premissa
 
 **Data:** 2026-08-23
-**Status:** Aceito
+**Status:** REVOGADO por [0031](./0031-remocao-da-extensao-logistica.md)
 
 ---
+
+> ## REVOGADO em 2026-08-30 — ADR 0031
+>
+> O painel era o funil da entrega falida — recebidas, convertidas, custo de re-entrega evitado —
+> e sem aquele ciclo os quatro blocos ficam sem numerador. `GET /admin/impacto`, `ImpactoService`,
+> as portas de estatística que só ele consumia e a tela `impacto.tsx` saíram na V28. A visão
+> econômica de ADMIN passa a ser `GET /admin/carteiras/reconciliacao`, intocada.
+>
+> As três disciplinas que este ADR fixou seguem valendo em qualquer painel futuro: premissa
+> ecoada ao lado do resultado, renomear não é medir de novo, e taxa com denominador zero é `null`,
+> nunca 0%.
 
 ## Contexto
 

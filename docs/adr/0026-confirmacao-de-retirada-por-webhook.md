@@ -1,9 +1,17 @@
 # 0026 — A transportadora confirma a retirada: contraparte, não autoatendimento
 
 **Data:** 2026-08-22
-**Status:** Aceito
+**Status:** REVOGADO por [0031](./0031-remocao-da-extensao-logistica.md)
 
 ---
+
+> ## REVOGADO em 2026-08-30 — ADR 0031
+>
+> A missão de retirada não existe mais, então não há o que a transportadora confirme. `POST
+> /webhooks/transportadora/confirmacao`, a porta `ConfirmacaoRetirada` e
+> `MissaoService.confirmarRetirada` saíram na V28. A varredura de prazo de
+> `AGUARDANDO_CONFIRMACAO`, que este ADR chamava de rede de segurança, CONTINUA — ela nunca foi
+> sobre logística.
 
 ## Contexto
 

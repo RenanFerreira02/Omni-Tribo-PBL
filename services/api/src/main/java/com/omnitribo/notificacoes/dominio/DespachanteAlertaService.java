@@ -37,13 +37,8 @@ public class DespachanteAlertaService implements DespachoAlerta {
 
   private static final Logger log = LoggerFactory.getLogger(DespachanteAlertaService.class);
 
-  /** Discriminador do alerta de missão nova vinda de entrega falida. */
-  static final String TIPO_ENTREGA_FALIDA = "ENTREGA_FALIDA_DISPONIVEL";
-
-  /** Discriminador do aviso operacional de ponto lotado. Alerta GLOBAL: usuário nulo. */
-  static final String TIPO_PONTO_LOTADO = "PONTO_CUSTODIA_LOTADO";
-
-  static final String TIPO_SEM_PATROCINIO = "ENTREGA_SEM_PATROCINIO";
+  /** Discriminador do alerta de missão nova publicada perto de você. */
+  static final String TIPO_MISSAO_PROXIMA = "MISSAO_PROXIMA";
 
   private final AlertaRepository alertaRepository;
   private final ConsultasGeoespaciais consultasGeoespaciais;
@@ -78,9 +73,7 @@ public class DespachanteAlertaService implements DespachoAlerta {
 
     switch (tipoEvento) {
       case "MissaoConcluida" -> gravarConclusao(agregadoId, payload);
-      case "EntregaFalidaConvertida" -> anunciarMissaoDeRetirada(payload);
-      case "EntregaFalidaRecusada" -> gravarPontoLotado(agregadoId, payload);
-      case "EntregaFalidaSemPatrocinio" -> gravarSemPatrocinio(agregadoId, payload);
+      case "MissaoPublicada" -> anunciarMissaoNova(payload);
       default ->
           throw new IllegalStateException("Nenhum despachante para o evento " + tipoEvento + ".");
     }
@@ -109,7 +102,12 @@ public class DespachanteAlertaService implements DespachoAlerta {
   }
 
   /**
-   * Fan-out geográfico: avisa quem está perto que há uma encomenda esperando alguém buscar.
+   * Fan-out geográfico: avisa quem está perto que há uma missão nova no bairro.
+   *
+   * <p><b>O gatilho mudou na V28</b> (ADR 0031). Este fan-out era disparado pela conversão de uma
+   * entrega falida — o único evento que o alcançava —, e com a extensão logística removida ele
+   * passou a ouvir {@code MissaoPublicada}: agora TODA missão publicada anuncia o bairro, que é o
+   * comportamento que o produto social sempre descreveu. Os três filtros abaixo não mudaram.
    *
    * <p><b>Quem é "perto" sem que o usuário tenha coordenada.</b> A tabela {@code usuario} não tem
    * coluna geográfica. O raio é medido do ponto de custódia até o CENTRO DERIVADO de cada tribo, e
@@ -120,19 +118,14 @@ public class DespachanteAlertaService implements DespachoAlerta {
    * nível mínimo é a Regra de Elegibilidade por Reputação do challenge — não adianta anunciar uma
    * missão que a pessoa levaria 422 ao tentar aceitar; teto por hora é respeito ao canal.
    */
-  private void anunciarMissaoDeRetirada(Map<String, Object> payload) {
+  private void anunciarMissaoNova(Map<String, Object> payload) {
     UUID missaoId = UUID.fromString((String) payload.get("missaoId"));
     BigDecimal lat = new BigDecimal(String.valueOf(payload.get("lat")));
     BigDecimal lon = new BigDecimal(String.valueOf(payload.get("lon")));
-    String apelidoPonto = String.valueOf(payload.get("apelidoPonto"));
+    // Vem do payload, e não de uma consulta a `missoes`: a outbox existe justamente para o
+    // despachante não depender do módulo que publicou o fato.
+    String titulo = String.valueOf(payload.getOrDefault("titulo", "Missão nova"));
     long tokens = ((Number) payload.getOrDefault("tokensRecompensa", 0)).longValue();
-
-    // A faixa vem no payload do evento, e não de uma consulta a `logistica`: a outbox existe
-    // justamente para o despachante não depender do módulo que publicou o fato. Ausente é NORMAL —
-    // eventos gravados antes desta fase continuam drenáveis, e um evento antigo não pode fazer o
-    // job explodir.
-    String faixaRisco = String.valueOf(payload.getOrDefault("faixaRisco", "BAIXO"));
-    short prioridade = prioridadeDe(faixaRisco);
 
     List<UUID> tribos =
         consultasGeoespaciais
@@ -157,9 +150,10 @@ public class DespachanteAlertaService implements DespachoAlerta {
             tribos, List.of(ConsultaConsentimento.NOTIFICACAO, ConsultaConsentimento.LOCALIZACAO));
 
     // Segundo filtro: reputação. Anunciar a missão a quem não alcança o nível mínimo seria prometer
-    // o que o servidor recusa com 422 no toque seguinte — e a Regra de Elegibilidade por Reputação
-    // do challenge não é só sobre aceitar, é sobre VISIBILIDADE: "missões que envolvam custódia de
-    // pacotes físicos não são visíveis para toda a base".
+    // o que o servidor recusa com 422 no toque seguinte. Hoje nenhuma missão exige nível — o único
+    // caminho que gravava nivel_minimo > 1 saiu na V28 —, então o filtro passa todo mundo; ele
+    // continua aqui porque é o par do gate em MissaoService.validarNivelParaAceitar, e os dois
+    // precisam sair ou entrar juntos.
     int nivelMinimo = ((Number) payload.getOrDefault("nivelMinimo", 1)).intValue();
     List<UUID> destinatarios =
         progressaoUsuario.filtrarPorNivelMinimo(comConsentimento, nivelMinimo);
@@ -173,21 +167,14 @@ public class DespachanteAlertaService implements DespachoAlerta {
       // de quem já foi avisado, senão uma falha transitória de infraestrutura silencia
       // notificações legítimas pela hora seguinte.
       if (alertaRepository.existsByUsuarioIdAndTipoAndMissaoId(
-          destinatario, TIPO_ENTREGA_FALIDA, missaoId)) {
+          destinatario, TIPO_MISSAO_PROXIMA, missaoId)) {
         continue;
       }
-      // Teto por hora COM carve-out para risco ALTO, e a assimetria é o ponto.
-      //
-      // Sem ele, cinco entregas triviais chegando primeiro silenciariam a difícil pela hora
-      // seguinte — exatamente a que mais precisa de alguém e a que paga melhor. O carve-out é
-      // limitado por um teto próprio, não é isenção: uma rajada de entregas de alto risco no mesmo
-      // ponto continua sem virar assédio de notificação.
-      int tetoAplicavel =
-          prioridade == Alerta.PRIORIDADE_ALTA
-              ? parametros.alertasAltaPrioridadePorHora()
-              : parametros.alertasPorHora();
+      // Teto por hora. Existia um carve-out para risco ALTO, e ele saiu com o modelo que produzia a
+      // faixa (V28): sem produtor de PRIORIDADE_ALTA, o teto próprio seria um caminho que nenhum
+      // alerta percorre. A coluna alerta.prioridade fica, e todo alerta nasce NORMAL.
       if (alertaRepository.countByUsuarioIdAndCriadoEmAfter(destinatario, umaHoraAtras)
-          >= tetoAplicavel) {
+          >= parametros.alertasPorHora()) {
         continue;
       }
 
@@ -195,17 +182,12 @@ public class DespachanteAlertaService implements DespachoAlerta {
           new Alerta(
               UUID.randomUUID(),
               destinatario,
-              TIPO_ENTREGA_FALIDA,
-              tituloDe(prioridade),
-              "Uma entrega falhou e o pacote está em "
-                  + apelidoPonto
-                  + ". Leve ao destinatário e receba "
-                  + tokens
-                  + " tokens mais XP."
-                  + complementoDeRisco(prioridade),
+              TIPO_MISSAO_PROXIMA,
+              "Missão nova pertinho de você",
+              titulo + " — receba " + tokens + " tokens mais XP ao concluir.",
               missaoId,
               agora,
-              prioridade));
+              Alerta.PRIORIDADE_NORMAL));
       enviados++;
     }
 
@@ -215,100 +197,5 @@ public class DespachanteAlertaService implements DespachoAlerta {
         enviados,
         destinatarios.size(),
         tribos.size());
-  }
-
-  /**
-   * Faixa de risco → prioridade do alerta.
-   *
-   * <p>Faixa desconhecida vira NORMAL em vez de lançar: o drenador da outbox tem cinco tentativas e
-   * backoff, então uma exceção aqui reprocessaria o mesmo evento cinco vezes antes de desistir — e
-   * o defeito seria um rótulo de prioridade, não algo que justifique reter uma notificação.
-   */
-  private static short prioridadeDe(String faixaRisco) {
-    return switch (faixaRisco) {
-      case "ALTO" -> Alerta.PRIORIDADE_ALTA;
-      case "MEDIO" -> Alerta.PRIORIDADE_MEDIA;
-      default -> Alerta.PRIORIDADE_NORMAL;
-    };
-  }
-
-  private static String tituloDe(short prioridade) {
-    return prioridade == Alerta.PRIORIDADE_ALTA
-        ? "Entrega difícil esperando na sua região"
-        : "Encomenda esperando na sua região";
-  }
-
-  /**
-   * Complemento do corpo para risco alto.
-   *
-   * <p>Sem endereço, sem CEP e sem contagem por logradouro — de propósito. O alerta vai para quem
-   * ainda NÃO aceitou a missão, e {@code MissaoResponse} recorta endereço a bairro para quem não
-   * participa. Uma notificação dizendo "a rua X falhou três vezes" devolveria por outra porta
-   * exatamente o que aquele recorte protege.
-   */
-  private static String complementoDeRisco(short prioridade) {
-    return prioridade == Alerta.PRIORIDADE_ALTA
-        ? " Entregas nesse endereço costumam falhar — combine o horário antes de ir."
-        : "";
-  }
-
-  /**
-   * Aviso operacional de ponto lotado.
-   *
-   * <p>Alerta GLOBAL — {@code usuario_id} nulo, que a V7 permite de propósito. Não é notificação de
-   * usuário: é sinal de operação, e um ponto que recusa encomendas com frequência é exatamente o
-   * dado que justifica negociar mais capacidade ou abrir outro ponto no bairro. Sem isto, a recusa
-   * ficaria só na linha de {@code entrega_falida}, visível apenas para quem for procurá-la.
-   */
-  private void gravarPontoLotado(UUID entregaFalidaId, Map<String, Object> payload) {
-    alertaRepository.save(
-        new Alerta(
-            UUID.randomUUID(),
-            null,
-            TIPO_PONTO_LOTADO,
-            "Ponto de custódia lotado",
-            "O ponto "
-                + payload.get("apelidoPonto")
-                + " ("
-                + payload.get("codigoPonto")
-                + ") recusou uma encomenda de "
-                + payload.get("transportadora")
-                + " por falta de vaga. Capacidade: "
-                + payload.get("capacidade")
-                + ".",
-            // missao_id fica nulo: não houve missão, e é justamente essa ausência que o alerta
-            // relata. Apontar para a entrega falida aqui misturaria dois identificadores na mesma
-            // coluna, que o app usa para navegar até a missão.
-            null,
-            Instant.now()));
-    log.warn("Ponto lotado registrado para entrega falida {}", entregaFalidaId);
-  }
-
-  /**
-   * Aviso operacional de entrega recusada por falta de patrocínio.
-   *
-   * <p>Alerta GLOBAL, como o de ponto lotado, e pela mesma razão: é sinal de OPERAÇÃO, não
-   * notificação de usuário. Uma transportadora cujo patrocinador ficou sem saldo para de gerar
-   * missões silenciosamente — a encomenda continua na loja, o vizinho nunca é chamado, e a única
-   * pista seria uma linha de {@code entrega_falida} que ninguém abre. É o ADMIN que precisa saber,
-   * porque a correção é dele: um aporte.
-   *
-   * <p>O corpo NÃO diz saldo nem valor. A causa exata — patrocinador inexistente, desativado ou sem
-   * fundos — fica fora pelo mesmo motivo que {@code MotivoRecusa.SEM_PATROCINIO} colapsa as três: o
-   * alerta é lido por gente que não precisa do estado financeiro de um parceiro para agir.
-   */
-  private void gravarSemPatrocinio(UUID entregaFalidaId, Map<String, Object> payload) {
-    alertaRepository.save(
-        new Alerta(
-            UUID.randomUUID(),
-            null,
-            TIPO_SEM_PATROCINIO,
-            "Entrega sem patrocínio",
-            "Uma encomenda de "
-                + payload.get("transportadora")
-                + " não virou missão por falta de patrocínio ativo. Nenhum vizinho foi acionado.",
-            null,
-            Instant.now()));
-    log.warn("Entrega falida {} recusada por falta de patrocínio", entregaFalidaId);
   }
 }

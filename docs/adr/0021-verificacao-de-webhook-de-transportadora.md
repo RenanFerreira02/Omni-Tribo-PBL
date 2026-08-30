@@ -1,9 +1,17 @@
 # 0021 — Verificação de webhook de transportadora
 
 **Data:** 2026-08-14
-**Status:** Aceito
+**Status:** REVOGADO por [0031](./0031-remocao-da-extensao-logistica.md)
 
 ---
+
+> ## REVOGADO em 2026-08-30 — ADR 0031
+>
+> O webhook que este ADR protege não existe mais: a extensão logística foi removida na V28, e com
+> ela `HmacWebhookFilter`, `ParametrosWebhook` e a isenção de `/api/v1/webhooks/**` no
+> `SecurityConfig`. **Nenhuma rota de escrita da API é anônima hoje.** O critério que este ADR
+> estabeleceu continua valendo para o futuro: uma isenção de JWT nasce JUNTO com o autenticador
+> que a substitui, nunca antes.
 
 ## Contexto
 

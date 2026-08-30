@@ -12,7 +12,6 @@ import type {
   MissaoResponse,
   PaginaResponse,
   PerfilResponse,
-  PontoCustodiaResponse,
   PreviaRecompensaResponse,
   ResgateResponse,
   TriboResponse,
@@ -40,7 +39,7 @@ export function missao(sobrescrever: Partial<MissaoResponse> = {}): MissaoRespon
     categoria: 'ENTREGA',
     status: 'ABERTA',
     titulo: 'Entregar caixa de ferramentas na Rua dos Pinheiros',
-    descricao: 'A entrega falhou ontem; o pacote está no ponto de custódia.',
+    descricao: 'Caixa de ferramentas para levar até o vizinho do 42.',
     xpRecompensa: 69,
     // Sempre 0 — ck_missao_economia (V15). A UI ignora, e há teste garantindo que ignora.
     valorBrl: 0,
@@ -50,7 +49,6 @@ export function missao(sobrescrever: Partial<MissaoResponse> = {}): MissaoRespon
     origemLon: -46.6934,
     destinoLat: null,
     destinoLon: null,
-    pontoCustodiaId: null,
     cep: '05422030',
     logradouro: 'Rua dos Pinheiros, 500',
     bairro: 'Pinheiros',
@@ -67,11 +65,6 @@ export function missao(sobrescrever: Partial<MissaoResponse> = {}): MissaoRespon
     complexidade: 'MEDIA',
     versaoFormula: 1,
     nivelMinimo: 1,
-    // Sem avaliação de risco — o padrão da fixture, porque é o padrão das missões: só o webhook de
-    // entrega falida avalia. Os testes de aviso sobrescrevem estes três explicitamente.
-    multiplicadorRisco: null,
-    faixaRisco: null,
-    avisoRisco: null,
     versao: 0,
     ...sobrescrever,
   };
@@ -213,18 +206,6 @@ export const ALERTA_PAGINA: PaginaResponse<AlertaResponse> = pagina([
   alerta({ id: 'dddddddd-0000-0000-0000-000000000001', lido: true, titulo: 'Já lida' }),
 ]);
 
-export const PONTO_CUSTODIA: PontoCustodiaResponse = {
-  id: 'cccccccc-0000-0000-0000-000000000001',
-  codigo: 'LM-PIN-001',
-  tipo: 'LOJA',
-  apelido: 'Leroy Merlin Pinheiros',
-  lat: -23.564,
-  lon: -46.6934,
-  capacidade: 50,
-  ocupacao: 3,
-  distanciaM: 0,
-};
-
 export const CLIMA: ClimaResponse = {
   temperaturaC: 21.8,
   sensacaoC: 21.6,
@@ -246,7 +227,6 @@ export const PREVIA: PreviaRecompensaResponse = {
   tokensRecompensa: 23,
   complexidade: 'MEDIA',
   versaoFormula: 1,
-  multiplicadorRisco: 1.0,
 };
 
 /** Corpo RFC 9457 como o backend o emite, incluindo `traceId`. */
@@ -316,48 +296,3 @@ export function problema(
     ...extra,
   };
 }
-
-/**
- * Painel de impacto, com números escolhidos para serem CONFERÍVEIS de cabeça na leitura do teste:
- * 22 = 6 + 12 + 3 + 1, conversão 6/22 = 27,3%, conclusão 3/4 = 75%, custo 3 × 25 = 75.
- *
- * `criadas` (4) é MENOR que `convertidas` (6) de propósito: é a forma real do banco, onde entrega
- * falida do seed histórico aponta para missão criada por humano. A fixture antiga tinha os dois
- * iguais e escondia o caso que a tela precisa explicar.
- *
- * `pendentes` alto de propósito — é o formato do banco de desenvolvimento, onde o seed histórico
- * domina, e é o caso em que a tela precisa explicar a conversão baixa em vez de deixar concluir que
- * o bairro não responde.
- */
-export const IMPACTO = {
-  geradoEm: '2026-08-23T14:02:11Z',
-  entregasFalidas: {
-    recebidas: 22,
-    convertidas: 6,
-    pendentes: 12,
-    recusadasPontoLotado: 3,
-    recusadasSemPatrocinio: 1,
-    taxaConversao: 0.2727,
-  },
-  missoesDeRetirada: {
-    criadas: 4,
-    concluidas: 3,
-    taxaConclusao: 0.75,
-    medianaAteCheckinSegundos: 8100,
-    amostraMediana: 5,
-  },
-  custoEvitado: {
-    reentregasEvitadas: 3,
-    premissaCustoReentregaBrl: 25.0,
-    baseBrl: 75.0,
-    menos50Brl: 37.5,
-    mais50Brl: 112.5,
-  },
-  tokens: {
-    aportados: 40000,
-    emCarteiras: 38200,
-    emPotes: 1200,
-    emCirculacao: 39400,
-    resgatados: 600,
-  },
-};

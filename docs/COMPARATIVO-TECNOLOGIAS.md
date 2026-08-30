@@ -106,7 +106,7 @@ Expo aqui não apareceu em escrever a tela, apareceu em *provar* que a tela func
 
 **Kotlin nativo**, se o produto dependesse de execução em segundo plano confiável — rastreamento de
 localização contínuo, geofencing, serviço em foreground. É exatamente o tipo de coisa que este
-produto poderia querer depois (detectar que o vizinho chegou perto do ponto de custódia), e é onde a
+produto poderia querer depois (detectar que o executor chegou perto da origem da missão), e é onde a
 camada do Expo cobra mais caro.
 
 **Kotlin nativo**, também, se a entrega fosse Android-only — que é o caso do PBL ao lado. Aí o

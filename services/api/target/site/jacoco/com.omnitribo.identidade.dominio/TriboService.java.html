@@ -100,7 +100,7 @@ public class TriboService implements ConsultaTribo {
   @Override
   @Transactional(readOnly = true)
   public boolean existe(UUID triboId) {
-<span class="pc bpc" id="L103" title="2 of 4 branches missed.">    return triboId != null &amp;&amp; triboRepository.existsById(triboId);</span>
+<span class="nc bnc" id="L103" title="All 4 branches missed.">    return triboId != null &amp;&amp; triboRepository.existsById(triboId);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

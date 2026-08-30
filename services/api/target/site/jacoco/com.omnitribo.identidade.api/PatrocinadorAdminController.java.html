@@ -57,11 +57,11 @@ public class PatrocinadorAdminController {
   @ResponseStatus(HttpStatus.CREATED)
   @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
   @Operation(
-      summary = &quot;Cadastrar patrocinador de uma transportadora&quot;,
+      summary = &quot;Cadastrar apoiador do bairro&quot;,
       description =
-          &quot;Cria a conta-titular (que nunca autentica), a carteira e a relação com o slug da &quot;
-              + &quot;transportadora. O slug precisa casar com a chave de app.webhooks.segredos, senão &quot;
-              + &quot;as entregas daquela transportadora caem em SEM_PATROCINIO.&quot;)
+          &quot;Cria a conta-titular (que nunca autentica), a carteira e a relação. O apoiador é quem &quot;
+              + &quot;recebe aporte de token — o único ponto de emissão do sistema — e financia o pote &quot;
+              + &quot;de missões comunitárias sem pertencer a nenhuma tribo.&quot;)
   @ApiResponses({
     @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Patrocinador cadastrado&quot;),
     @ApiResponse(responseCode = &quot;400&quot;, ref = &quot;#/components/responses/RequisicaoInvalida&quot;),
@@ -70,7 +70,7 @@ public class PatrocinadorAdminController {
     @ApiResponse(responseCode = &quot;422&quot;, ref = &quot;#/components/responses/RegraNegocioViolada&quot;)
   })
   public PatrocinadorResponse cadastrar(@Valid @RequestBody CadastrarPatrocinadorRequest corpo) {
-<span class="fc" id="L73">    return patrocinadorService.cadastrar(corpo.nome(), corpo.transportadoraSlug(), Instant.now());</span>
+<span class="fc" id="L73">    return patrocinadorService.cadastrar(corpo.nome(), corpo.slug(), Instant.now());</span>
   }
 
   @GetMapping
@@ -123,11 +123,11 @@ public class PatrocinadorAdminController {
   @DeleteMapping(&quot;/{patrocinadorId}&quot;)
   @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
   @Operation(
-      summary = &quot;Encerrar o patrocínio&quot;,
+      summary = &quot;Encerrar o apoio&quot;,
       description =
-          &quot;Desativa sem apagar: os lançamentos do patrocinador continuam no ledger, e apagar a &quot;
-              + &quot;relação deixaria o extrato sem explicação. A partir daqui as entregas daquela &quot;
-              + &quot;transportadora respondem SEM_PATROCINIO.&quot;)
+          &quot;Desativa sem apagar: os lançamentos do apoiador continuam no ledger, e apagar a relação &quot;
+              + &quot;deixaria o extrato sem explicação. A partir daqui ele não recebe aporte novo nem &quot;
+              + &quot;financia missão.&quot;)
   @ApiResponses({
     @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Patrocínio encerrado&quot;),
     @ApiResponse(responseCode = &quot;401&quot;, ref = &quot;#/components/responses/NaoAutenticado&quot;),

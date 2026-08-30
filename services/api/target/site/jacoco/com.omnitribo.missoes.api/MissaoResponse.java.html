@@ -31,7 +31,6 @@ import java.util.UUID;
     BigDecimal origemLon,
     BigDecimal destinoLat,
     BigDecimal destinoLon,
-    UUID pontoCustodiaId,
     String cep,
     String logradouro,
     String bairro,
@@ -67,32 +66,6 @@ import java.util.UUID;
      * cliente é conveniência e a do servidor é a regra.
      */
     int nivelMinimo,
-
-    /**
-     * Risco de falha avaliado na criação, CONGELADO junto com {@code versaoFormula}.
-     *
-     * &lt;p&gt;Nulos em toda missão que não veio do webhook de entrega falida, que é a maioria — o app
-     * precisa tratar ausência como &quot;sem avaliação&quot;, nunca como risco baixo.
-     *
-     * &lt;p&gt;{@code multiplicadorRisco} sai na resposta porque é o que EXPLICA a recompensa: sem ele,
-     * duas entregas de mesmo peso e distância pagariam valores diferentes sem justificativa
-     * visível, e a economia pareceria arbitrária.
-     */
-    BigDecimal multiplicadorRisco,
-    String faixaRisco,
-
-    /**
-     * Texto pronto do aviso, ou nulo quando não há o que avisar.
-     *
-     * &lt;p&gt;Montado no SERVIDOR de propósito, pela mesma razão que a recompensa é: se o app compusesse
-     * a frase a partir da faixa, cada versão instalada teria a sua, e mudar a orientação exigiria
-     * publicar na loja. Aqui, muda com um deploy.
-     *
-     * &lt;p&gt;&lt;b&gt;Nunca contém logradouro nem CEP.&lt;/b&gt; Esta resposta tem recorte por participação —
-     * {@code montar(m, participa)} reduz o endereço a bairro para quem não participa — e um aviso
-     * citando a rua devolveria pela porta de trás exatamente o que aquele recorte protege.
-     */
-    String avisoRisco,
     int versao)
     implements RecursoAuditavel {
 
@@ -102,7 +75,7 @@ import java.util.UUID;
    */
   @Override
   public UUID idAuditoria() {
-<span class="fc" id="L105">    return id;</span>
+<span class="fc" id="L78">    return id;</span>
   }
 
   /**
@@ -122,7 +95,7 @@ import java.util.UUID;
    * vida (publicar, aceitar, check-in, confirmar) são sempre do criador ou do executor.
    */
   public static MissaoResponse de(Missao m) {
-<span class="fc" id="L125">    return montar(m, true);</span>
+<span class="fc" id="L98">    return montar(m, true);</span>
   }
 
   /**
@@ -142,10 +115,10 @@ import java.util.UUID;
    * do CAMPO, não o da precisão.
    */
   public static MissaoResponse de(Missao m, UUID solicitanteId) {
-<span class="pc bpc" id="L145" title="1 of 2 branches missed.">    boolean participa =</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">    boolean participa =</span>
         solicitanteId != null
-<span class="fc bfc" id="L147" title="All 4 branches covered.">            &amp;&amp; (solicitanteId.equals(m.getCriadorId()) || solicitanteId.equals(m.getExecutorId()));</span>
-<span class="fc" id="L148">    return montar(m, participa);</span>
+<span class="fc bfc" id="L120" title="All 4 branches covered.">            &amp;&amp; (solicitanteId.equals(m.getCriadorId()) || solicitanteId.equals(m.getExecutorId()));</span>
+<span class="fc" id="L121">    return montar(m, participa);</span>
   }
 
   /**
@@ -157,73 +130,44 @@ import java.util.UUID;
    * entrada por usuário — ou seja, em nada.
    */
   public static MissaoResponse deAproximada(Missao m) {
-<span class="fc" id="L160">    return montar(m, false);</span>
+<span class="fc" id="L133">    return montar(m, false);</span>
   }
 
   private static MissaoResponse montar(Missao m, boolean participa) {
-<span class="fc bfc" id="L164" title="All 2 branches covered.">    int casas = participa ? CASAS_EXATAS : CASAS_APROXIMADAS;</span>
-<span class="fc" id="L165">    return new MissaoResponse(</span>
-<span class="fc" id="L166">        m.getId(),</span>
-<span class="fc" id="L167">        m.getCriadorId(),</span>
-<span class="fc" id="L168">        m.getExecutorId(),</span>
-<span class="fc" id="L169">        m.getCategoria(),</span>
-<span class="fc" id="L170">        m.getStatus(),</span>
-<span class="fc" id="L171">        m.getTitulo(),</span>
-<span class="fc" id="L172">        m.getDescricao(),</span>
-<span class="fc" id="L173">        m.getXpRecompensa(),</span>
-<span class="fc" id="L174">        m.getValorBrl(),</span>
-<span class="fc" id="L175">        m.getTokensRecompensa(),</span>
-<span class="fc" id="L176">        m.getPoteTokens(),</span>
-<span class="fc" id="L177">        Coordenadas.arredondar(Coordenadas.latitude(m.getOrigem()), casas),</span>
-<span class="fc" id="L178">        Coordenadas.arredondar(Coordenadas.longitude(m.getOrigem()), casas),</span>
-<span class="fc" id="L179">        Coordenadas.arredondar(Coordenadas.latitude(m.getDestino()), casas),</span>
-<span class="fc" id="L180">        Coordenadas.arredondar(Coordenadas.longitude(m.getDestino()), casas),</span>
-<span class="fc" id="L181">        m.getPontoCustodiaId(),</span>
-<span class="fc bfc" id="L182" title="All 2 branches covered.">        participa ? m.getCep() : null,</span>
-<span class="fc bfc" id="L183" title="All 2 branches covered.">        participa ? m.getLogradouro() : null,</span>
-<span class="fc" id="L184">        m.getBairro(),</span>
-<span class="fc" id="L185">        m.getCidade(),</span>
-<span class="fc" id="L186">        m.getUf(),</span>
-<span class="fc" id="L187">        m.getRaioCheckinM(),</span>
-<span class="fc" id="L188">        m.getPesoKg(),</span>
-<span class="fc" id="L189">        m.getVolumeL(),</span>
-<span class="fc" id="L190">        m.getJanelaInicio(),</span>
-<span class="fc" id="L191">        m.getJanelaFim(),</span>
-<span class="fc" id="L192">        m.getCriadaEm(),</span>
-<span class="fc" id="L193">        m.getAceitaEm(),</span>
-<span class="fc" id="L194">        m.getConcluidaEm(),</span>
-<span class="fc" id="L195">        m.getComplexidade(),</span>
-<span class="fc" id="L196">        m.getVersaoFormula(),</span>
-<span class="fc" id="L197">        m.getNivelMinimo(),</span>
-<span class="fc" id="L198">        m.getMultiplicadorRisco(),</span>
-<span class="fc" id="L199">        m.getFaixaRisco(),</span>
-<span class="fc" id="L200">        avisoDe(m.getFaixaRisco()),</span>
-<span class="fc" id="L201">        m.getVersao());</span>
-  }
-
-  /**
-   * Orientação acionável para a faixa de risco, ou nulo quando não há o que dizer.
-   *
-   * &lt;p&gt;Só ALTO e MEDIO produzem aviso. BAIXO não gera texto porque um aviso que aparece sempre
-   * deixa de ser lido — e uma missão sem avaliação (a maioria) não tem nada a declarar.
-   *
-   * &lt;p&gt;O texto diz o que FAZER, não só o que temer. &quot;Risco alto&quot; sozinho deixa a pessoa sem ação;
-   * &quot;combine o horário antes de ir&quot; é o comportamento que efetivamente reduz a chance de a segunda
-   * tentativa também falhar.
-   */
-  private static String avisoDe(String faixaRisco) {
-<span class="fc bfc" id="L215" title="All 2 branches covered.">    if (faixaRisco == null) {</span>
-<span class="fc" id="L216">      return null;</span>
-    }
-<span class="pc bpc" id="L218" title="1 of 3 branches missed.">    return switch (faixaRisco) {</span>
-      case &quot;ALTO&quot; -&gt;
-<span class="nc" id="L220">          &quot;Entregas neste endereço costumam falhar. Combine o horário com o destinatário antes de&quot;</span>
-              + &quot; ir — é o que mais aumenta a chance de dar certo desta vez.&quot;;
-      case &quot;MEDIO&quot; -&gt;
-<span class="fc" id="L223">          &quot;Esta entrega tem histórico irregular. Vale confirmar se há alguém para receber antes de&quot;</span>
-              + &quot; sair.&quot;;
-<span class="fc" id="L225">      default -&gt; null;</span>
-    };
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    int casas = participa ? CASAS_EXATAS : CASAS_APROXIMADAS;</span>
+<span class="fc" id="L138">    return new MissaoResponse(</span>
+<span class="fc" id="L139">        m.getId(),</span>
+<span class="fc" id="L140">        m.getCriadorId(),</span>
+<span class="fc" id="L141">        m.getExecutorId(),</span>
+<span class="fc" id="L142">        m.getCategoria(),</span>
+<span class="fc" id="L143">        m.getStatus(),</span>
+<span class="fc" id="L144">        m.getTitulo(),</span>
+<span class="fc" id="L145">        m.getDescricao(),</span>
+<span class="fc" id="L146">        m.getXpRecompensa(),</span>
+<span class="fc" id="L147">        m.getValorBrl(),</span>
+<span class="fc" id="L148">        m.getTokensRecompensa(),</span>
+<span class="fc" id="L149">        m.getPoteTokens(),</span>
+<span class="fc" id="L150">        Coordenadas.arredondar(Coordenadas.latitude(m.getOrigem()), casas),</span>
+<span class="fc" id="L151">        Coordenadas.arredondar(Coordenadas.longitude(m.getOrigem()), casas),</span>
+<span class="fc" id="L152">        Coordenadas.arredondar(Coordenadas.latitude(m.getDestino()), casas),</span>
+<span class="fc" id="L153">        Coordenadas.arredondar(Coordenadas.longitude(m.getDestino()), casas),</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        participa ? m.getCep() : null,</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        participa ? m.getLogradouro() : null,</span>
+<span class="fc" id="L156">        m.getBairro(),</span>
+<span class="fc" id="L157">        m.getCidade(),</span>
+<span class="fc" id="L158">        m.getUf(),</span>
+<span class="fc" id="L159">        m.getRaioCheckinM(),</span>
+<span class="fc" id="L160">        m.getPesoKg(),</span>
+<span class="fc" id="L161">        m.getVolumeL(),</span>
+<span class="fc" id="L162">        m.getJanelaInicio(),</span>
+<span class="fc" id="L163">        m.getJanelaFim(),</span>
+<span class="fc" id="L164">        m.getCriadaEm(),</span>
+<span class="fc" id="L165">        m.getAceitaEm(),</span>
+<span class="fc" id="L166">        m.getConcluidaEm(),</span>
+<span class="fc" id="L167">        m.getComplexidade(),</span>
+<span class="fc" id="L168">        m.getVersaoFormula(),</span>
+<span class="fc" id="L169">        m.getNivelMinimo(),</span>
+<span class="fc" id="L170">        m.getVersao());</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

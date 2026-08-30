@@ -4,20 +4,19 @@ import { FlatList, Linking, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { mensagemDe } from '@/api/erros';
-import type { MissaoProximaResponse, PontoCustodiaResponse } from '@/api/tipos';
+import type { MissaoProximaResponse } from '@/api/tipos';
 import { Aviso } from '@/components/Aviso';
 import { Botao } from '@/components/Botao';
 import { Card } from '@/components/Card';
 import { Chip } from '@/components/Chip';
 import { EstadoVazio } from '@/components/EstadoVazio';
-import { ItemPontoCustodia } from '@/components/ItemPontoCustodia';
 import { MissaoCard } from '@/components/MissaoCard';
 import { TituloTela } from '@/components/TituloTela';
 import { FolhaInferior } from '@/components/FolhaInferior';
 import { JustificativaLocalizacao } from '@/components/JustificativaLocalizacao';
 import { MapaLeaflet, type MarcadorMapa, type RegiaoMapa } from '@/components/MapaLeaflet';
 import { SaldoToken } from '@/components/SaldoToken';
-import { useClima, usePontosCustodiaProximos, useTribo } from '@/features/mapa/hooks';
+import { useClima, useTribo } from '@/features/mapa/hooks';
 import { useApresentacaoRadar } from '@/features/mapa/useApresentacaoRadar';
 import { useMissoesProximas } from '@/features/missoes/hooks';
 import { useLocalizacao } from '@/features/missoes/useLocalizacao';
@@ -43,14 +42,13 @@ export default function TelaMapa() {
    * Mapa ou lista — a MESMA rota, a mesma consulta, outra apresentação.
    *
    * Duas rotas divergiriam com o tempo: a correção de uma chegaria na outra meses depois, ou nunca.
-   * E a lista não é "o mapa degradado": é a única forma de alcançar um ponto de custódia sem tocar
-   * num quadrado de 44 pt dentro de uma WebView — ver ADR 0030.
+   * E a lista não é "o mapa degradado": é a única forma de alcançar uma missão sem tocar num pino
+   * de 44 pt dentro de uma WebView — ver ADR 0030.
    */
   const [apresentacao, trocarApresentacao] = useApresentacaoRadar();
 
   const [regiao, setRegiao] = useState<RegiaoMapa | null>(null);
   const [selecionado, setSelecionado] = useState<MissaoProximaResponse | null>(null);
-  const [pontoSelecionado, setPontoSelecionado] = useState<PontoCustodiaResponse | null>(null);
 
   /**
    * Onde o mapa aponta, em ordem de preferência: onde o usuário está → centro da tribo → São Paulo.
@@ -72,7 +70,6 @@ export default function TelaMapa() {
   const raio = Math.min(regiao?.raioM ?? 2000, 20000);
 
   const missoes = useMissoesProximas(foco);
-  const pontos = usePontosCustodiaProximos(foco, raio);
   const clima = useClima(foco);
 
   // 500 ms: `moveend` do Leaflet já dispara uma vez por gesto, mas arrastar o mapa é uma sequência
@@ -109,32 +106,18 @@ export default function TelaMapa() {
       ];
     });
 
-    const dePontos = (pontos.data ?? []).map<MarcadorMapa>((ponto) => ({
-      id: `ponto:${ponto.id}`,
-      lat: ponto.lat,
-      lon: ponto.lon,
-      // Forma distinta, e não só cor: no mapa não há texto ao lado para desempatar, e distinguir
-      // só por cor deixa os dois tipos indistinguíveis para daltonismo.
-      cor: cores.tinta70,
-      forma: 'quadrado',
-      rotulo: ponto.apelido,
-    }));
-
-    return [...deMissoes, ...dePontos];
-  }, [missoes.data, pontos.data]);
+    return deMissoes;
+  }, [missoes.data]);
 
   const aoTocarMarcador = useCallback(
     (id: string) => {
-      const [tipo, alvo] = id.split(':');
-      if (tipo === 'missao') {
-        setPontoSelecionado(null);
-        setSelecionado((missoes.data ?? []).find((m) => m.missao.id === alvo) ?? null);
-      } else {
-        setSelecionado(null);
-        setPontoSelecionado((pontos.data ?? []).find((p) => p.id === alvo) ?? null);
-      }
+      // O prefixo `missao:` continua no id do marcador mesmo com um tipo só. Havia dois — o outro
+      // era o ponto de custódia, removido na V28 (ADR 0031) —, e tirar o prefixo agora obrigaria a
+      // reintroduzi-lo no dia em que aparecer a segunda camada, mudando o contrato do MapaLeaflet.
+      const [, alvo] = id.split(':');
+      setSelecionado((missoes.data ?? []).find((m) => m.missao.id === alvo) ?? null);
     },
-    [missoes.data, pontos.data],
+    [missoes.data],
   );
 
   // ─── Justificativa ANTES do prompt do sistema ───────────────────────────────────────────────
@@ -231,10 +214,8 @@ export default function TelaMapa() {
       ) : (
         <ListaDoRadar
           missoes={missoes.data ?? []}
-          pontos={pontos.data ?? []}
-          carregando={missoes.isLoading || pontos.isLoading}
+          carregando={missoes.isLoading}
           aoAbrirMissao={(id: string) => router.push(`/missao/${id}`)}
-          aoAbrirPonto={setPontoSelecionado}
         />
       )}
 
@@ -275,36 +256,12 @@ export default function TelaMapa() {
           </View>
         ) : null}
       </FolhaInferior>
-
-      <FolhaInferior
-        visivel={pontoSelecionado !== null}
-        aoFechar={() => setPontoSelecionado(null)}
-        titulo={pontoSelecionado?.apelido}
-        testID="folha-ponto"
-      >
-        {pontoSelecionado ? (
-          <View style={estilos.resumo}>
-            <Text style={estilos.linhaResumo}>
-              Ponto de custódia · {pontoSelecionado.tipo.toLowerCase()}
-            </Text>
-            <Text style={estilos.linhaResumo}>Código {pontoSelecionado.codigo}</Text>
-            {pontoSelecionado.distanciaM !== null ? (
-              <Text style={estilos.linhaResumo}>
-                a {formatarDistancia(pontoSelecionado.distanciaM)}
-              </Text>
-            ) : null}
-            <Text style={estilos.linhaResumo}>
-              Ocupação {pontoSelecionado.ocupacao} de {pontoSelecionado.capacidade}
-            </Text>
-          </View>
-        ) : null}
-      </FolhaInferior>
     </SafeAreaView>
   );
 }
 
 /**
- * O radar em texto: as mesmas missões e os mesmos pontos que o mapa desenha.
+ * O radar em texto: as mesmas missões que o mapa desenha.
  *
  * <b>Uma FlatList só, com as duas seções.</b> Duas listas empilhadas dariam duas áreas roláveis
  * dentro da mesma tela — quem navega por voz teria de descobrir que existe uma segunda depois de
@@ -317,16 +274,12 @@ export default function TelaMapa() {
  */
 function ListaDoRadar({
   missoes,
-  pontos,
   carregando,
   aoAbrirMissao,
-  aoAbrirPonto,
 }: {
   missoes: MissaoProximaResponse[];
-  pontos: PontoCustodiaResponse[];
   carregando: boolean;
   aoAbrirMissao: (id: string) => void;
-  aoAbrirPonto: (ponto: PontoCustodiaResponse) => void;
 }) {
   return (
     <FlatList
@@ -358,31 +311,6 @@ function ListaDoRadar({
             testID="radar-sem-missoes"
           />
         )
-      }
-      ListFooterComponent={
-        <View style={estilos.secao}>
-          <TituloTela nivel="secao">
-            {pontos.length > 0 ? `Pontos de custódia (${pontos.length})` : 'Pontos de custódia'}
-          </TituloTela>
-          {pontos.length === 0 && !carregando ? (
-            <EstadoVazio
-              titulo="Nenhum ponto por perto"
-              descricao="Pontos de custódia guardam encomendas que falharam na entrega."
-              testID="radar-sem-pontos"
-            />
-          ) : (
-            pontos.map((ponto) => (
-              <ItemPontoCustodia
-                key={ponto.id}
-                ponto={ponto}
-                // Mesma folha que o marcador abre. Não há outro destino para um ponto, e reusá-la
-                // mantém UMA descrição só dele no app.
-                onPress={() => aoAbrirPonto(ponto)}
-                testID={`radar-ponto-${ponto.id}`}
-              />
-            ))
-          )}
-        </View>
       }
     />
   );

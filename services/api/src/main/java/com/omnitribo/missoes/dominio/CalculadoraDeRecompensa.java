@@ -13,9 +13,8 @@ import java.math.RoundingMode;
  * API: uma missão AJUDA sem peso, sem volume e sem destino foi criada com <b>5.000 XP e 1.000
  * tokens</b> — o teto. Um teto sem fórmula significa que toda missão pode valer o teto, e a única
  * variável é a vontade de quem cria. Naquele momento ENTREGA e AJUDA ainda cunhavam token (lacuna
- * do §4.4), então isso era emissão sem contrapartida: 656 → 2.656 tokens em dois ciclos. Hoje as
- * duas pagam do pote — ENTREGA pelo patrocinador (ADR 0024) e AJUDA pela tribo (ADR 0025) —, e só
- * ENTREGA criada por humano ainda cunha.
+ * do §4.4), então isso era emissão sem contrapartida: 656 → 2.656 tokens em dois ciclos. Hoje AJUDA
+ * paga do pote da tribo (ADR 0025) e só ENTREGA criada por humano ainda cunha.
  *
  * <p>Isto não fecha a cunhagem — fecha o <b>arbítrio sobre o tamanho dela</b>.
  *
@@ -61,54 +60,29 @@ public final class CalculadoraDeRecompensa {
    *     vence, porque dado objetivo ganha de declaração.
    * @param distanciaM distância origem→destino em metros, medida pelo PostGIS. Nula quando a missão
    *     não tem destino, o que é sempre o caso em TRIBO.
-   * @param valorOfertadoBrl valor que um TERCEIRO (hoje, a transportadora no webhook de entrega
-   *     falida) declara estar disposto a custear. Nulo em toda missão criada por usuário — o app
-   *     não tem esse campo e nunca terá, porque quem cria a missão não paga (ADR 0009).
-   *     <p>Entra como INSUMO e nada mais: aumenta a recompensa em TOKEN, e jamais é gravado em
-   *     {@code missao.valor_brl}, que {@code ck_missao_economia} trava em zero. A diferença importa
-   *     — o executor continua recebendo XP e token, não reais, e a conversão do real ofertado em
-   *     patrocínio do pote acontece fora do ciclo da missão.
-   *     <p>Existe porque uma entrega difícil vale mais para quem a paga, e a transportadora é a
-   *     única parte que sabe quanto: peso, volume e distância descrevem o esforço, não a urgência.
+   *     <p><b>A fórmula tinha mais dois insumos até a versão 3</b>, ambos vindos da extensão
+   *     logística: {@code valorOfertadoBrl}, o quanto a transportadora declarava estar disposta a
+   *     custear, e {@code multiplicadorRisco}, o fator do modelo de previsão de falha. Saíram na
+   *     versão 4, junto com a extensão (ADR 0031). Missão criada por gente sempre passou nulo nos
+   *     dois, então NENHUM valor calculado mudou — o que mudou foi a FORMA da fórmula, e é por isso
+   *     que a versão subiu mesmo assim: sem o incremento, uma missão antiga passaria a ser
+   *     explicada por uma calibração que não a produziu.
    */
   public record Insumos(
       CategoriaMissao categoria,
       ComplexidadeMissao complexidadeDeclarada,
       BigDecimal pesoKg,
       BigDecimal volumeL,
-      Double distanciaM,
-      BigDecimal valorOfertadoBrl,
-      BigDecimal multiplicadorRisco) {
-
-    /** Missão criada por usuário: sem valor ofertado e sem risco avaliado. */
-    public Insumos(
-        CategoriaMissao categoria,
-        ComplexidadeMissao complexidadeDeclarada,
-        BigDecimal pesoKg,
-        BigDecimal volumeL,
-        Double distanciaM,
-        BigDecimal valorOfertadoBrl) {
-      this(categoria, complexidadeDeclarada, pesoKg, volumeL, distanciaM, valorOfertadoBrl, null);
-    }
-  }
+      Double distanciaM) {}
 
   /**
    * Resultado, com a complexidade EFETIVA — derivada ou declarada.
    *
    * <p>Devolver a complexidade, e não só os números, é o que permite ao app explicar o valor ao
    * usuário e ao servidor persistir a mesma coisa que mostrou na prévia.
-   *
-   * @param multiplicadorRisco o fator EFETIVAMENTE aplicado, depois do clamp. Viaja no resultado
-   *     porque é congelado em {@code missao.multiplicador_risco} junto com {@code versao_formula} —
-   *     sem ele, um crédito antigo não teria como ser explicado depois de o modelo mudar. Sempre
-   *     preenchido: 1,00 quando não houve avaliação de risco.
    */
   public record Recompensa(
-      int xp,
-      long tokens,
-      ComplexidadeMissao complexidade,
-      int versaoFormula,
-      BigDecimal multiplicadorRisco) {}
+      int xp, long tokens, ComplexidadeMissao complexidade, int versaoFormula) {}
 
   /** Calcula a recompensa. Determinística: mesmas entradas, mesma saída. */
   public static Recompensa calcular(Insumos insumos, ParametrosRecompensa p) {
@@ -127,20 +101,10 @@ public final class CalculadoraDeRecompensa {
               + ".");
     }
 
-    // O risco multiplica a BASE, junto da complexidade — nunca o total.
-    //
-    // Multiplicar o total contradiria a decisão de projeto registrada no javadoc desta classe
-    // ("base
-    // multiplicada, adicionais somados"), e teria efeito perverso: uma entrega longa e pesada num
-    // endereço arriscado veria os três adicionais escalados juntos, e a recompensa explodiria de
-    // forma não linear justamente no caso extremo. Na base, o risco reprecifica a DIFICULDADE
-    // intrínseca da missão, que é o que ele mede.
-    BigDecimal risco = multiplicadorDeRiscoEfetivo(insumos.multiplicadorRisco(), p);
-    BigDecimal total = new BigDecimal(base).multiply(multiplicador).multiply(risco);
+    BigDecimal total = new BigDecimal(base).multiply(multiplicador);
     total = total.add(adicionalDistancia(insumos.distanciaM(), p));
     total = total.add(adicionalPeso(insumos.pesoKg(), p));
     total = total.add(adicionalVolume(insumos.volumeL(), p));
-    total = total.add(adicionalValorOfertado(insumos.valorOfertadoBrl(), p));
 
     // HALF_UP e não truncamento: truncar tornaria a fórmula não monotônica em passos pequenos —
     // dois pesos diferentes cairiam no mesmo inteiro e um aumento de insumo não aumentaria nada.
@@ -151,33 +115,7 @@ public final class CalculadoraDeRecompensa {
 
     int xp = (int) Math.min((long) tokens * p.xpPorToken(), p.tetoXp());
 
-    return new Recompensa(xp, tokens, complexidade, p.versao(), risco);
-  }
-
-  /**
-   * Multiplicador de risco efetivamente aplicado, sempre dentro do teto.
-   *
-   * <p>Ausente vira 1,00, o neutro: missão criada por usuário não passa por avaliação de risco, e
-   * tratar isso como "risco desconhecido = risco alto" pagaria mais por ignorância.
-   *
-   * <p><b>O clamp é a segunda barreira, não a primeira.</b> {@code PrevisorDeRisco} já limita o
-   * valor na origem; repetir aqui é deliberado, porque esta classe é a última função pura antes do
-   * congelamento em banco e não pode confiar em quem a chamou. Um multiplicador fora de faixa vindo
-   * de um chamador futuro — ou de um parâmetro mal calibrado — cunharia token além do previsto, e a
-   * cunhagem não tem como ser desfeita depois de creditada.
-   */
-  private static BigDecimal multiplicadorDeRiscoEfetivo(
-      BigDecimal informado, ParametrosRecompensa p) {
-    if (informado == null) {
-      return p.multiplicadorRiscoMinimo();
-    }
-    if (informado.compareTo(p.multiplicadorRiscoMinimo()) < 0) {
-      return p.multiplicadorRiscoMinimo();
-    }
-    if (informado.compareTo(p.multiplicadorRiscoMaximo()) > 0) {
-      return p.multiplicadorRiscoMaximo();
-    }
-    return informado;
+    return new Recompensa(xp, tokens, complexidade, p.versao());
   }
 
   /**
@@ -234,24 +172,5 @@ public final class CalculadoraDeRecompensa {
         : volumeL
             .divide(LITROS_POR_UNIDADE_DE_VOLUME, 4, RoundingMode.HALF_UP)
             .multiply(p.tokensPorCemLitros());
-  }
-
-  /**
-   * Converte o valor ofertado por terceiro em tokens adicionais.
-   *
-   * <p>Não é câmbio. A taxa é de CALIBRAÇÃO, deliberadamente baixa, e existe para ordenar missões
-   * por urgência — não para estabelecer quanto vale um token em reais. O ADR 0009 §6 recusa fixar
-   * essa cotação em qualquer lugar do produto, porque token conversível é dinheiro, com KYC junto.
-   *
-   * <p>Negativo é tratado como zero em vez de reduzir a recompensa: um valor ofertado negativo é
-   * dado ruim da transportadora, e deixá-lo subtrair permitiria a um parceiro rebaixar a recompensa
-   * da comunidade abaixo do que o esforço já justifica.
-   */
-  private static BigDecimal adicionalValorOfertado(
-      BigDecimal valorOfertadoBrl, ParametrosRecompensa p) {
-    if (valorOfertadoBrl == null || valorOfertadoBrl.signum() <= 0) {
-      return BigDecimal.ZERO;
-    }
-    return valorOfertadoBrl.multiply(p.tokensPorRealOfertado());
   }
 }

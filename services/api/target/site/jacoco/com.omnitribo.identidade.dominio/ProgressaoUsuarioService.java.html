@@ -58,10 +58,10 @@ public class ProgressaoUsuarioService implements ProgressaoUsuario {
     //
     // REQUIRED e não MANDATORY, ao contrário de concederXp: aquele ESCREVE e precisa estar dentro
     // da transação de quem chama; este é leitura e também é usado fora do caminho de valor.
-<span class="fc" id="L61">    return usuarioRepository</span>
-<span class="fc" id="L62">        .findById(usuarioId)</span>
-<span class="fc" id="L63">        .map(u -&gt; RegraNivel.nivelPara(u.getXp()))</span>
-<span class="pc" id="L64">        .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário não encontrado.&quot;));</span>
+<span class="nc" id="L61">    return usuarioRepository</span>
+<span class="nc" id="L62">        .findById(usuarioId)</span>
+<span class="nc" id="L63">        .map(u -&gt; RegraNivel.nivelPara(u.getXp()))</span>
+<span class="nc" id="L64">        .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário não encontrado.&quot;));</span>
   }
 
   @Override
@@ -69,17 +69,17 @@ public class ProgressaoUsuarioService implements ProgressaoUsuario {
   public List&lt;UUID&gt; filtrarPorNivelMinimo(Collection&lt;UUID&gt; usuarioIds, int nivelMinimo) {
     // Coleção vazia num IN gera SQL inválido no PostgreSQL. Sem a guarda, uma tribo sem candidatos
     // derrubaria o despacho com erro de sintaxe em vez de simplesmente não notificar ninguém.
-<span class="pc bpc" id="L72" title="1 of 2 branches missed.">    if (usuarioIds.isEmpty()) {</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">    if (usuarioIds.isEmpty()) {</span>
 <span class="nc" id="L73">      return List.of();</span>
     }
-<span class="pc bpc" id="L75" title="1 of 2 branches missed.">    if (nivelMinimo &lt;= 1) {</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">    if (nivelMinimo &lt;= 1) {</span>
       // Nível 1 é o de qualquer conta nova: não filtra nada, e a consulta seria desperdício.
 <span class="nc" id="L77">      return List.copyOf(usuarioIds);</span>
     }
     // O limiar é calculado UMA vez, em Java, pela mesma RegraNivel que deriva o nível — em vez de
     // reimplementar a curva quadrática em SQL, onde ela sairia de sincronia na primeira mudança.
-<span class="fc" id="L81">    return usuarioRepository.idsComXpMinimo(</span>
-<span class="fc" id="L82">        Set.copyOf(usuarioIds), RegraNivel.xpParaNivel(nivelMinimo));</span>
+<span class="nc" id="L81">    return usuarioRepository.idsComXpMinimo(</span>
+<span class="nc" id="L82">        Set.copyOf(usuarioIds), RegraNivel.xpParaNivel(nivelMinimo));</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

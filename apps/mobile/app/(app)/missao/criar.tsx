@@ -18,7 +18,7 @@ import { TituloTela } from '@/components/TituloTela';
 import { MapaLeaflet } from '@/components/MapaLeaflet';
 import { SaldoToken } from '@/components/SaldoToken';
 import { SeletorDataHora } from '@/components/SeletorDataHora';
-import { useEnderecoPorCep, usePontosCustodiaProximos } from '@/features/mapa/hooks';
+import { useEnderecoPorCep } from '@/features/mapa/hooks';
 import { useCriarMissao, usePreviaRecompensa } from '@/features/missoes/hooks';
 import { useLocalizacao } from '@/features/missoes/useLocalizacao';
 import { useAnuncio } from '@/lib/anunciar';
@@ -44,7 +44,6 @@ export default function CriarMissao() {
   // prompt de permissão ao abrir "Criar missão" seria o mesmo defeito da aba de missões.
   const { coordenada } = useLocalizacao(false);
   const [mapaAberto, setMapaAberto] = useState(false);
-  const [pontosAberto, setPontosAberto] = useState(false);
 
   const agora = useMemo(() => new Date(), []);
   const emUmDia = useMemo(() => new Date(Date.now() + 24 * 3600_000), []);
@@ -124,12 +123,6 @@ export default function CriarMissao() {
   useAnuncio(
     previa.data
       ? `Recompensa calculada: ${previa.data.xpRecompensa} XP e ${previa.data.tokensRecompensa} tokens.`
-      : null,
-  );
-
-  const pontos = usePontosCustodiaProximos(
-    valores.origemLat && valores.origemLon
-      ? { lat: valores.origemLat, lon: valores.origemLon }
       : null,
   );
 
@@ -346,19 +339,6 @@ export default function CriarMissao() {
           Ponto: {valores.origemLat?.toFixed(5)}, {valores.origemLon?.toFixed(5)}
         </Text>
 
-        {/* ─── Ponto de custódia, opcional ───────────────────────────────────────────────── */}
-        <Botao
-          titulo={
-            valores.pontoCustodiaId
-              ? (pontos.data?.find((p) => p.id === valores.pontoCustodiaId)?.apelido ??
-                'Ponto escolhido')
-              : 'Ponto de custódia (opcional)'
-          }
-          variante="secundario"
-          onPress={() => setPontosAberto(true)}
-          testID="botao-ponto-custodia"
-        />
-
         {/* ─── Janela ────────────────────────────────────────────────────────────────────── */}
         <Controller
           control={control}
@@ -432,34 +412,6 @@ export default function CriarMissao() {
         </View>
         <Botao titulo="Usar este ponto" onPress={() => setMapaAberto(false)} />
       </FolhaInferior>
-
-      <FolhaInferior
-        visivel={pontosAberto}
-        aoFechar={() => setPontosAberto(false)}
-        titulo="Ponto de custódia"
-        testID="folha-pontos"
-      >
-        <Botao
-          titulo="Sem ponto de custódia"
-          variante="secundario"
-          onPress={() => {
-            setValue('pontoCustodiaId', undefined);
-            setPontosAberto(false);
-          }}
-        />
-        {(pontos.data ?? []).map((ponto) => (
-          <Botao
-            key={ponto.id}
-            titulo={`${ponto.apelido} · ${ponto.tipo.toLowerCase()}`}
-            variante="secundario"
-            onPress={() => {
-              setValue('pontoCustodiaId', ponto.id, { shouldValidate: true });
-              setPontosAberto(false);
-            }}
-            testID={`ponto-${ponto.codigo}`}
-          />
-        ))}
-      </FolhaInferior>
     </SafeAreaView>
   );
 }
@@ -492,7 +444,6 @@ function paraRequest(dados: CriarMissaoForm): CriarMissaoRequest {
     volumeL: dados.volumeL,
     janelaInicio: dados.janelaInicio.toISOString(),
     janelaFim: dados.janelaFim.toISOString(),
-    pontoCustodiaId: dados.pontoCustodiaId,
   };
 }
 

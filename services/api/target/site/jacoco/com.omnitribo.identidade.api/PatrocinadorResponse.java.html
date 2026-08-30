@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * O patrocinador como o ADMIN o vê.
+ * O apoiador como o ADMIN o vê.
  *
  * &lt;p&gt;&lt;b&gt;Sem saldo, de propósito.&lt;/b&gt; Saldo é estado da carteira e muda sob lock; devolvê-lo numa
  * listagem seria uma leitura sem lock que envelhece antes de chegar à tela. Quem precisa do número
@@ -16,22 +16,12 @@ import java.util.UUID;
  *     como chave — sem isto, ligar um lançamento ao patrocinador exigiria uma consulta manual.
  */
 <span class="fc" id="L18">public record PatrocinadorResponse(</span>
-    UUID id,
-    UUID usuarioId,
-    String transportadoraSlug,
-    String nome,
-    boolean ativo,
-    Instant criadoEm)
+    UUID id, UUID usuarioId, String slug, String nome, boolean ativo, Instant criadoEm)
     implements RecursoAuditavel {
 
   public static PatrocinadorResponse de(Patrocinador p) {
-<span class="fc" id="L28">    return new PatrocinadorResponse(</span>
-<span class="fc" id="L29">        p.getId(),</span>
-<span class="fc" id="L30">        p.getUsuarioId(),</span>
-<span class="fc" id="L31">        p.getTransportadoraSlug(),</span>
-<span class="fc" id="L32">        p.getNome(),</span>
-<span class="fc" id="L33">        p.isAtivo(),</span>
-<span class="fc" id="L34">        p.getCriadoEm());</span>
+<span class="fc" id="L23">    return new PatrocinadorResponse(</span>
+<span class="fc" id="L24">        p.getId(), p.getUsuarioId(), p.getSlug(), p.getNome(), p.isAtivo(), p.getCriadoEm());</span>
   }
 
   /**
@@ -40,7 +30,7 @@ import java.util.UUID;
    */
   @Override
   public UUID idAuditoria() {
-<span class="fc" id="L43">    return id;</span>
+<span class="fc" id="L33">    return id;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

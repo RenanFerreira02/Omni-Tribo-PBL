@@ -30,9 +30,9 @@ describe('Tela Sobre', () => {
 
     expect(screen.getByText(/Vizinho ajuda vizinho/i)).toBeTruthy();
     expect(screen.getByText(/tokens são reconhecimento, não dinheiro/i)).toBeTruthy();
-    // A entrega falida aparece como UM caso, não como a tese — a ordem importa e é o que a virada
-    // social desta fase mudou.
-    expect(screen.getByText(/também vira\s+missão/i)).toBeTruthy();
+    // Quem financia o pote vem DEPOIS da tese, não no lugar dela: a ordem dos parágrafos é o que
+    // diz que a economia serve à ajuda, e não o contrário.
+    expect(screen.getByText(/Quem cria a missão não paga/i)).toBeTruthy();
     expect(screen.getByTestId('logo-omnitribo')).toBeTruthy();
   });
 

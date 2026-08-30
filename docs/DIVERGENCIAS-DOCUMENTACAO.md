@@ -1,5 +1,12 @@
 # Divergências entre a documentação estratégica e a implementação
 
+> **Nota de 2026-08-30.** Este documento compara a especificação original com a implementação
+> **daquela data**, e boa parte dele discute o módulo de entrega falida. Aquele eixo foi removido
+> ([ADR 0031](adr/0031-remocao-da-extensao-logistica.md)): as divergências sobre ponto de custódia e
+> raio de 50 metros deixaram de ter contraparte no código. O texto **não foi reescrito** — ele
+> registra a análise feita na época, e a remoção é um fato posterior, não uma correção dela.
+
+
 **Data:** 2026-08-16 · **Fase:** F13
 **Documento confrontado:** `documentacao/Omni-Tribo - Documentação.pdf` (37 páginas), doravante "o
 PETI". Texto extraído com `pdftotext -layout`; as citações abaixo são literais.

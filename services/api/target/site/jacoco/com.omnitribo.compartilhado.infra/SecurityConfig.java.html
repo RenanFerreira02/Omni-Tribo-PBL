@@ -62,7 +62,6 @@ public class SecurityConfig {
   private final JwtService jwtService;
   private final RateLimitFilter rateLimitFilter;
   private final ConsultaSessao consultaSessao;
-  private final ParametrosWebhook parametrosWebhook;
 
   @Value(&quot;${app.cors.origens-permitidas}&quot;)
   private String origensPermitidas;
@@ -70,15 +69,11 @@ public class SecurityConfig {
   // EI_EXPOSE_REP2: RateLimitFilter é singleton Spring — não será mutado pelo chamador.
   @SuppressFBWarnings(&quot;EI_EXPOSE_REP2&quot;)
   public SecurityConfig(
-      JwtService jwtService,
-      RateLimitFilter rateLimitFilter,
-      ConsultaSessao consultaSessao,
-<span class="fc" id="L76">      ParametrosWebhook parametrosWebhook) {</span>
-<span class="fc" id="L77">    this.jwtService = jwtService;</span>
-<span class="fc" id="L78">    this.rateLimitFilter = rateLimitFilter;</span>
-<span class="fc" id="L79">    this.consultaSessao = consultaSessao;</span>
-<span class="fc" id="L80">    this.parametrosWebhook = parametrosWebhook;</span>
-<span class="fc" id="L81">  }</span>
+<span class="fc" id="L72">      JwtService jwtService, RateLimitFilter rateLimitFilter, ConsultaSessao consultaSessao) {</span>
+<span class="fc" id="L73">    this.jwtService = jwtService;</span>
+<span class="fc" id="L74">    this.rateLimitFilter = rateLimitFilter;</span>
+<span class="fc" id="L75">    this.consultaSessao = consultaSessao;</span>
+<span class="fc" id="L76">  }</span>
 
   /**
    * Cadeia exclusiva da documentação interativa (Swagger UI + schema OpenAPI).
@@ -98,18 +93,18 @@ public class SecurityConfig {
   @Bean
   @Order(0)
   public SecurityFilterChain swaggerFilterChain(HttpSecurity http) throws Exception {
-<span class="fc" id="L101">    http.securityMatcher(&quot;/swagger-ui/**&quot;, &quot;/swagger-ui.html&quot;, &quot;/v3/api-docs/**&quot;)</span>
-<span class="fc" id="L102">        .csrf(AbstractHttpConfigurer::disable)</span>
-<span class="fc" id="L103">        .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
-<span class="fc" id="L104">        .authorizeHttpRequests(auth -&gt; auth.anyRequest().permitAll())</span>
-<span class="fc" id="L105">        .headers(</span>
+<span class="fc" id="L96">    http.securityMatcher(&quot;/swagger-ui/**&quot;, &quot;/swagger-ui.html&quot;, &quot;/v3/api-docs/**&quot;)</span>
+<span class="fc" id="L97">        .csrf(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L98">        .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="fc" id="L99">        .authorizeHttpRequests(auth -&gt; auth.anyRequest().permitAll())</span>
+<span class="fc" id="L100">        .headers(</span>
             h -&gt;
-<span class="fc" id="L107">                h.frameOptions(f -&gt; f.deny())</span>
-<span class="fc" id="L108">                    .contentTypeOptions(c -&gt; {})</span>
-<span class="fc" id="L109">                    .referrerPolicy(</span>
-<span class="fc" id="L110">                        r -&gt; r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))</span>
-<span class="fc" id="L111">                    .contentSecurityPolicy(csp -&gt; csp.policyDirectives(CSP_SWAGGER)));</span>
-<span class="fc" id="L112">    return http.build();</span>
+<span class="fc" id="L102">                h.frameOptions(f -&gt; f.deny())</span>
+<span class="fc" id="L103">                    .contentTypeOptions(c -&gt; {})</span>
+<span class="fc" id="L104">                    .referrerPolicy(</span>
+<span class="fc" id="L105">                        r -&gt; r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))</span>
+<span class="fc" id="L106">                    .contentSecurityPolicy(csp -&gt; csp.policyDirectives(CSP_SWAGGER)));</span>
+<span class="fc" id="L107">    return http.build();</span>
   }
 
   /**
@@ -133,36 +128,36 @@ public class SecurityConfig {
   @Bean
   @Order(1)
   public SecurityFilterChain actuatorFilterChain(HttpSecurity http) throws Exception {
-<span class="fc" id="L136">    http.securityMatcher(EndpointRequest.toAnyEndpoint())</span>
-<span class="fc" id="L137">        .csrf(AbstractHttpConfigurer::disable)</span>
-<span class="fc" id="L138">        .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
-<span class="fc" id="L139">        .authorizeHttpRequests(</span>
+<span class="fc" id="L131">    http.securityMatcher(EndpointRequest.toAnyEndpoint())</span>
+<span class="fc" id="L132">        .csrf(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L133">        .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="fc" id="L134">        .authorizeHttpRequests(</span>
             auth -&gt;
-<span class="fc" id="L141">                auth.requestMatchers(EndpointRequest.to(HealthEndpoint.class, InfoEndpoint.class))</span>
-<span class="fc" id="L142">                    .permitAll()</span>
-<span class="fc" id="L143">                    .anyRequest()</span>
-<span class="fc" id="L144">                    .authenticated())</span>
-<span class="fc" id="L145">        .exceptionHandling(</span>
+<span class="fc" id="L136">                auth.requestMatchers(EndpointRequest.to(HealthEndpoint.class, InfoEndpoint.class))</span>
+<span class="fc" id="L137">                    .permitAll()</span>
+<span class="fc" id="L138">                    .anyRequest()</span>
+<span class="fc" id="L139">                    .authenticated())</span>
+<span class="fc" id="L140">        .exceptionHandling(</span>
             e -&gt;
-<span class="fc" id="L147">                e.authenticationEntryPoint(this::entryPoint401)</span>
-<span class="fc" id="L148">                    .accessDeniedHandler(this::handler403));</span>
-<span class="fc" id="L149">    return http.build();</span>
+<span class="fc" id="L142">                e.authenticationEntryPoint(this::entryPoint401)</span>
+<span class="fc" id="L143">                    .accessDeniedHandler(this::handler403));</span>
+<span class="fc" id="L144">    return http.build();</span>
   }
 
   @Bean
   @Order(2)
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-<span class="fc" id="L155">    http</span>
+<span class="fc" id="L150">    http</span>
         // CSRF desabilitado: API stateless com Bearer token em Authorization header.
         // Browsers não enviam Authorization automaticamente (diferente de cookies de sessão),
         // portanto o vetor CSRF não existe. OWASP CSRF Prevention §3.5 (token-based mitigation).
-<span class="fc" id="L159">        .csrf(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L154">        .csrf(AbstractHttpConfigurer::disable)</span>
 
         // Stateless: nenhuma HttpSession é criada. Cada request carrega credenciais via JWT.
-<span class="fc" id="L162">        .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="fc" id="L157">        .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
 
         // CORS: origens explícitas; nunca wildcard (ver corsConfigSource()).
-<span class="fc" id="L165">        .cors(c -&gt; c.configurationSource(corsConfigSource()))</span>
+<span class="fc" id="L160">        .cors(c -&gt; c.configurationSource(corsConfigSource()))</span>
 
         // Autorização por endpoint.
         // Apenas os endpoints sem sessão prévia são públicos. /me e /logout exigem token válido.
@@ -170,22 +165,18 @@ public class SecurityConfig {
         // Swagger UI e /v3/api-docs NÃO aparecem aqui: são tratados inteiros pelo
         // swaggerFilterChain, que roda antes por causa da CSP. Duplicá-los nesta lista daria a
         // impressão de que esta cadeia os atende, e alguém removeria a outra achando redundante.
-<span class="fc" id="L173">        .authorizeHttpRequests(</span>
+<span class="fc" id="L168">        .authorizeHttpRequests(</span>
             auth -&gt;
-                // `/api/v1/webhooks/**` VOLTOU a esta lista, e voltou pela condição que o
-                // comentário anterior exigia: &quot;ele nasce autenticado e a isenção é reintroduzida
-                // JUNTO com o HMAC, não antes&quot;. O HMAC agora existe — HmacWebhookFilter, montado
-                // logo abaixo nesta mesma cadeia.
-                //
-                // `permitAll` aqui NÃO significa rota aberta: significa que a autenticação dela não
-                // é o JWT. Quem autentica é o filtro, por assinatura sobre o corpo bruto, e ele
-                // recusa com 401 antes que a requisição chegue a qualquer controller. Remover o
-                // filtro sem remover esta linha deixa a rota anônima e gravável.
-<span class="fc" id="L184">                auth.requestMatchers(</span>
+                // NÃO existe mais rota de escrita anônima. `/api/v1/webhooks/**` esteve nesta
+                // lista até a V28 (ADR 0031): era o webhook de transportadora, autenticado por
+                // HMAC sobre o corpo bruto em vez de JWT. Com a extensão logística removida, toda
+                // escrita passa pelo JWT — e uma isenção nova aqui exige o mesmo critério que
+                // aquela teve: nasce autenticada, e a isenção só entra JUNTO com o autenticador
+                // que a substitui, nunca antes.
+<span class="fc" id="L176">                auth.requestMatchers(</span>
                         &quot;/api/v1/auth/login&quot;,
                         &quot;/api/v1/auth/registrar&quot;,
                         &quot;/api/v1/auth/refresh&quot;,
-                        &quot;/api/v1/webhooks/**&quot;, // autenticado por HMAC, ver HmacWebhookFilter
                         &quot;/api/v1/ping&quot;, // health check
                         // Página de demonstração de Spring MVC + Thymeleaf, servida em HTML. É
                         // anônima porque esta API autentica só por Bearer: exigir JWT tornaria a
@@ -195,55 +186,50 @@ public class SecurityConfig {
                         // —, e o que expõe (nome, versão, perfil, banco de pé) é do mesmo nível do
                         // /actuator/health e /info, que já respondem anônimos.
                         &quot;/status&quot;)
-<span class="fc" id="L198">                    .permitAll()</span>
-<span class="fc" id="L199">                    .anyRequest()</span>
-<span class="fc" id="L200">                    .authenticated())</span>
+<span class="fc" id="L189">                    .permitAll()</span>
+<span class="fc" id="L190">                    .anyRequest()</span>
+<span class="fc" id="L191">                    .authenticated())</span>
 
         // Filtros customizados — instanciados aqui, não como @Component, para evitar
         // que o Spring Boot os registre também como filtros de servlet (dupla execução).
-        // Ordem: Hmac → RateLimit → Jwt (rate limiting bloqueia antes de qualquer parse de token).
+        // Ordem: RateLimit → Jwt (rate limiting bloqueia antes de qualquer parse de token).
         //
-        // O HMAC vem PRIMEIRO e tem teto próprio, por transportadora. No balde geral do
-        // RateLimitFilter o webhook seria chaveado por IP, e uma transportadora com laço de retry
-        // consumiria a cota de todas as outras que saíssem do mesmo gateway. O filtro se
-        // auto-limita a `/api/v1/webhooks/` por shouldNotFilter, então não custa nada ao resto.
         // O rateLimitFilter é registrado PRIMEIRO de propósito: `addFilterBefore(x, Y.class)` só
         // resolve a posição se Y já tem ordem conhecida na cadeia. Invertendo as duas linhas, a
         // montagem falha no startup com &quot;The Filter class RateLimitFilter does not have a
         // registered order&quot;.
-<span class="fc" id="L214">        .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)</span>
-<span class="fc" id="L215">        .addFilterBefore(new HmacWebhookFilter(parametrosWebhook), RateLimitFilter.class)</span>
-<span class="fc" id="L216">        .addFilterAfter(new JwtAuthFilter(jwtService, consultaSessao), RateLimitFilter.class)</span>
+<span class="fc" id="L201">        .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)</span>
+<span class="fc" id="L202">        .addFilterAfter(new JwtAuthFilter(jwtService, consultaSessao), RateLimitFilter.class)</span>
 
         // Handlers customizados: retornam ProblemDetail (RFC 9457) em vez do HTML padrão.
-<span class="fc" id="L219">        .exceptionHandling(</span>
+<span class="fc" id="L205">        .exceptionHandling(</span>
             e -&gt;
-<span class="fc" id="L221">                e.authenticationEntryPoint(this::entryPoint401)</span>
-<span class="fc" id="L222">                    .accessDeniedHandler(this::handler403))</span>
+<span class="fc" id="L207">                e.authenticationEntryPoint(this::entryPoint401)</span>
+<span class="fc" id="L208">                    .accessDeniedHandler(this::handler403))</span>
 
         // Headers de segurança
-<span class="fc" id="L225">        .headers(</span>
+<span class="fc" id="L211">        .headers(</span>
             h -&gt;
-<span class="fc" id="L227">                h</span>
+<span class="fc" id="L213">                h</span>
                     // HSTS: força HTTPS por 1 ano em todos os subdomínios.
                     // Só ativo em produção com TLS real; em dev o browser ignora HTTP.
-<span class="fc" id="L230">                    .httpStrictTransportSecurity(</span>
-<span class="fc" id="L231">                        hsts -&gt; hsts.maxAgeInSeconds(31536000).includeSubDomains(true))</span>
+<span class="fc" id="L216">                    .httpStrictTransportSecurity(</span>
+<span class="fc" id="L217">                        hsts -&gt; hsts.maxAgeInSeconds(31536000).includeSubDomains(true))</span>
                     // X-Frame-Options DENY: impede clickjacking via iframe.
-<span class="fc" id="L233">                    .frameOptions(f -&gt; f.deny())</span>
+<span class="fc" id="L219">                    .frameOptions(f -&gt; f.deny())</span>
                     // X-Content-Type-Options nosniff: impede MIME sniffing pelo browser.
-<span class="fc" id="L235">                    .contentTypeOptions(c -&gt; {})</span>
+<span class="fc" id="L221">                    .contentTypeOptions(c -&gt; {})</span>
                     // Referrer-Policy: não vaza a URL da API nos cabeçalhos Referer externos.
-<span class="fc" id="L237">                    .referrerPolicy(</span>
-<span class="fc" id="L238">                        r -&gt; r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))</span>
+<span class="fc" id="L223">                    .referrerPolicy(</span>
+<span class="fc" id="L224">                        r -&gt; r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))</span>
                     // CSP: API pura — nenhum recurso externo, nenhum frame, nenhum form.
                     // Em produção com frontend servido pelo mesmo domínio, ajustar default-src.
-<span class="fc" id="L241">                    .contentSecurityPolicy(</span>
+<span class="fc" id="L227">                    .contentSecurityPolicy(</span>
                         csp -&gt;
-<span class="fc" id="L243">                            csp.policyDirectives(</span>
+<span class="fc" id="L229">                            csp.policyDirectives(</span>
                                 &quot;default-src 'none'; frame-ancestors 'none'; form-action 'none'&quot;)));
 
-<span class="fc" id="L246">    return http.build();</span>
+<span class="fc" id="L232">    return http.build();</span>
   }
 
   /**
@@ -259,14 +245,14 @@ public class SecurityConfig {
    */
   @Bean
   CorsConfigurationSource corsConfigSource() {
-<span class="fc" id="L262">    CorsConfiguration config = new CorsConfiguration();</span>
-<span class="fc" id="L263">    List&lt;String&gt; origens =</span>
-<span class="fc" id="L264">        Arrays.stream(origensPermitidas.split(&quot;,&quot;))</span>
-<span class="fc" id="L265">            .map(String::trim)</span>
-<span class="pc bpc" id="L266" title="1 of 2 branches missed.">            .filter(o -&gt; !o.isEmpty())</span>
-<span class="fc" id="L267">            .toList();</span>
-<span class="fc" id="L268">    config.setAllowedOrigins(origens);</span>
-<span class="fc" id="L269">    config.setAllowedMethods(List.of(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;));</span>
+<span class="fc" id="L248">    CorsConfiguration config = new CorsConfiguration();</span>
+<span class="fc" id="L249">    List&lt;String&gt; origens =</span>
+<span class="fc" id="L250">        Arrays.stream(origensPermitidas.split(&quot;,&quot;))</span>
+<span class="fc" id="L251">            .map(String::trim)</span>
+<span class="pc bpc" id="L252" title="1 of 2 branches missed.">            .filter(o -&gt; !o.isEmpty())</span>
+<span class="fc" id="L253">            .toList();</span>
+<span class="fc" id="L254">    config.setAllowedOrigins(origens);</span>
+<span class="fc" id="L255">    config.setAllowedMethods(List.of(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;));</span>
     // Idempotency-Key NÃO é opcional nesta lista, e a ausência dele era invisível: cinco POSTs o
     // exigem como obrigatório (transferências, saques, resgates, financiamentos e aportes). Header
     // customizado torna a requisição não-simples, então o browser manda o preflight — e o
@@ -274,36 +260,36 @@ public class SecurityConfig {
     // lado do servidor não há status nem log: o erro só aparece no console do browser. O app mobile
     // nunca esbarrou nisso porque React Native não faz preflight, o que é exatamente o motivo de a
     // falha ter sobrevivido até um cliente de browser existir.
-<span class="fc" id="L277">    config.setAllowedHeaders(</span>
-<span class="fc" id="L278">        List.of(</span>
+<span class="fc" id="L263">    config.setAllowedHeaders(</span>
+<span class="fc" id="L264">        List.of(</span>
             &quot;Authorization&quot;,
             &quot;Content-Type&quot;,
             &quot;Idempotency-Key&quot;,
             &quot;X-Correlation-Id&quot;,
             &quot;X-Requested-With&quot;));
-<span class="fc" id="L284">    config.setExposedHeaders(List.of(&quot;X-Correlation-Id&quot;));</span>
-<span class="fc" id="L285">    config.setAllowCredentials(false); // Bearer token — sem cookies de sessão</span>
-<span class="fc" id="L286">    config.setMaxAge(3600L);</span>
+<span class="fc" id="L270">    config.setExposedHeaders(List.of(&quot;X-Correlation-Id&quot;));</span>
+<span class="fc" id="L271">    config.setAllowCredentials(false); // Bearer token — sem cookies de sessão</span>
+<span class="fc" id="L272">    config.setMaxAge(3600L);</span>
 
-<span class="fc" id="L288">    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();</span>
-<span class="fc" id="L289">    source.registerCorsConfiguration(&quot;/**&quot;, config);</span>
-<span class="fc" id="L290">    return source;</span>
+<span class="fc" id="L274">    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();</span>
+<span class="fc" id="L275">    source.registerCorsConfiguration(&quot;/**&quot;, config);</span>
+<span class="fc" id="L276">    return source;</span>
   }
 
   /** 401 em ProblemDetail — chamado quando não há autenticação válida. */
   private void entryPoint401(
       HttpServletRequest request, HttpServletResponse response, AuthenticationException ex)
       throws IOException {
-<span class="fc" id="L297">    escreverProblemDetail(</span>
-<span class="fc" id="L298">        response, HttpStatus.UNAUTHORIZED, &quot;Autenticação necessária&quot;, request.getRequestURI());</span>
-<span class="fc" id="L299">  }</span>
+<span class="fc" id="L283">    escreverProblemDetail(</span>
+<span class="fc" id="L284">        response, HttpStatus.UNAUTHORIZED, &quot;Autenticação necessária&quot;, request.getRequestURI());</span>
+<span class="fc" id="L285">  }</span>
 
   /** 403 em ProblemDetail — chamado quando a autenticação existe mas a autorização falha. */
   private void handler403(
       HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex)
       throws IOException {
-<span class="nc" id="L305">    escreverProblemDetail(response, HttpStatus.FORBIDDEN, &quot;Acesso negado&quot;, request.getRequestURI());</span>
-<span class="nc" id="L306">  }</span>
+<span class="nc" id="L291">    escreverProblemDetail(response, HttpStatus.FORBIDDEN, &quot;Acesso negado&quot;, request.getRequestURI());</span>
+<span class="nc" id="L292">  }</span>
 
   private void escreverProblemDetail(
       HttpServletResponse response, HttpStatus status, String detalhe, String instancia)
@@ -311,29 +297,29 @@ public class SecurityConfig {
     // Escreve ProblemDetail (RFC 9457) diretamente: AuthenticationEntryPoint e
     // AccessDeniedHandler executam no filtro, antes do DispatcherServlet, onde ObjectMapper
     // pode não estar disponível no ciclo de inicialização. Autocontido por design.
-<span class="fc" id="L314">    response.setStatus(status.value());</span>
-<span class="fc" id="L315">    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);</span>
+<span class="fc" id="L300">    response.setStatus(status.value());</span>
+<span class="fc" id="L301">    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);</span>
     // Obrigatório, e não cosmético: sem isto o servlet cai no default ISO-8859-1 e o corpo sai
     // com &quot;Autenticação&quot; em Latin-1 dentro de um application/problem+json. JSON é UTF-8 por
     // definição (RFC 8259 §8.1), então o cliente decodifica lixo — e 401 é o erro que o app mais
     // recebe, porque todo access token expira em 15 min.
-<span class="fc" id="L320">    response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
-<span class="fc" id="L321">    String uri = instancia.replace(&quot;\&quot;&quot;, &quot;&quot;);</span>
+<span class="fc" id="L306">    response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
+<span class="fc" id="L307">    String uri = instancia.replace(&quot;\&quot;&quot;, &quot;&quot;);</span>
     // Mesmo catálogo de type do GlobalExceptionHandler. Sem isto, 401 e 403 vindos da cadeia de
     // filtros sairiam como about:blank enquanto os do controller sairiam tipados — o cliente veria
     // dois contratos de erro diferentes para a mesma situação, dependendo de onde ela foi
     // detectada.
-<span class="fc" id="L326">    response</span>
-<span class="fc" id="L327">        .getWriter()</span>
-<span class="fc" id="L328">        .write(</span>
-<span class="fc" id="L329">            String.format(</span>
+<span class="fc" id="L312">    response</span>
+<span class="fc" id="L313">        .getWriter()</span>
+<span class="fc" id="L314">        .write(</span>
+<span class="fc" id="L315">            String.format(</span>
                 &quot;{\&quot;type\&quot;:\&quot;%s\&quot;,\&quot;title\&quot;:\&quot;%s\&quot;,\&quot;status\&quot;:%d&quot;
                     + &quot;,\&quot;detail\&quot;:\&quot;%s\&quot;,\&quot;instance\&quot;:\&quot;%s\&quot;}&quot;,
-<span class="fc" id="L332">                TipoProblema.deStatus(status),</span>
-<span class="fc" id="L333">                status.getReasonPhrase(),</span>
-<span class="fc" id="L334">                status.value(),</span>
-<span class="fc" id="L335">                detalhe.replace(&quot;\&quot;&quot;, &quot;'&quot;),</span>
+<span class="fc" id="L318">                TipoProblema.deStatus(status),</span>
+<span class="fc" id="L319">                status.getReasonPhrase(),</span>
+<span class="fc" id="L320">                status.value(),</span>
+<span class="fc" id="L321">                detalhe.replace(&quot;\&quot;&quot;, &quot;'&quot;),</span>
                 uri));
-<span class="fc" id="L337">  }</span>
+<span class="fc" id="L323">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

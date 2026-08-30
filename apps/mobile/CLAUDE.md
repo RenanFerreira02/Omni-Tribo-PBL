@@ -66,13 +66,16 @@
   também no marcador do mapa, onde as quatro categorias eram indistinguíveis sem texto ao lado.
 - **O radar tem DUAS apresentações da mesma rota** (ADR 0030): `Mapa | Lista`, com a escolha
   persistida em `src/features/mapa/apresentacao.ts`. A lista existe porque a WebView do Leaflet não
-  expõe semântica — e o ponto de custódia só existia lá dentro. **Não é tela separada**: duas rotas
-  divergiriam, e a que menos gente usa é a que fica para trás, que aqui seria justamente a acessível.
+  expõe semântica: quem usa leitor de tela não alcança um pino dentro dela. **Não é tela separada**:
+  duas rotas divergiriam, e a que menos gente usa é a que fica para trás, que aqui seria justamente
+  a acessível.
   - **O cliente NÃO reordena.** A ordem por distância vem do servidor (`ORDER BY distancia_m ASC`
     sobre `geography`), e recalcular aqui daria um segundo valor, ocasionalmente diferente do que o
     mapa desenha.
-  - `ItemPontoCustodia` não reusa `MissaoCard` de propósito: ponto de custódia não tem recompensa
-    nem prazo, e "0 XP e 0 tokens, encerrada" para um armário seria pior que a assimetria.
+  - **O mapa tinha uma SEGUNDA camada** — os pontos de custódia, distinguidos por forma além de cor
+    — e ela saiu com a extensão logística (ADR 0031), junto do `ItemPontoCustodia` e da tela de
+    impacto. O prefixo `missao:` no id do marcador ficou: é o que evita mudar o contrato do
+    `MapaLeaflet` no dia em que aparecer a próxima camada.
 - **A ordem do rótulo é a ordem da DECISÃO**: categoria, recompensa, distância, prazo — título e
   local por último. Quem navega por voz decide no primeiro terço da frase, e o título é o que menos
   separa uma missão da outra. `formatarPrazo` é relativo ("termina em 40 min"), não absoluto: a

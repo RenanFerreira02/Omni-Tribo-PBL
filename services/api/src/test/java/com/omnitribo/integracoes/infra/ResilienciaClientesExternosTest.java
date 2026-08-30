@@ -203,23 +203,25 @@ class ResilienciaClientesExternosTest {
   }
 
   @Test
-  void disjuntor_aberto_devolve_vazio_para_o_modelo_de_risco_em_vez_de_lancar() {
+  void disjuntor_aberto_deixa_de_consultar_o_provedor() {
     enfileirar(20, 500);
     ClimaService servico = new ClimaService(clienteClima(protecoes()), Duration.ofMinutes(10));
 
-    // Caminho do webhook de entrega falida. Se uma exceção escapasse por aqui, a transportadora
-    // receberia 5xx ao registrar uma entrega que JÁ falhou, e reenviaria em laço contra um ponto de
-    // custódia que continua lotado. É a regra do ADR 0022, e o disjuntor não pode quebrá-la.
+    // Existia aqui um segundo caminho, `consultarParaRisco`, que devolvia vazio em vez de lançar
+    // porque o consumidor era o webhook de entrega falida — provedor fora do ar não podia virar 5xx
+    // no registro de uma entrega que JÁ falhou. Aquele consumidor saiu na V28 (ADR 0031), e com ele
+    // a porta. O que sobra é o caminho do controller, que responde 503 e faz o app esconder o card.
     for (int i = 0; i < LIMIAR + 3; i++) {
       BigDecimal lat =
           new BigDecimal("-23.55").add(new BigDecimal("0.1").multiply(new BigDecimal(i)));
-      assertThat(servico.consultarParaRisco(lat, new BigDecimal("-46.63"))).isEmpty();
+      BigDecimal lon = new BigDecimal("-46.63");
+      assertThatThrownBy(() -> servico.consultar(lat, lon)).isInstanceOf(RuntimeException.class);
     }
 
-    // E, depois de aberto, deixou de consultar — degradando sem custo.
+    // Depois de aberto, deixou de consultar — degradando sem custo.
     int aposAbrir = servidor.getRequestCount();
-    assertThat(servico.consultarParaRisco(new BigDecimal("-10.00"), new BigDecimal("-40.00")))
-        .isEmpty();
+    assertThatThrownBy(() -> servico.consultar(new BigDecimal("-10.00"), new BigDecimal("-40.00")))
+        .isInstanceOf(RuntimeException.class);
     assertThat(servidor.getRequestCount()).isEqualTo(aposAbrir);
   }
 

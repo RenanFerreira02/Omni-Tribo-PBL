@@ -28,34 +28,13 @@ spring:
 
 app:
   cors:
-    # Origens de DESENVOLVIMENTO, versionadas de propósito e restritas a este perfil — mesma
-    # política do segredo de webhook logo abaixo: um clone novo sobe e funciona sem passo manual,
-    # e nada disto alcança produção, que tem bloco próprio sem default.
+    # Origens de DESENVOLVIMENTO, versionadas de propósito e restritas a este perfil: um clone
+    # novo sobe e funciona sem passo manual, como as chaves RSA de dev, e nada disto alcança
+    # produção, que tem bloco próprio sem default.
     #
     # 4200 é o `ng serve` do dashboard Angular; 8081 é o Expo web; exp://8082 é o Expo Go. As três
     # convivem porque são três clientes reais do mesmo backend local.
     origens-permitidas: ${CORS_ORIGENS:http://localhost:4200,http://localhost:8081,exp://localhost:8082}
-  webhooks:
-    # Segredo de DESENVOLVIMENTO, com o mesmo default de tools/carrier-mock/enviar.sh. É versionado
-    # de propósito e só existe no perfil dev: é o que faz `make up` + `spring-boot:run` + o mock
-    # funcionarem num clone novo sem passo manual, como as chaves RSA de dev.
-    #
-    # O perfil default (application.yml) tem o mapa VAZIO, então isto NÃO vaza para produção — lá o
-    # segredo entra por APP_WEBHOOKS_SEGREDOS_<TRANSPORTADORA>. Trocar este valor exige trocar o
-    # default do mock junto.
-    segredos:
-      transportadora-dev: ${WEBHOOK_SEGREDO_DEV:segredo-de-desenvolvimento-local}
-      # Transportadora INTEGRADA e DELIBERADAMENTE SEM PATROCINADOR COM SALDO.
-      #
-      # Existe para que a evidência da F14 possa demonstrar o desfecho SEM_PATROCINIO sem corromper
-      # nada: a assinatura HMAC dela é válida, então a requisição atravessa o filtro e chega ao
-      # serviço — e mesmo assim não vira missão. A alternativa seria zerar por UPDATE a carteira do
-      # patrocinador de `transportadora-dev`, o que deixaria a projeção divergente do ledger e faria
-      # a reconciliação acusar erro no meio da própria medição.
-      #
-      # O patrocinador dela é cadastrado pelo endpoint ADMIN dentro do script, e nunca recebe aporte.
-      # Ver tools/evidencias/conservacao-por-categoria.sh e docs/evidencias/f14-*.md.
-      transportadora-sem-saldo: ${WEBHOOK_SEGREDO_SEM_SALDO:segredo-de-desenvolvimento-sem-saldo}
 
 logging:
   level:

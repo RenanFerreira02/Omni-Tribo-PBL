@@ -167,7 +167,7 @@ describe('criar missão', () => {
     await fireEvent.changeText(screen.getByTestId('campo-titulo'), 'Entregar caixa na Rua A');
     await fireEvent.changeText(
       screen.getByTestId('campo-descricao'),
-      'A entrega falhou ontem e o pacote está no ponto de custódia.',
+      'Caixa de ferramentas para levar até o vizinho do 42.',
     );
     await fireEvent.changeText(screen.getByTestId('campo-cep'), '01001000');
     await fireEvent.changeText(screen.getByTestId('campo-logradouro'), 'Praça da Sé');

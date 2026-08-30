@@ -113,7 +113,7 @@ public final class ChaveIdempotencia {
    * — não para deduplicar um retry que já foi barrado antes.
    */
   public static String financiamentoPatrocinador(UUID patrocinadorId, UUID missaoId) {
-<span class="fc" id="L116">    return derivar(&quot;financiamento-patrocinador&quot;, patrocinadorId.toString(), missaoId.toString());</span>
+<span class="nc" id="L116">    return derivar(&quot;financiamento-patrocinador&quot;, patrocinadorId.toString(), missaoId.toString());</span>
   }
 
   /**

@@ -14,10 +14,10 @@ public record ParametrosNotificacoes(
     /**
      * Teto de alertas por usuário por hora.
      *
-     * <p>Existe porque a densidade de entregas falidas é irregular: um ponto de custódia
-     * movimentado no fim da rota do dia gera uma rajada, e sem teto a mesma pessoa recebe dezenas
-     * de notificações em minutos. A reação a isso é desinstalar o app, não aceitar missão — ou
-     * seja, o excesso de notificação destrói exatamente o canal que a notificação existe para usar.
+     * <p>Existe porque a densidade de publicações é irregular: um mutirão organizado num sábado
+     * publica várias missões seguidas no mesmo bairro, e sem teto a mesma pessoa recebe dezenas de
+     * notificações em minutos. A reação a isso é desinstalar o app, não aceitar missão — ou seja, o
+     * excesso de notificação destrói exatamente o canal que a notificação existe para usar.
      */
     int alertasPorHora,
 
@@ -28,17 +28,7 @@ public record ParametrosNotificacoes(
      * que processa até 100 eventos por vez; sem teto, um ponto numa região densa expandiria um
      * evento em milhares de inserts e seguraria a transação do lote inteiro.
      */
-    int tribosPorEvento,
-
-    /**
-     * Teto por hora para alertas de risco ALTO.
-     *
-     * <p>Maior que {@code alertasPorHora}, e é essa folga que resolve o problema: sem ela, cinco
-     * entregas triviais chegando primeiro silenciariam a difícil pela hora seguinte — justamente a
-     * que mais precisa de alguém e a que paga melhor. É folga, não isenção: uma rajada de entregas
-     * de alto risco no mesmo ponto continua limitada.
-     */
-    int alertasAltaPrioridadePorHora) {
+    int tribosPorEvento) {
 
   public ParametrosNotificacoes {
     if (raioAlertaMetros <= 0) {
@@ -49,13 +39,6 @@ public record ParametrosNotificacoes(
     }
     if (tribosPorEvento <= 0) {
       throw new IllegalArgumentException("app.notificacoes.tribos-por-evento deve ser positivo");
-    }
-    if (alertasAltaPrioridadePorHora < alertasPorHora) {
-      // Menor que o teto normal inverteria o sentido do carve-out: o alerta mais urgente seria o
-      // primeiro a ser descartado, e nada no comportamento denunciaria a inversão.
-      throw new IllegalArgumentException(
-          "app.notificacoes.alertas-alta-prioridade-por-hora não pode ser menor que"
-              + " alertas-por-hora");
     }
   }
 }

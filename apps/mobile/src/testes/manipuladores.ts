@@ -7,10 +7,8 @@ import {
   CLIMA,
   CONSENTIMENTOS,
   ENDERECO,
-  IMPACTO,
   LANCAMENTO,
   PERFIL,
-  PONTO_CUSTODIA,
   PREVIA,
   RESGATE,
   TOKENS,
@@ -92,8 +90,6 @@ export const manipuladores = [
   ),
   http.post(`${BASE}/resgates`, () => HttpResponse.json(RESGATE, { status: 201 })),
 
-  http.get(`${BASE}/admin/impacto`, () => HttpResponse.json(IMPACTO)),
-
   http.get(`${BASE}/usuarios/busca`, () => HttpResponse.json(VIZINHO)),
 
   http.get(`${BASE}/usuarios/me`, () => HttpResponse.json(PERFIL)),
@@ -124,10 +120,6 @@ export const manipuladores = [
     HttpResponse.json([{ ...TRIBO, centroLat: null, centroLon: null }]),
   ),
   http.get(`${BASE}/tribos/:id`, () => HttpResponse.json(TRIBO)),
-  http.get(`${BASE}/pontos-custodia`, () => HttpResponse.json([PONTO_CUSTODIA])),
-  http.get(`${BASE}/pontos-custodia/:id`, () =>
-    HttpResponse.json({ ...PONTO_CUSTODIA, distanciaM: null }),
-  ),
   http.get(`${BASE}/clima`, () => HttpResponse.json(CLIMA)),
   http.get(`${BASE}/enderecos/:cep`, () => HttpResponse.json(ENDERECO)),
 ];

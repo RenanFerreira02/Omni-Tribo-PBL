@@ -112,88 +112,86 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // memória e ~100 ms de CPU, por ADR 0005), a rota era um amplificador de DoS não autenticado —
     // o atacante gasta uma requisição, o servidor gasta 100 ms. Agora cai no bucket geral de
     // escrita, por IP, já que ainda não há token nessa altura.
-    // /api/v1/webhooks/ é isento AQUI porque tem teto PRÓPRIO no HmacWebhookFilter, que roda antes
-    // e já recusou quem não tem assinatura válida. Deixar cair no balde geral aplicaria um segundo
-    // limite com a chave errada: sem JWT, a chave é o IP, e várias transportadoras atrás do mesmo
-    // gateway dividiriam uma cota pensada para usuário final.
-<span class="fc" id="L119">    String path = request.getRequestURI();</span>
-<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (path.equals(&quot;/api/v1/auth/login&quot;)</span>
-<span class="pc bpc" id="L121" title="1 of 2 branches missed.">        || path.startsWith(&quot;/v3/api-docs&quot;)</span>
-<span class="pc bpc" id="L122" title="1 of 2 branches missed.">        || path.startsWith(&quot;/swagger-ui&quot;)</span>
-<span class="fc bfc" id="L123" title="All 2 branches covered.">        || path.startsWith(&quot;/api/v1/webhooks/&quot;)</span>
-<span class="fc bfc" id="L124" title="All 2 branches covered.">        || path.equals(&quot;/api/v1/ping&quot;)) {</span>
-<span class="fc" id="L125">      chain.doFilter(request, response);</span>
-<span class="fc" id="L126">      return;</span>
+    // `/api/v1/webhooks/` também era isento aqui, porque tinha teto próprio no HmacWebhookFilter.
+    // Os dois saíram na V28 (ADR 0031) junto com a extensão logística: sem rota autenticada por
+    // HMAC, não há mais nada nesta cadeia cuja chave de balde não seja usuário ou IP.
+<span class="fc" id="L118">    String path = request.getRequestURI();</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    if (path.equals(&quot;/api/v1/auth/login&quot;)</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">        || path.startsWith(&quot;/v3/api-docs&quot;)</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">        || path.startsWith(&quot;/swagger-ui&quot;)</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        || path.equals(&quot;/api/v1/ping&quot;)) {</span>
+<span class="fc" id="L123">      chain.doFilter(request, response);</span>
+<span class="fc" id="L124">      return;</span>
     }
 
-<span class="fc" id="L129">    String chave = resolverChave(request);</span>
+<span class="fc" id="L127">    String chave = resolverChave(request);</span>
 
     // Rota com teto PRÓPRIO, checada ANTES do balde geral e substituindo-o — não somando a ele.
     // Somar os dois faria a busca consumir também a cota de leitura do usuário, e uma varredura
     // barrada aqui deixaria a pessoa sem conseguir abrir a carteira pelo minuto seguinte.
-<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (BUSCA_HANDLE.equals(request.getRequestURI())) {</span>
-<span class="fc" id="L135">      Bucket balde = bucketsBuscaHandle.get(chave, k -&gt; criarBucket(buscaHandlePorMinuto));</span>
-<span class="fc bfc" id="L136" title="All 2 branches covered.">      if (!balde.tryConsume(1)) {</span>
-<span class="fc" id="L137">        responder429(response, request, 60L, buscaHandlePorMinuto);</span>
-<span class="fc" id="L138">        return;</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    if (BUSCA_HANDLE.equals(request.getRequestURI())) {</span>
+<span class="fc" id="L133">      Bucket balde = bucketsBuscaHandle.get(chave, k -&gt; criarBucket(buscaHandlePorMinuto));</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">      if (!balde.tryConsume(1)) {</span>
+<span class="fc" id="L135">        responder429(response, request, 60L, buscaHandlePorMinuto);</span>
+<span class="fc" id="L136">        return;</span>
       }
-<span class="fc" id="L140">      chain.doFilter(request, response);</span>
-<span class="fc" id="L141">      return;</span>
+<span class="fc" id="L138">      chain.doFilter(request, response);</span>
+<span class="fc" id="L139">      return;</span>
     }
 
-<span class="fc" id="L144">    boolean ehEscrita = ehMetodoEscrita(request.getMethod());</span>
+<span class="fc" id="L142">    boolean ehEscrita = ehMetodoEscrita(request.getMethod());</span>
 
     Bucket bucket =
-<span class="fc bfc" id="L147" title="All 2 branches covered.">        ehEscrita</span>
-<span class="fc" id="L148">            ? bucketsEscrita.get(chave, k -&gt; criarBucket(escritaPorMinuto))</span>
-<span class="fc" id="L149">            : bucketsLeitura.get(chave, k -&gt; criarBucket(leituraPorMinuto));</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        ehEscrita</span>
+<span class="fc" id="L146">            ? bucketsEscrita.get(chave, k -&gt; criarBucket(escritaPorMinuto))</span>
+<span class="fc" id="L147">            : bucketsLeitura.get(chave, k -&gt; criarBucket(leituraPorMinuto));</span>
 
-<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (!bucket.tryConsume(1)) {</span>
-<span class="pc bpc" id="L152" title="1 of 2 branches missed.">      int limite = ehEscrita ? escritaPorMinuto : leituraPorMinuto;</span>
-<span class="fc" id="L153">      responder429(response, request, 60L, limite);</span>
-<span class="fc" id="L154">      return;</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (!bucket.tryConsume(1)) {</span>
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">      int limite = ehEscrita ? escritaPorMinuto : leituraPorMinuto;</span>
+<span class="fc" id="L151">      responder429(response, request, 60L, limite);</span>
+<span class="fc" id="L152">      return;</span>
     }
 
-<span class="fc" id="L157">    chain.doFilter(request, response);</span>
-<span class="fc" id="L158">  }</span>
+<span class="fc" id="L155">    chain.doFilter(request, response);</span>
+<span class="fc" id="L156">  }</span>
 
   private String resolverChave(HttpServletRequest request) {
     // Tenta extrair userId do JWT para rate limiting por usuário autenticado.
     // Necessário porque este filtro executa ANTES do JwtAuthFilter popular o SecurityContext.
-<span class="fc" id="L163">    String header = request.getHeader(&quot;Authorization&quot;);</span>
-<span class="pc bpc" id="L164" title="1 of 4 branches missed.">    if (header != null &amp;&amp; header.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="fc" id="L161">    String header = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="pc bpc" id="L162" title="1 of 4 branches missed.">    if (header != null &amp;&amp; header.startsWith(&quot;Bearer &quot;)) {</span>
       try {
-<span class="fc" id="L166">        var claims = jwtService.validar(header.substring(7));</span>
-<span class="fc" id="L167">        return &quot;user:&quot; + claims.getSubject();</span>
-<span class="fc" id="L168">      } catch (JwtService.JwtValidacaoException e) {</span>
+<span class="fc" id="L164">        var claims = jwtService.validar(header.substring(7));</span>
+<span class="fc" id="L165">        return &quot;user:&quot; + claims.getSubject();</span>
+<span class="fc" id="L166">      } catch (JwtService.JwtValidacaoException e) {</span>
         // Token expirado ou malformado é o caso NORMAL — todo cliente passa por ele a cada 15 min.
         // Em debug, e não em warn, senão o log vira ruído e ninguém lê mais nenhum dos dois.
-<span class="fc" id="L171">        log.debug(&quot;Token inválido no rate limit; caindo em bucket por IP: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L172">      } catch (RuntimeException e) {</span>
+<span class="fc" id="L169">        log.debug(&quot;Token inválido no rate limit; caindo em bucket por IP: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L170">      } catch (RuntimeException e) {</span>
         // Qualquer OUTRA falha aqui é defeito de configuração, não requisição ruim — chave RSA
         // ilegível é o caso concreto. Antes isto era engolido junto com o caso normal, e o sintoma
         // era TODO MUNDO compartilhar silenciosamente o bucket do IP, sem uma linha de log.
-<span class="nc" id="L176">        log.error(&quot;Falha inesperada ao resolver identidade no rate limit&quot;, e);</span>
-<span class="fc" id="L177">      }</span>
+<span class="nc" id="L174">        log.error(&quot;Falha inesperada ao resolver identidade no rate limit&quot;, e);</span>
+<span class="fc" id="L175">      }</span>
     }
-<span class="fc" id="L179">    return &quot;ip:&quot; + EnderecoDoCliente.de(request);</span>
+<span class="fc" id="L177">    return &quot;ip:&quot; + EnderecoDoCliente.de(request);</span>
   }
 
   private Bucket criarBucket(int capacidade) {
-<span class="fc" id="L183">    return Bucket.builder()</span>
-<span class="fc" id="L184">        .addLimit(</span>
-<span class="fc" id="L185">            Bandwidth.builder()</span>
-<span class="fc" id="L186">                .capacity(capacidade)</span>
-<span class="fc" id="L187">                .refillGreedy(capacidade, Duration.ofMinutes(1))</span>
-<span class="fc" id="L188">                .build())</span>
-<span class="fc" id="L189">        .build();</span>
+<span class="fc" id="L181">    return Bucket.builder()</span>
+<span class="fc" id="L182">        .addLimit(</span>
+<span class="fc" id="L183">            Bandwidth.builder()</span>
+<span class="fc" id="L184">                .capacity(capacidade)</span>
+<span class="fc" id="L185">                .refillGreedy(capacidade, Duration.ofMinutes(1))</span>
+<span class="fc" id="L186">                .build())</span>
+<span class="fc" id="L187">        .build();</span>
   }
 
   private boolean ehMetodoEscrita(String method) {
-<span class="fc bfc" id="L193" title="All 2 branches covered.">    return &quot;POST&quot;.equalsIgnoreCase(method)</span>
-<span class="fc bfc" id="L194" title="All 2 branches covered.">        || &quot;PUT&quot;.equalsIgnoreCase(method)</span>
-<span class="fc bfc" id="L195" title="All 2 branches covered.">        || &quot;PATCH&quot;.equalsIgnoreCase(method)</span>
-<span class="fc bfc" id="L196" title="All 2 branches covered.">        || &quot;DELETE&quot;.equalsIgnoreCase(method);</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">    return &quot;POST&quot;.equalsIgnoreCase(method)</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        || &quot;PUT&quot;.equalsIgnoreCase(method)</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">        || &quot;PATCH&quot;.equalsIgnoreCase(method)</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        || &quot;DELETE&quot;.equalsIgnoreCase(method);</span>
   }
 
   private void responder429(
@@ -202,23 +200,23 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // Escreve ProblemDetail (RFC 9457) manualmente: filtros não têm acesso garantido ao
     // ObjectMapper do contexto Spring (que é autoconfigured). Evita dependência de ciclo
     // de inicialização e mantém o filtro autocontido.
-<span class="fc" id="L205">    String uri = request.getRequestURI().replace(&quot;\&quot;&quot;, &quot;&quot;);</span>
-<span class="fc" id="L206">    String detail =</span>
+<span class="fc" id="L203">    String uri = request.getRequestURI().replace(&quot;\&quot;&quot;, &quot;&quot;);</span>
+<span class="fc" id="L204">    String detail =</span>
         &quot;Limite de requisições atingido (&quot; + limite + &quot;/min). Aguarde antes de tentar novamente.&quot;;
-<span class="fc" id="L208">    response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());</span>
-<span class="fc" id="L209">    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);</span>
+<span class="fc" id="L206">    response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());</span>
+<span class="fc" id="L207">    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);</span>
     // Mesma razão do SecurityConfig: o detail tem &quot;requisições&quot;, e sem UTF-8 explícito o corpo
     // sai em ISO-8859-1 dentro de um JSON.
-<span class="fc" id="L212">    response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
+<span class="fc" id="L210">    response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
     // Retry-After: informa ao cliente quanto tempo esperar (RFC 7231 §7.1.3).
-<span class="fc" id="L214">    response.setHeader(&quot;Retry-After&quot;, String.valueOf(retryAfter));</span>
-<span class="fc" id="L215">    response</span>
-<span class="fc" id="L216">        .getWriter()</span>
-<span class="fc" id="L217">        .write(</span>
-<span class="fc" id="L218">            String.format(</span>
+<span class="fc" id="L212">    response.setHeader(&quot;Retry-After&quot;, String.valueOf(retryAfter));</span>
+<span class="fc" id="L213">    response</span>
+<span class="fc" id="L214">        .getWriter()</span>
+<span class="fc" id="L215">        .write(</span>
+<span class="fc" id="L216">            String.format(</span>
                 &quot;{\&quot;type\&quot;:\&quot;%s\&quot;,\&quot;title\&quot;:\&quot;Too Many Requests\&quot;,\&quot;status\&quot;:429&quot;
                     + &quot;,\&quot;detail\&quot;:\&quot;%s\&quot;,\&quot;instance\&quot;:\&quot;%s\&quot;,\&quot;retryAfter\&quot;:%d}&quot;,
-<span class="fc" id="L221">                TipoProblema.LIMITE_REQUISICOES, detail, uri, retryAfter));</span>
-<span class="fc" id="L222">  }</span>
+<span class="fc" id="L219">                TipoProblema.LIMITE_REQUISICOES, detail, uri, retryAfter));</span>
+<span class="fc" id="L220">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -34,9 +34,8 @@ Slides 3 e 4.
 > escopo e prazo, a prova é o check-in geolocalizado, e a retribuição é token comunitário — que é
 > reconhecimento, não dinheiro: não converte em reais, e essa recusa é decisão registrada."
 >
-> "Existe um caso em que quem paga vem de fora: quando uma entrega falha, a retirada pelo vizinho
-> também é ajuda, e aí a transportadora financia. É a extensão de logística do enunciado — uma
-> extensão, não o produto."
+> "Existe um caso em que quem paga vem de fora: um apoiador do bairro recebe um aporte de token e
+> financia o pote de uma missão. Quem cria a missão não paga, e quem paga não escolhe quem executa."
 
 ---
 
@@ -64,8 +63,8 @@ mostrar que as três partes existem.
 1. `/login` com `admin@omnitribo.dev` / `Senha@123` *(deixe já digitado)*
 2. `/home`: cards de indicador e a lista de missões recentes
 3. Trocar o filtro para **"Em disputa"** → mostra o **estado vazio que ensina**
-4. `/admin`: listagem de pontos de custódia
-5. **Cadastrar um ponto**: submeter com campo inválido → mostra a validação; corrigir → salva e
+4. `/admin`: listagem de benefícios de parceiro
+5. **Cadastrar um benefício**: submeter com campo inválido → mostra a validação; corrigir → salva e
    **a lista se atualiza sem recarregar a página**
 
 > "A validação do cliente não substitui a do servidor — o backend confere de novo e ainda checa o
@@ -85,8 +84,9 @@ mostrar que as três partes existem.
 
 Slide 10.
 
-> "Fecho pelo que ainda não está pronto: o modelo de risco é treinado em dados sintéticos, há três
-> pendências diagnosticadas e registradas, e a navegação usa Expo Router em vez de React Navigation
+> "Fecho pelo que ainda não está pronto: o eixo de apoio à decisão ficou sem implementação depois
+> que a extensão logística saiu, há duas pendências diagnosticadas e registradas, e a navegação usa
+> Expo Router em vez de React Navigation
 > — medi, e nessa versão o Expo Router não embrulha o React Navigation. Está tudo declarado no
 > documento."
 

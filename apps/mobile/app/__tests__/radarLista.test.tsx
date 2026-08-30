@@ -5,7 +5,7 @@ import { HttpResponse, http } from 'msw';
 import DetalheMissao from '../(app)/missao/[id]';
 import TelaLogin from '../(auth)/login';
 import TelaMapa from '../(tabs)/mapa';
-import { PONTO_CUSTODIA, missao, proxima } from '@/testes/fixtures';
+import { missao, proxima } from '@/testes/fixtures';
 import { render } from '@/testes/render';
 import { servidor } from '@/testes/servidor';
 import { useSessao } from '@/stores/sessao';
@@ -65,9 +65,6 @@ beforeEach(async () => {
     // `geography`, em ConsultasGeoespaciaisPostgis. Aqui vem na ordem certa de propósito.
     http.get(`${BASE}/missoes/proximas`, () =>
       HttpResponse.json([proxima(180, MISSAO_PERTO), proxima(2400, MISSAO_LONGE)]),
-    ),
-    http.get(`${BASE}/pontos-custodia`, () =>
-      HttpResponse.json([{ ...PONTO_CUSTODIA, distanciaM: 240 }]),
     ),
     http.get(`${BASE}/missoes/${PERTO_ID}`, () =>
       HttpResponse.json(missao({ ...MISSAO_PERTO, status: 'ABERTA' })),
@@ -138,21 +135,6 @@ describe('radar em lista', () => {
     await waitFor(() => expect(aceitou).toBe(true));
   });
 
-  it('o ponto de custódia é alcançável — era o que só existia dentro da WebView', async () => {
-    await render(<TelaMapa />);
-    await fireEvent.press(await screen.findByRole('button', { name: 'Permitir localização' }));
-    await fireEvent.press(await screen.findByRole('button', { name: 'Lista' }));
-
-    // Tipo, distância e ocupação: o que decide se vale ir. Ponto lotado recusa a encomenda.
-    const ponto = await screen.findByRole('button', {
-      name: 'Ponto de custódia, loja, a 240 m, 47 de 50 vagas livres, Leroy Merlin Pinheiros.',
-    });
-    await fireEvent.press(ponto);
-
-    // Abre a MESMA folha que o marcador do mapa abre — uma descrição só do ponto no app inteiro.
-    expect(await screen.findByRole('header', { name: PONTO_CUSTODIA.apelido })).toBeTruthy();
-  });
-
   it('a ordem é a do SERVIDOR — o cliente não reordena', async () => {
     // Reordenar aqui exigiria um segundo cálculo de distância, quase igual e ocasionalmente
     // diferente do que o mapa desenha. Mesma razão pela qual `formatarDistancia` só formata.
@@ -182,16 +164,12 @@ describe('radar em lista', () => {
   });
 
   it('a lista vazia EXPLICA, em vez de deixar a tela muda', async () => {
-    servidor.use(
-      http.get(`${BASE}/missoes/proximas`, () => HttpResponse.json([])),
-      http.get(`${BASE}/pontos-custodia`, () => HttpResponse.json([])),
-    );
+    servidor.use(http.get(`${BASE}/missoes/proximas`, () => HttpResponse.json([])));
 
     await render(<TelaMapa />);
     await fireEvent.press(await screen.findByRole('button', { name: 'Permitir localização' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Lista' }));
 
     expect(await screen.findByRole('header', { name: 'Nenhuma missão por aqui' })).toBeTruthy();
-    expect(screen.getByRole('header', { name: 'Nenhum ponto por perto' })).toBeTruthy();
   });
 });

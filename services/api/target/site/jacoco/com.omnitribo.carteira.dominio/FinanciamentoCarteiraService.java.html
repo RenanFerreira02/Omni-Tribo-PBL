@@ -98,17 +98,17 @@ public class FinanciamentoCarteiraService implements FinanciamentoMissao, Estorn
       // zero. Um lançamento de valor zero consumiria uma chave de idempotência sem mover nada, e
       // ck_lancamento_valor_nao_nulo (V13) o recusaria com 500.
 <span class="nc" id="L100">      throw new IllegalArgumentException(</span>
-          &quot;Financiamento de patrocinador exige tokens positivos; recebeu &quot; + tokens + &quot;.&quot;);
+          &quot;Financiamento de apoiador exige tokens positivos; recebeu &quot; + tokens + &quot;.&quot;);
     }
 
     // Primeira leitura desta carteira na transação, então o FOR UPDATE é de fato emitido.
 <span class="fc" id="L105">    Carteira carteira = travarCarteiraDe(patrocinadorUsuarioId);</span>
 
-    // VAZIO, não exceção. A encomenda já está no ponto de custódia e a recusa precisa ser GRAVADA
-    // na entrega falida — lançar aqui abortaria a transação e apagaria o registro. Ver o javadoc da
-    // porta e o padrão do check-in rejeitado.
-<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (carteira.getSaldoTokens() &lt; tokens) {</span>
-<span class="fc" id="L111">      return Optional.empty();</span>
+    // VAZIO, não exceção: a decisão do que fazer com saldo insuficiente é de quem chama, que é o
+    // único com contexto para saber se a recusa vira 422 ou vira linha gravada. Ver o javadoc da
+    // porta — este contrato nasceu do webhook de entrega falida, onde gravar era obrigatório.
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">    if (carteira.getSaldoTokens() &lt; tokens) {</span>
+<span class="nc" id="L111">      return Optional.empty();</span>
     }
 
 <span class="fc" id="L114">    Lancamento lancamento =</span>

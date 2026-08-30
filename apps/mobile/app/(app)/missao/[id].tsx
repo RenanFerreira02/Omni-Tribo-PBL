@@ -25,7 +25,6 @@ import { orientacaoDe, type OrientacaoCheckin } from '@/features/missoes/mensage
 import { paraFala, useAnuncio } from '@/lib/anunciar';
 import { ROTULO_COMPLEXIDADE } from '@/features/missoes/rotulos';
 import { useLocalizacao } from '@/features/missoes/useLocalizacao';
-import { usePontoCustodia } from '@/features/mapa/hooks';
 import { formatarDataHora, rotuloCategoria, rotuloStatus } from '@/lib/formatar';
 import { novaChaveIdempotencia } from '@/lib/ids';
 import { useSessao } from '@/stores/sessao';
@@ -243,37 +242,7 @@ export default function DetalheMissao() {
               ? ` — calculada a partir de ${missao.pesoKg} kg e ${missao.volumeL} L`
               : ' — informada por quem criou'}
           </Text>
-          {/* O adicional por risco, quando existe. Fica JUNTO da recompensa e não no aviso porque
-              aqui ele responde "por que esta paga mais": sem a linha, duas entregas de mesmo peso e
-              distância mostrariam valores diferentes sem justificativa visível, e a economia
-              pareceria arbitrária. Só aparece acima de 1,00 — exibir "1,00×" em toda missão comum
-              seria ruído. */}
-          {missao.multiplicadorRisco !== null && missao.multiplicadorRisco > 1 ? (
-            <Text style={estilos.legenda} testID="multiplicador-risco">
-              Inclui {missao.multiplicadorRisco.toFixed(2)}× por risco de falha na entrega
-            </Text>
-          ) : null}
         </Card>
-
-        {/* AVISO DE RISCO. O texto vem PRONTO do servidor: compor a frase aqui faria cada versão
-            instalada ter a sua, e mudar a orientação exigiria publicar na loja. `avisoRisco` é nulo
-            em toda missão que não veio de entrega falida — a maioria — e também em risco BAIXO,
-            porque um aviso que aparece sempre deixa de ser lido.
-
-            Fica ANTES do bloco "Onde" de propósito: quem está decidindo se aceita precisa ler o
-            alerta antes do endereço, não depois de já ter passado por ele. */}
-        {missao.avisoRisco ? (
-          <Aviso
-            tom={missao.faixaRisco === 'ALTO' ? 'atencao' : 'informacao'}
-            titulo={
-              missao.faixaRisco === 'ALTO'
-                ? 'Entrega com histórico de falha'
-                : 'Entrega com histórico irregular'
-            }
-            mensagem={missao.avisoRisco}
-            testID="aviso-risco"
-          />
-        ) : null}
 
         <Card>
           <Text style={estilos.rotulo}>Onde</Text>
@@ -293,7 +262,6 @@ export default function DetalheMissao() {
             {missao.bairro}, {missao.cidade} — {missao.uf}
           </Text>
           <Text style={estilos.legenda}>Raio de check-in: {missao.raioCheckinM} m</Text>
-          <PontoDeCustodia id={missao.pontoCustodiaId} />
         </Card>
 
         <Card>
@@ -375,24 +343,6 @@ export default function DetalheMissao() {
         testID="botao-voltar"
       />
     </SafeAreaView>
-  );
-}
-
-/**
- * Resolve o `pontoCustodiaId` cru num nome legível.
- *
- * Era a Pendência #3: o app exibia um UUID onde deveria dizer "Leroy Merlin Pinheiros". Falha
- * silenciosamente — se o ponto foi desativado, o endpoint responde 404 e a linha simplesmente não
- * aparece, em vez de mostrar um erro por um detalhe complementar.
- */
-function PontoDeCustodia({ id }: { id: string | null }) {
-  const { data } = usePontoCustodia(id);
-  if (!data) return null;
-
-  return (
-    <Text style={estilos.legenda} testID="ponto-custodia">
-      Ponto de custódia: {data.apelido} ({data.codigo})
-    </Text>
   );
 }
 
