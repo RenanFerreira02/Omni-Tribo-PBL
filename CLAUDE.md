@@ -376,8 +376,16 @@ publicaria a cotação token→real que o ADR 0009 §6 recusa.
 `/api/v1/admin/resgates/{id}` — `PATCH`, só ADMIN. `PENDENTE → UTILIZADO`, idempotente. **Sem caminho
 de volta**: reverter ressuscitaria token queimado.
 
-`/api/v1/admin/carteiras/reconciliacao` — `GET`, só ADMIN. **É a única visão econômica de ADMIN
-desde a V28** — o painel `/admin/impacto` era o funil da entrega falida e saiu com ela (ADR 0031).
+`/api/v1/admin/carteiras/reconciliacao` — `GET`, só ADMIN. O painel `/admin/impacto` era o funil da
+entrega falida e saiu com ela (ADR 0031); as visões econômicas de ADMIN hoje são esta e a de baixo.
+
+`/api/v1/admin/missoes/potes-imobilizados` — `GET`, só ADMIN, paginado (`?pagina&tamanho`, teto 100).
+Missões `EM_ANDAMENTO`, `AGUARDANDO_CONFIRMACAO` ou `EM_DISPUTA` com `pote_tokens > 0`, da mais
+antiga para a mais nova, mais `totalTokens` do conjunto inteiro. **É o par DETECTIVO do `destravar`**
+e responde a outra invariante: a reconciliação mede ledger × projeção e segue `integro=true` com
+token preso; este endpoint mede conservação. Leitura pura — não destrava nem estorna. `ABERTA` e
+`ACEITA` ficam fora de propósito: estão esperando, não paradas. Vive em `missoes`, não ao lado da
+reconciliação, porque lê `missao.pote_tokens` e `carteira` não pode depender de `missoes.dominio`.
 
 `/api/v1/admin/patrocinadores` — `POST` (cadastra titular + carteira + a relação de APOIADOR, por
 `slug`) · `GET` (lista, SEM saldo de propósito) · `POST /{id}/aportes` (**EMITE token**; exige
@@ -512,6 +520,15 @@ CI (`.github/workflows/`), três workflows:
   `CHANGELOG.md` — entrega acadêmica da F13.
 - `documentacao/` — o PDF da entrega acadêmica. Não é fonte de verdade técnica: envelhece a cada
   fase e não é atualizado junto com o código.
+- `Oracle/` — **a entrega do PBL Fase 6, autocontida de propósito** (2026-10-03). Modelo Oracle,
+  PL/SQL e um mini app Spring Boot na porta 8085 que chama as procedures por JDBC. **Não é parte do
+  sistema**: o banco continua sendo PostgreSQL e o Flyway continua sendo a única fonte de schema
+  DELE. As regras desta pasta são outras e estão em `Oracle/README.md` — scripts numerados
+  `00`–`07` em vez de migrations, prefixo `OT_` em todo objeto (o schema da FIAP é compartilhado com
+  outras disciplinas), nenhuma procedure faz `COMMIT`. As procedures REPETEM regras que existem em
+  Java (`ExpiracaoMissoesService`, `ResgateService`, `ReconciliacaoService`) e rodam sobre uma cópia
+  do seed: mudou a regra no Java, a cópia em PL/SQL não muda sozinha. Não integre o Oracle a
+  `services/api` sem eu pedir — a pasta existe justamente para não mexer nas regras de lá.
 - `CONTRIBUTING.md` — tabela de tipos de Conventional Commit aceitos e checklist pré-commit.
 
 ## Convenções por camada
@@ -750,19 +767,18 @@ dizer a verdade; **a lacuna em si continua aberta de propósito**, porque fechá
 projeto: uma consulta de esgotados exposta a ADMIN, um contador, ou aceitar a perda explicitamente.
 Não decida sozinho — muda o contrato de entrega de notificação.
 
-**2. Nada acha pote imobilizado.** Token preso em missão não-terminal parada (`EM_ANDAMENTO`,
-`AGUARDANDO_CONFIRMACAO`, `EM_DISPUTA`) viola a CONSERVAÇÃO enquanto a reconciliação segue
-respondendo `integro=true` — são invariantes diferentes, e a primeira passa enquanto a segunda é
-violada. **Não existe consulta, endpoint nem relatório que mostre esses potes.**
+O mesmo formato de problema existia nos potes imobilizados e foi fechado com um endpoint de
+diagnóstico de ADMIN (ver a nota abaixo) — é o precedente se a decisão aqui for "consulta de
+esgotados".
 
-Existiu a aparência de um: `MissaoRepository.potesImobilizados`, com javadoc dizendo que
-"existe para dar visibilidade a essa diferença", e o ADR 0015 registrando essa visibilidade como
-consequência aceita. **Nenhum serviço, endpoint ou teste jamais a chamou.** A query foi removida
-como órfã em 2026-08-20 e o ADR 0015 recebeu a retificação, em vez de manter código morto que fazia
-a lacuna parecer coberta. A mitigação real que EXISTE é outra, e é preventiva, não detectiva: a
-varredura por prazo (`ExpiracaoMissoesService`) e a porta de ADMIN (`POST /missoes/{id}/destravar`)
-tiram a missão do limbo. O que falta é o instrumento de DIAGNÓSTICO — ver Pendência #1, que é o
-mesmo formato de problema.
+> **A Pendência #2 saiu em 2026-10-03.** Era "nada acha pote imobilizado": token preso em missão
+> parada viola a conservação enquanto a reconciliação responde `integro=true`, e não havia consulta,
+> endpoint nem relatório que mostrasse esses potes. Fechada por
+> `GET /admin/missoes/potes-imobilizados` (`PotesImobilizadosService`, `PotesImobilizadosAdminTest`).
+> A consulta `MissaoRepository.potesImobilizados` **voltou a existir, agora com chamador e teste** —
+> a versão de 2026-08 foi removida como órfã justamente por não ter nenhum dos dois. O que continua
+> verdade: o instrumento é detectivo e manual; `EM_DISPUTA` segue sem varredura por prazo e só sai
+> por `resolver`.
 
 > **A Pendência #3 saiu em 2026-08-30, junto com a causa.** Era o alerta de ponto lotado sem teto —
 > 631 linhas idênticas em menos de 3 minutos, medidas no teste de carga de 2026-08-25. O alerta era

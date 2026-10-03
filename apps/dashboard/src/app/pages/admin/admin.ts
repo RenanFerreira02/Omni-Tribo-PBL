@@ -6,8 +6,11 @@ import {
   Beneficio,
   NovoBeneficio,
   PainelService,
+  PoteImobilizado,
+  PotesImobilizados,
   Reconciliacao,
   TIPOS_BENEFICIO,
+  rotuloDeStatus,
 } from '../../core/painel.service';
 import { Problema, mensagemDe, paraProblema } from '../../core/problema';
 
@@ -94,6 +97,10 @@ export class Admin implements OnInit {
   readonly reconciliacao = signal<Reconciliacao | null>(null);
   readonly indicadores = signal<Indicador[]>([]);
 
+  // ---------- potes imobilizados ----------
+  /** `null` enquanto não respondeu ou quando o servidor negou (403): a seção não aparece. */
+  readonly potes = signal<PotesImobilizados | null>(null);
+
   private static formVazio(): FormularioBeneficio {
     return { parceiroId: '', titulo: '', descricao: '', custoTokens: null, tipo: 'BEM' };
   }
@@ -112,6 +119,21 @@ export class Admin implements OnInit {
       // 403 para quem não é ADMIN. Não é erro de tela: é a autorização funcionando, e o painel
       // simplesmente não mostra a seção. Esconder NÃO é proteger — quem protege é o @PreAuthorize.
       error: () => this.reconciliacao.set(null),
+    });
+    this.carregarPotes();
+  }
+
+  /**
+   * Token preso em missão parada.
+   *
+   * <p>Chamada separada da reconciliação de propósito: as duas respondem perguntas diferentes, e
+   * uma falhar não pode esconder a outra. O 403 de quem não é ADMIN é tratado como na seção de
+   * cima — a seção some, e quem protege o dado é o `@PreAuthorize` do servidor.
+   */
+  carregarPotes(): void {
+    this.painel.potesImobilizados().subscribe({
+      next: (dados) => this.potes.set(dados),
+      error: () => this.potes.set(null),
     });
   }
 
@@ -254,5 +276,37 @@ export class Admin implements OnInit {
 
   mensagem(problema: Problema): string {
     return mensagemDe(problema);
+  }
+
+  rotuloDoStatus(pote: PoteImobilizado): string {
+    return rotuloDeStatus(pote.status);
+  }
+
+  /**
+   * "há 3 dias" / "há 5 h", a partir das horas que o SERVIDOR calculou.
+   *
+   * <p>Não recalcula com `Date.now()` sobre `estadoDesde`: o relógio que decide a varredura por
+   * prazo é o do servidor, e o do navegador pode estar adiantado ou em outro fuso.
+   */
+  tempoParado(pote: PoteImobilizado): string {
+    const dias = Math.floor(pote.horasNoEstado / 24);
+    if (dias >= 2) {
+      return `há ${dias} dias`;
+    }
+    if (dias === 1) {
+      return 'há 1 dia';
+    }
+    return pote.horasNoEstado >= 1 ? `há ${pote.horasNoEstado} h` : 'há menos de 1 h';
+  }
+
+  /**
+   * Selo de urgência. EM_DISPUTA é sempre o mais grave: é o único dos três estados SEM varredura
+   * por prazo — só sai quando um ADMIN resolve, então nada o tira dali sozinho.
+   */
+  classeDoPote(pote: PoteImobilizado): string {
+    if (pote.status === 'EM_DISPUTA') {
+      return 'lotacao lotacao-cheio';
+    }
+    return pote.horasNoEstado >= 48 ? 'lotacao lotacao-quase' : 'lotacao lotacao-ok';
   }
 }

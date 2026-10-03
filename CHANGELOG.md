@@ -10,6 +10,36 @@ Uma entrada por **fase** do projeto — a numeração de fases é a de
 
 ---
 
+## [v1.2] — 2026-10-03 · PBL Fase 6: Oracle PL/SQL
+
+Duas entregas. Só a segunda toca o sistema.
+
+### Adicionado
+
+- **Camada Oracle PL/SQL, autocontida em [`Oracle/`](Oracle/README.md).** 12 tabelas `OT_`, 3
+  triggers de append-only, 5 functions, 3 procedures e um mini app Spring Boot que as chama por
+  `CallableStatement` (REST → Java → JDBC → Oracle). Instalada e executada na instância Oracle 19c
+  da FIAP: 23 objetos `VALID`, 90 de 90 asserções em PL/SQL. O PostgreSQL continua sendo o banco do
+  sistema; o Oracle recebe uma projeção exportada do seed, sem e-mail, hash de senha nem coordenada.
+- **`GET /api/v1/admin/missoes/potes-imobilizados`** — missões `EM_ANDAMENTO`,
+  `AGUARDANDO_CONFIRMACAO` e `EM_DISPUTA` com token no pote, e o total imobilizado. É o instrumento
+  detectivo que faltava ao lado do `destravar`.
+- **Seção "Potes imobilizados" no dashboard**, em `/admin`, abaixo da integridade do ledger.
+
+### Corrigido
+
+- **Pendência #2 do `CLAUDE.md`, aberta desde 2026-08-20**: nada mostrava token preso em missão
+  parada, e a reconciliação seguia respondendo `integro: true`. Medido ao vivo: 113 tokens
+  imobilizados em 4 missões com a reconciliação íntegra na mesma base.
+- **Tradução de erro do mini app Oracle respondia 500 para regra de negócio.** `getRootCause()` não
+  devolve a `SQLException` com o driver da Oracle, que encadeia uma `OracleDatabaseException` depois
+  dela. O teste unitário passava; a chamada real foi quem acusou.
+
+### Não mudou
+
+- Schema do PostgreSQL: nenhuma migration nova. A próxima continua sendo a **V29**.
+- Pendência #1 (outbox sem carta-morta) segue aberta.
+
 ## [v1.1] — 2026-08-30 · Só o eixo social
 
 **Decisão de produto: manter apenas o eixo de Sociedade 5.0.** A extensão logística saiu inteira —

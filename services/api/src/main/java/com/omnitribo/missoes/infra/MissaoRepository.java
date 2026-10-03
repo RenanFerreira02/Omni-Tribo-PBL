@@ -7,6 +7,7 @@ import com.omnitribo.missoes.dominio.StatusMissao;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -197,6 +198,43 @@ public interface MissaoRepository extends JpaRepository<Missao, UUID> {
    */
   @Query(value = "SELECT COALESCE(SUM(pote_tokens), 0) FROM missao", nativeQuery = true)
   long somarPotes();
+
+  /**
+   * Missões PARADAS com token no pote: o diagnóstico que a reconciliação não faz.
+   *
+   * <p>Reconciliação (ledger == projeção) e conservação (o token está onde deveria) são invariantes
+   * diferentes, e a primeira passa enquanto a segunda é violada: um pote preso numa missão que não
+   * anda deixa toda carteira íntegra. Esta consulta é o que MOSTRA esse token.
+   *
+   * <p>Os status entram por parâmetro, e não fixos no JPQL, para que a definição de "parada" more
+   * num lugar só — {@code PotesImobilizadosService.STATUS_PARADOS}. ABERTA fica de fora de
+   * propósito: missão publicada e ainda não aceita está esperando, não parada, e tem saída própria
+   * pela janela.
+   *
+   * <p>Ordem por {@code estadoDesde} crescente: a mais antiga primeiro, que é a que o administrador
+   * precisa olhar antes. O desempate por id torna a paginação estável.
+   *
+   * <p><b>Houve uma consulta com este nome, removida como órfã em 2026-08-20</b> — nenhum serviço,
+   * endpoint ou teste a chamava, e o javadoc dela fazia a lacuna parecer coberta. Esta tem chamador
+   * ({@code GET /admin/missoes/potes-imobilizados}) e teste ({@code PotesImobilizadosAdminTest}).
+   */
+  @Query(
+      """
+      select m from Missao m
+      where m.status in :status
+        and m.poteTokens > 0
+      order by m.estadoDesde asc, m.id asc
+      """)
+  Page<Missao> potesImobilizados(@Param("status") Collection<StatusMissao> status, Pageable pagina);
+
+  /** Total de tokens presos nas missões paradas — o número que o painel mostra no topo. */
+  @Query(
+      """
+      select coalesce(sum(m.poteTokens), 0) from Missao m
+      where m.status in :status
+        and m.poteTokens > 0
+      """)
+  long somarPotesImobilizados(@Param("status") Collection<StatusMissao> status);
 
   /** Projeção de interface — sem entidade no caminho. */
   interface ResumoSistemaProjecao {

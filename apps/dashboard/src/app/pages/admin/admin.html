@@ -218,3 +218,64 @@
     discordam — o ledger é append-only, então a correção é por ESTORNO, nunca por UPDATE.
   </p>
 </section>
+
+<!-- ===================== POTES IMOBILIZADOS ===================== -->
+<section class="impacto" *ngIf="potes() as dados">
+  <h2>Potes imobilizados</h2>
+  <p class="gerado">
+    Token de quem financiou, preso em missão que parou no meio. É o que a seção de cima NÃO mostra:
+    um pote parado não desequilibra carteira nenhuma, então o ledger segue íntegro com token
+    imobilizado aqui.
+  </p>
+  <ul class="indicadores">
+    <li>
+      <span>Missões paradas com pote</span
+      ><span class="valor">{{ dados.missoes.totalElementos }}</span>
+    </li>
+    <li>
+      <span>Tokens imobilizados</span><span class="valor">{{ dados.totalTokens }}</span>
+    </li>
+  </ul>
+
+  <p class="aviso vazio" *ngIf="dados.missoes.totalElementos === 0">
+    Nenhum pote imobilizado. A consulta funcionou e devolveu zero linhas.
+  </p>
+
+  <table class="pontos" *ngIf="dados.missoes.conteudo.length > 0">
+    <caption>
+      {{
+        dados.missoes.conteudo.length
+      }}
+      de
+      {{
+        dados.missoes.totalElementos
+      }}
+      missão(ões), da mais antiga para a mais nova
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Missão</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Parada</th>
+        <th scope="col" class="num">Pote</th>
+        <th scope="col" class="num">Recompensa</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let pote of dados.missoes.conteudo">
+        <td>{{ pote.titulo }}</td>
+        <td>
+          <span [class]="classeDoPote(pote)">{{ rotuloDoStatus(pote) }}</span>
+        </td>
+        <td>{{ tempoParado(pote) }}</td>
+        <td class="num">{{ pote.poteTokens }} tokens</td>
+        <td class="num">{{ pote.tokensRecompensa }} tokens</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="gerado">
+    Em andamento e aguardando confirmação saem sozinhas pela varredura por prazo.
+    <strong>Em disputa não</strong>: só sai quando um administrador resolve.
+  </p>
+</section>

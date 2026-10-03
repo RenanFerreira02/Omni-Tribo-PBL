@@ -19,6 +19,7 @@
 | F12c | Previsão de risco de falha de entrega | ✅ Concluído | [modelo](qualidade/modelo-previsao.md) | 2026-08-15 |
 | F13  | Entrega final                         | ✅ Concluído | [evidências](evidencias/) | 2026-08-16 |
 | F21  | Endurecimento da cadeia de dependências | 🟨 Parcial  | [dependency-check](evidencias/f21-dependency-check.md) | 2026-08-24 |
+| PBL6 | Camada Oracle PL/SQL (pasta `Oracle/`) + diagnóstico de potes imobilizados | ✅ Concluído | [entrega](../Oracle/docs/ENTREGA-FASE6.md) · [evidências](../Oracle/evidencias/) | 2026-10-03 |
 
 > **A numeração acima é a dos COMMITS e das auditorias, e foi corrigida em 2026-08-08.** A tabela
 > anterior estava deslocada a partir da F2 (chamava a fase de API de "Identidade e Autenticação") e
@@ -26,10 +27,14 @@
 > formas diferentes — o commit da carteira se chama "F7" e a tabela a chamava de "F5". Agora tabela,
 > commits e `docs/auditoria/FN.md` usam a mesma numeração.
 
-**Backend verde com 637 testes** (0 falhas, 0 erros, 2 pulados), SpotBugs limpo e os dois gates
-JaCoCo passando. **Mobile com 179 testes** Jest/RTL/MSW em 14 suítes, typecheck e lint sem erro.
-Medido em 2026-08-16 por `make test` — saída em
-[`evidencias/f13-make-test.md`](evidencias/f13-make-test.md).
+**Backend verde com 580 testes** (0 falhas, 0 erros, 0 pulados), SpotBugs limpo e os dois gates
+JaCoCo passando — medido em 2026-10-03 por `./mvnw verify`. Eram 637 em 2026-08-16
+([`evidencias/f13-make-test.md`](evidencias/f13-make-test.md)); a diferença é a remoção do eixo
+logístico em 2026-08-30, que levou os testes dele junto, mais os 6 do endpoint de potes imobilizados.
+
+**Mobile com 179 testes** Jest/RTL/MSW em 14 suítes, typecheck e lint sem erro — medido em
+2026-08-16 e **não remedido desde então**: a remoção de 08-30 também tirou telas do app, então este
+número pode estar desatualizado.
 
 Os testes de integração contra a API em execução ficam **fora** do `npm test`, de propósito
 (`jest.e2e.config.js`); o ciclo ponta a ponta com dois usuários reais está em
@@ -52,6 +57,26 @@ contra o sistema em execução. Quatro defeitos; dois corrigidos no mesmo dia, d
 Pendências do CLAUDE.md.
 
 ## Notas de manutenção
+
+- **2026-10-03 — PBL Fase 6: Oracle PL/SQL, e a Pendência #2 fechada.** Duas entregas, e só a
+  segunda toca o sistema.
+
+  **A camada Oracle vive inteira em [`Oracle/`](../Oracle/README.md)** e não altera nada de
+  `services/api`: 12 tabelas `OT_`, 5 functions, 3 procedures e um mini app Spring Boot que as chama
+  por `CallableStatement`. O PostgreSQL continua sendo o banco do sistema e o Flyway, a única fonte
+  de schema DELE; o Oracle recebe uma projeção exportada do seed. As procedures repetem regras que
+  já existem em Java (`ExpiracaoMissoesService`, `ResgateService`, `ReconciliacaoService`) e rodam
+  sobre a cópia — são a mesma regra na camada de banco, não o que o sistema usa.
+
+  **Um defeito achado por medição, de novo.** A tradução de erro do mini app usava
+  `getRootCause()` para achar a `SQLException`, e o teste unitário passava. Contra o Oracle real,
+  saldo insuficiente respondeu **500** em vez de 422: o driver pendura uma `OracleDatabaseException`
+  — que não é `SQLException` — como causa da própria `SQLException`, então a raiz da cadeia nunca é
+  o tipo que carrega o código ORA. Corrigido percorrendo a cadeia, com teste de regressão.
+
+  **`GET /admin/missoes/potes-imobilizados`** fecha a Pendência #2 do `CLAUDE.md`: é o instrumento
+  detectivo que faltava ao lado do `destravar`. Ver a retificação do
+  [ADR 0015](adr/0015-destravamento-de-estados-sem-saida.md).
 
 - **2026-08-30 — Remoção da extensão logística.** Decisão de produto: manter só o eixo social. Saiu
   o módulo `logistica` inteiro (webhook de transportadora, `EntregaFalida`, `PontoCustodia`, o modelo

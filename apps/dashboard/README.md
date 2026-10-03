@@ -33,7 +33,7 @@ do servidor — o painel diz isso em vez de "erro ao carregar", porque não é f
 |---|---|---|
 | `/login` | não | Formulário de entrada |
 | `/home` | sim (`authGuard`) | Perfil da sessão e a lista de tribos (`GET /tribos`) |
-| `/admin` | sim (`authGuard`) | Gestão de benefícios de parceiro: listagem + cadastro. Abaixo, a integridade do ledger (`GET /admin/carteiras/reconciliacao`, só ADMIN) |
+| `/admin` | sim (`authGuard`) | Gestão de benefícios de parceiro: listagem + cadastro. Abaixo, a integridade do ledger (`GET /admin/carteiras/reconciliacao`, só ADMIN) e os potes imobilizados (`GET /admin/missoes/potes-imobilizados`, só ADMIN): token preso em missão parada, que a reconciliação não mostra |
 
 `/` redireciona para `/home`; qualquer rota desconhecida também.
 
