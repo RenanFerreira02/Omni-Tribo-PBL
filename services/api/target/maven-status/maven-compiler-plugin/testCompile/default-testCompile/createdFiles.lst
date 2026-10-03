@@ -11,8 +11,8 @@ com/omnitribo/identidade/dominio/RegraNivelTest.class
 com/omnitribo/missoes/MissaoFixture$1.class
 com/omnitribo/compartilhado/infra/CorsConfigTest.class
 com/omnitribo/compartilhado/infra/BloqueioProgressivoTest.class
-com/omnitribo/UsuarioDeTeste.class
 com/omnitribo/arquitetura/RegrasArquiteturaTest$1.class
+com/omnitribo/UsuarioDeTeste.class
 com/omnitribo/carteira/api/ConservacaoTokensTest.class
 com/omnitribo/compartilhado/api/ContratoErroTest.class
 com/omnitribo/identidade/api/PerfilControllerTest.class
@@ -39,14 +39,14 @@ com/omnitribo/identidade/dominio/CalculadoraDeConquistasTest.class
 com/omnitribo/integracoes/api/IntegracoesControllerTest.class
 com/omnitribo/integracoes/dominio/CacheIntegracoesTest$Consulta.class
 com/omnitribo/missoes/api/FinanciamentoApoiadorAdminTest.class
-com/omnitribo/OperadorBancoTestConfig.class
 com/omnitribo/compartilhado/api/PingControllerTest.class
 com/omnitribo/identidade/api/PatrocinadorAdminTest.class
 com/omnitribo/integracoes/infra/ResilienciaClientesExternosTest.class
+com/omnitribo/OperadorBancoTestConfig.class
 com/omnitribo/missoes/api/CheckinControllerTest.class
 com/omnitribo/identidade/api/TriboControllerTest.class
-com/omnitribo/missoes/MissaoFixture.class
 com/omnitribo/missoes/api/MissoesProximasTest.class
+com/omnitribo/missoes/MissaoFixture.class
 com/omnitribo/carteira/api/SaqueConcorrenteTest.class
 com/omnitribo/missoes/api/MissoesProximasCacheTest.class
 com/omnitribo/compartilhado/dominio/DrenadorOutboxServiceTest.class
@@ -61,6 +61,7 @@ com/omnitribo/integracoes/infra/ClientesExternosTest.class
 com/omnitribo/compartilhado/infra/IndiceGeoespacialTest.class
 com/omnitribo/compartilhado/dominio/MedianaTest.class
 com/omnitribo/identidade/api/BuscaHandleTest.class
+com/omnitribo/missoes/api/PotesImobilizadosAdminTest.class
 com/omnitribo/JwtTestConfig.class
 com/omnitribo/integracoes/FontesExternasFalsasConfig.class
 com/omnitribo/identidade/api/LgpdControllerTest.class

@@ -61,6 +61,7 @@
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/test/java/com/omnitribo/missoes/api/MissaoControllerTest.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/test/java/com/omnitribo/missoes/api/MissoesProximasCacheTest.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/test/java/com/omnitribo/missoes/api/MissoesProximasTest.java
+/home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/test/java/com/omnitribo/missoes/api/PotesImobilizadosAdminTest.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/test/java/com/omnitribo/missoes/api/RecompensaCalculadaTest.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/test/java/com/omnitribo/missoes/dominio/CalculadoraDeRecompensaTest.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/test/java/com/omnitribo/missoes/dominio/ExpiracaoMissoesServiceTest.java

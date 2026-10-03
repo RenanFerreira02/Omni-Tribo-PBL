@@ -140,6 +140,42 @@ export class PainelService {
   reconciliacao(): Observable<Reconciliacao> {
     return this.http.get<Reconciliacao>(`${API_BASE_URL}/admin/carteiras/reconciliacao`);
   }
+
+  /**
+   * Missões PARADAS com token no pote. Só ADMIN — 403 para usuário comum.
+   *
+   * <p>É a outra metade da reconciliação acima, e responde a uma pergunta diferente: um pote preso
+   * numa missão que não anda deixa toda carteira íntegra, então `integro: true` e token imobilizado
+   * convivem. Aquele endpoint mede ledger × projeção; este mede onde o token está parado.
+   *
+   * <p>`totalTokens` vem do servidor e é do CONJUNTO inteiro, não da página. Somar `poteTokens` das
+   * linhas aqui daria o total da página e erraria sem nunca dar erro — o mesmo motivo pelo qual os
+   * cards de status leem `totalElementos` em vez de contar em JavaScript.
+   */
+  potesImobilizados(tamanho = 20): Observable<PotesImobilizados> {
+    return this.http.get<PotesImobilizados>(`${API_BASE_URL}/admin/missoes/potes-imobilizados`, {
+      params: new HttpParams().set('tamanho', tamanho),
+    });
+  }
+}
+
+/** Recorte de `PoteImobilizadoResponse`. `horasNoEstado` é calculado pelo relógio do SERVIDOR. */
+export interface PoteImobilizado {
+  missaoId: string;
+  titulo: string;
+  status: string;
+  categoria: string;
+  fontePote: string;
+  poteTokens: number;
+  tokensRecompensa: number;
+  estadoDesde: string;
+  horasNoEstado: number;
+}
+
+/** Recorte de `PotesImobilizadosResponse`. */
+export interface PotesImobilizados {
+  totalTokens: number;
+  missoes: Pagina<PoteImobilizado>;
 }
 
 /** Recorte de `BeneficioResponse`. `distanciaM` é nula no recorte por tribo. */

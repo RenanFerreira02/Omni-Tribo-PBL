@@ -1,0 +1,82 @@
+Evidencia: REST -> Java -> JDBC -> Oracle
+Banco: instancia FIAP, Oracle Database 19c. Aplicacao: Oracle/java, porta 8085.
+Estado inicial: instalar.sql recem-executado. Gerado em 2026-10-03 11:17.
+
+### 1. As functions PL/SQL dentro de SELECT, antes de qualquer escrita
+$ curl http://localhost:8085/oracle/indicadores
+HTTP/1.1 200 
+Content-Type: application/json
+{"tribos":[{"triboId":"aaaaaaaa-0000-0000-0000-000000000001","nome":"Tribo Pinheiros","taxaConclusao":100},{"triboId":"aaaaaaaa-0000-0000-0000-000000000901","nome":"Tribo Cidade Líder"},{"triboId":"aaaaaaaa-0000-0000-0000-000000000003","nome":"Tribo Jardim América"},{"triboId":"aaaaaaaa-0000-0000-0000-000000000002","nome":"Tribo Vila Madalena"}],"carteirasDivergentes":0,"potesImobilizados":["[Aguardando confirmação] Coletar eletrônicos velhos do condomínio · Coleta · 90 XP + 30 tokens · Cidade Líder/SP · há 4 dias · pote: 30 tokens","[Em andamento] Mutirão: reforma da quadra da rua Tapes · Tribo · 120 XP + 40 tokens · Cidade Líder/SP · há 3 dias · pote: 40 tokens","[Em andamento] Missão com pote órfão (cenário de falha) · Coleta · 30 XP + 10 tokens · Cidade Líder/SP · há 2 dias · pote: 10 tokens","[Em andamento] Horta comunitária: rega da semana · Tribo · 54 XP + 18 tokens · Cidade Líder/SP · há 5 h · pote: 18 tokens"]}
+
+### 2. Marlene (42 tokens) resgata um cafe de 15. Primeira vez: 201
+$ curl -X POST http://localhost:8085/oracle/resgates -H 'Idempotency-Key: evidencia-1' -d '{"usuarioId":"bbbbbbbb-0000-0000-0000-000000000902","beneficioId":"33333333-0000-0000-0000-000000000960"}'
+HTTP/1.1 201 
+Content-Type: application/json
+{"resgateId":"5cf14fff-5235-6e3f-e063-103ca8c009db","codigoRetirada":"B3XMFQTL","saldoTokens":27,"replay":false}
+
+### 3. A MESMA chamada, com a MESMA chave: 200, replay=true, mesmo resgate, saldo inalterado
+$ (mesmo comando)
+HTTP/1.1 200 
+Content-Type: application/json
+{"resgateId":"5cf14fff-5235-6e3f-e063-103ca8c009db","codigoRetirada":"B3XMFQTL","saldoTokens":27,"replay":true}
+
+### 4. Saldo insuficiente — Gustavo tem 0 tokens: 422 com a mensagem escrita pela procedure
+$ curl -X POST http://localhost:8085/oracle/resgates -H 'Idempotency-Key: evidencia-2' -d '{"usuarioId":"bbbbbbbb-0000-0000-0000-000000000905","beneficioId":"33333333-0000-0000-0000-000000000960"}'
+HTTP/1.1 422 
+Content-Type: application/problem+json
+{"detail":"Saldo de 0 tokens é insuficiente para resgatar este benefício, que custa 15.","instance":"/oracle/resgates","status":422,"title":"Saldo insuficiente"}
+
+### 5. Beneficio inativo: 404
+$ curl -X POST http://localhost:8085/oracle/resgates -H 'Idempotency-Key: evidencia-3' -d '{"usuarioId":"bbbbbbbb-0000-0000-0000-000000000902","beneficioId":"33333333-0000-0000-0000-000000000965"}'
+HTTP/1.1 404 
+Content-Type: application/problem+json
+{"detail":"Benefício indisponível.","instance":"/oracle/resgates","status":404,"title":"Benefício indisponível"}
+
+### 6. Sem o cabecalho Idempotency-Key: 400, barrado no Java antes de chegar ao banco
+$ curl -X POST http://localhost:8085/oracle/resgates -d '{"usuarioId":"bbbbbbbb-0000-0000-0000-000000000902","beneficioId":"33333333-0000-0000-0000-000000000960"}'
+HTTP/1.1 400 
+Content-Type: application/problem+json
+{"detail":"Required header 'Idempotency-Key' is not present.","instance":"/oracle/resgates","status":400,"title":"Bad Request"}
+
+### 7. Id fora do formato (tentativa de injecao): 400 pela validacao do Java
+$ curl -X POST http://localhost:8085/oracle/resgates -H 'Idempotency-Key: evidencia-4' -d '{"usuarioId":"x' OR '1'='1",...}'
+HTTP/1.1 400 
+Content-Type: application/problem+json
+{"detail":"Invalid request content.","instance":"/oracle/resgates","status":400,"title":"Bad Request"}
+
+### 8. PRC_OT_VARRER_MISSOES_PARADAS com os prazos padrao
+$ curl -X POST http://localhost:8085/oracle/varredura
+HTTP/1.1 200 
+Content-Type: application/json
+{"expiradas":2,"concluidas":2,"tokensEstornados":60,"falhas":1}
+
+### 9. A mesma varredura de novo: so resta a missao corrompida (idempotencia)
+$ curl -X POST http://localhost:8085/oracle/varredura
+HTTP/1.1 200 
+Content-Type: application/json
+{"expiradas":0,"concluidas":0,"tokensEstornados":0,"falhas":1}
+
+### 10. Indicadores depois: Cidade Lider passa a ter taxa, e os potes vencidos sairam da lista
+$ curl http://localhost:8085/oracle/indicadores
+HTTP/1.1 200 
+Content-Type: application/json
+{"tribos":[{"triboId":"aaaaaaaa-0000-0000-0000-000000000001","nome":"Tribo Pinheiros","taxaConclusao":100},{"triboId":"aaaaaaaa-0000-0000-0000-000000000901","nome":"Tribo Cidade Líder","taxaConclusao":50},{"triboId":"aaaaaaaa-0000-0000-0000-000000000003","nome":"Tribo Jardim América"},{"triboId":"aaaaaaaa-0000-0000-0000-000000000002","nome":"Tribo Vila Madalena"}],"carteirasDivergentes":0,"potesImobilizados":["[Em andamento] Missão com pote órfão (cenário de falha) · Coleta · 30 XP + 10 tokens · Cidade Líder/SP · há 2 dias · pote: 10 tokens","[Em andamento] Horta comunitária: rega da semana · Tribo · 54 XP + 18 tokens · Cidade Líder/SP · há 5 h · pote: 18 tokens"]}
+
+### 11. Conferido direto no Oracle depois das chamadas: o Java CONFIRMOU a transacao
+Um unico lancamento RESGATE para a chave evidencia-1, apesar das duas chamadas.
+
+HANDLE       MOTIVO       VALOR_TOKENS SALDO_APOS_TOKENS CHAVE_IDEMPOTENCIA                                             CODIGO_R STATUS    
+------------ ------------ ------------ ----------------- -------------------------------------------------------------- -------- ----------
+marlene      RESGATE                15                27 resgate:bbbbbbbb-0000-0000-0000-000000000902:evidencia-1       B3XMFQTL PENDENTE  
+
+Nenhum lancamento para as chaves que falharam (evidencia-2 e evidencia-3): ROLLBACK.
+
+LANCAMENTOS_DAS_CHAMADAS_RECUSADAS
+----------------------------------
+                                 0
+
+Ledger integro depois de tudo.
+
+CARTEIRAS_DIVERGENTES
+---------------------
+                    0

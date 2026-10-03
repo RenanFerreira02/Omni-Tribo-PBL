@@ -1,0 +1,13 @@
+{
+  "name": "omnitribo-fase6-entrega",
+  "private": true,
+  "description": "Gera os PDFs (documento e slides) e o ZIP da entrega do PBL Fase 6",
+  "type": "module",
+  "scripts": {
+    "gerar": "node gerar.mjs"
+  },
+  "devDependencies": {
+    "marked": "^18.0.14",
+    "puppeteer": "^25.12.0"
+  }
+}

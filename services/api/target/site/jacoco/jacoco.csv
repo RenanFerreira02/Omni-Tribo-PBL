@@ -11,15 +11,18 @@ omnitribo-api,com.omnitribo.missoes.api,FinanciarMissaoRequest,0,9,0,0,0,1,0,1,0
 omnitribo-api,com.omnitribo.missoes.api,MissaoFiltroRequest,0,48,3,5,0,10,3,2,0,1
 omnitribo-api,com.omnitribo.missoes.api,MissaoProximaResponse,0,9,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.api,MissaoResponse,0,224,1,11,0,41,1,11,0,6
+omnitribo-api,com.omnitribo.missoes.api,PotesImobilizadosAdminController,0,12,0,0,0,4,0,2,0,2
 omnitribo-api,com.omnitribo.missoes.api,EdicaoMissaoVerificador,47,47,13,11,14,9,13,2,1,2
 omnitribo-api,com.omnitribo.missoes.api,FinanciarComoApoiadorRequest,0,9,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.api,MissaoProximaFiltroRequest,0,28,1,3,0,6,1,2,0,1
+omnitribo-api,com.omnitribo.missoes.api,PoteImobilizadoResponse,0,57,0,0,0,11,0,2,0,2
 omnitribo-api,com.omnitribo.missoes.api,RegistrarCheckinRequest,0,20,0,0,0,2,0,2,0,2
 omnitribo-api,com.omnitribo.missoes.api,ResultadoRegistroCheckin,0,45,0,0,0,4,0,4,0,4
 omnitribo-api,com.omnitribo.missoes.api,MissaoController,10,185,1,9,1,33,2,23,1,19
 omnitribo-api,com.omnitribo.missoes.api,DestravarMissaoRequest,0,6,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.api,MotivoRequest,0,6,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.api,CriacaoMissaoVerificador,10,120,7,35,3,32,7,17,0,3
+omnitribo-api,com.omnitribo.missoes.api,PotesImobilizadosResponse,0,9,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.api,MissaoFiltroRequest.CampoOrdenacao,0,42,0,0,0,9,0,3,0,3
 omnitribo-api,com.omnitribo.missoes.api,AtualizarMissaoRequest,0,51,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.api,ResolverDisputaRequest.Resultado,0,15,0,0,0,3,0,1,0,1
@@ -108,6 +111,7 @@ omnitribo-api,com.omnitribo.integracoes.dominio,EnderecoService,0,32,0,0,0,8,0,3
 omnitribo-api,com.omnitribo.integracoes.dominio,ClimaService,0,44,0,0,0,7,0,3,0,3
 omnitribo-api,com.omnitribo.missoes.dominio,TipoMissaoEvento,0,81,0,0,0,14,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.dominio,StatusMissao,0,176,0,2,0,35,0,8,0,7
+omnitribo-api,com.omnitribo.missoes.dominio,PotesImobilizadosService,0,41,0,0,0,11,0,4,0,4
 omnitribo-api,com.omnitribo.missoes.dominio,MissaoEvento,11,53,2,2,3,16,5,7,3,7
 omnitribo-api,com.omnitribo.missoes.dominio,AtorMissao.PapelAtor,0,21,0,0,0,4,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.dominio,AtorMissao,5,68,2,10,1,10,2,11,0,7
@@ -126,7 +130,7 @@ omnitribo-api,com.omnitribo.missoes.dominio,EstornoFinanciamentoService,10,23,1,
 omnitribo-api,com.omnitribo.missoes.dominio,MissaoService,106,1058,20,64,16,278,21,63,4,38
 omnitribo-api,com.omnitribo.missoes.dominio,NivelInsuficienteException,24,0,0,0,6,0,3,0,3,0
 omnitribo-api,com.omnitribo.missoes.dominio,CalculadoraDeRecompensa,1,204,3,27,1,37,3,19,0,7
-omnitribo-api,com.omnitribo.missoes.dominio,Missao,21,286,3,5,4,95,4,42,1,41
+omnitribo-api,com.omnitribo.missoes.dominio,Missao,18,289,3,5,3,96,3,43,0,42
 omnitribo-api,com.omnitribo.missoes.dominio,CalculadoraDeRecompensa.Recompensa,0,15,0,0,0,1,0,1,0,1
 omnitribo-api,com.omnitribo.missoes.dominio,ExpiracaoMissoesService,3,104,2,6,1,24,2,5,0,3
 omnitribo-api,com.omnitribo.missoes.dominio,FontePote,0,21,0,0,0,4,0,1,0,1

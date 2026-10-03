@@ -212,6 +212,9 @@ src/main/java/com/omnitribo/missoes/api/MissaoProximaFiltroRequest.java 2026-08-
 src/main/java/com/omnitribo/missoes/api/MissaoProximaResponse.java 2026-08-20T13:35:30.733984782Z
 src/main/java/com/omnitribo/missoes/api/MissaoResponse.java 2026-08-30T20:17:14.450188815Z
 src/main/java/com/omnitribo/missoes/api/MotivoRequest.java 2026-08-20T13:35:30.733984782Z
+src/main/java/com/omnitribo/missoes/api/PoteImobilizadoResponse.java 2026-10-03T14:21:28.380966409Z
+src/main/java/com/omnitribo/missoes/api/PotesImobilizadosAdminController.java 2026-10-03T14:21:28.383664310Z
+src/main/java/com/omnitribo/missoes/api/PotesImobilizadosResponse.java 2026-10-03T14:21:28.381933701Z
 src/main/java/com/omnitribo/missoes/api/PreviaRecompensaResponse.java 2026-08-30T20:17:14.450188815Z
 src/main/java/com/omnitribo/missoes/api/RegistrarCheckinRequest.java 2026-08-20T13:35:30.733984782Z
 src/main/java/com/omnitribo/missoes/api/ResolverDisputaRequest.java 2026-08-20T13:35:30.733984782Z
@@ -233,6 +236,7 @@ src/main/java/com/omnitribo/missoes/dominio/MissaoService.java 2026-08-30T20:17:
 src/main/java/com/omnitribo/missoes/dominio/MissaoStateMachine.java 2026-08-20T13:35:30.734686857Z
 src/main/java/com/omnitribo/missoes/dominio/NivelInsuficienteException.java 2026-08-20T13:35:30.734686857Z
 src/main/java/com/omnitribo/missoes/dominio/ParametrosRecompensa.java 2026-08-30T20:17:14.450188815Z
+src/main/java/com/omnitribo/missoes/dominio/PotesImobilizadosService.java 2026-10-03T14:22:12.476383509Z
 src/main/java/com/omnitribo/missoes/dominio/RegraExpiracao.java 2026-08-20T13:35:30.734686857Z
 src/main/java/com/omnitribo/missoes/dominio/StatusMissao.java 2026-08-20T13:35:30.734686857Z
 src/main/java/com/omnitribo/missoes/dominio/TipoMissaoEvento.java 2026-08-20T13:35:30.734686857Z
@@ -241,7 +245,7 @@ src/main/java/com/omnitribo/missoes/infra/ChaveProximidade.java 2026-08-20T13:35
 src/main/java/com/omnitribo/missoes/infra/DadosPessoaisMissoes.java 2026-08-20T13:35:30.735299215Z
 src/main/java/com/omnitribo/missoes/infra/ExpiracaoMissoesJob.java 2026-08-20T13:35:30.735299215Z
 src/main/java/com/omnitribo/missoes/infra/MissaoEventoRepository.java 2026-08-20T13:35:30.735299215Z
-src/main/java/com/omnitribo/missoes/infra/MissaoRepository.java 2026-08-23T14:41:19.842095488Z
+src/main/java/com/omnitribo/missoes/infra/MissaoRepository.java 2026-10-03T14:22:12.530922470Z
 src/main/java/com/omnitribo/notificacoes/api/AlertaController.java 2026-08-20T13:35:30.735502655Z
 src/main/java/com/omnitribo/notificacoes/api/AlertaFiltroRequest.java 2026-08-20T13:35:30.735502655Z
 src/main/java/com/omnitribo/notificacoes/api/AlertaResponse.java 2026-08-20T13:35:30.735502655Z
@@ -315,6 +319,7 @@ src/test/java/com/omnitribo/missoes/api/MissaoAceiteConcorrenteTest.java 2026-08
 src/test/java/com/omnitribo/missoes/api/MissaoControllerTest.java 2026-08-20T13:35:30.739441596Z
 src/test/java/com/omnitribo/missoes/api/MissoesProximasCacheTest.java 2026-08-20T13:35:30.739507633Z
 src/test/java/com/omnitribo/missoes/api/MissoesProximasTest.java 2026-08-20T13:35:30.739507633Z
+src/test/java/com/omnitribo/missoes/api/PotesImobilizadosAdminTest.java 2026-10-03T14:22:12.585383323Z
 src/test/java/com/omnitribo/missoes/api/RecompensaCalculadaTest.java 2026-08-30T20:17:14.451188817Z
 src/test/java/com/omnitribo/missoes/dominio/CalculadoraDeRecompensaTest.java 2026-08-30T20:17:14.451188817Z
 src/test/java/com/omnitribo/missoes/dominio/ExpiracaoMissoesServiceTest.java 2026-08-20T13:35:30.739683263Z

@@ -76,6 +76,14 @@ responde "há quanto tempo esta missão está parada AQUI" — `janela_fim` é o
   achar pote imobilizado — está registrada como **Pendência #2** do `CLAUDE.md` (a numeração encolheu três vezes, conforme F8 e os ADRs 0026 e 0028 fecharam pendências anteriores). O resto desta
   decisão (varredura por prazo + porta de ADMIN) continua valendo e está implementado.
 
+  **Fechado em 2026-10-03.** A visibilidade passou a existir de verdade:
+  `GET /api/v1/admin/missoes/potes-imobilizados` lista as missões `EM_ANDAMENTO`,
+  `AGUARDANDO_CONFIRMACAO` e `EM_DISPUTA` com token no pote e soma o total imobilizado. A consulta
+  `MissaoRepository.potesImobilizados` voltou, desta vez com chamador (`PotesImobilizadosService`) e
+  teste de integração (`PotesImobilizadosAdminTest`) — as duas coisas cuja ausência fez a primeira
+  versão ser código morto. `EM_DISPUTA` continua sem saída por prazo: o endpoint a MOSTRA, e quem a
+  resolve segue sendo o ADMIN.
+
 **Negativas / trade-offs:**
 - Pagar por omissão do criador aceita um risco: conluio, ou check-in sem execução real. A documentação
   de antifraude já registra que nenhum dos dois é detectável — e um criador distraído confirmaria do

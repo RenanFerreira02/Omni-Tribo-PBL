@@ -211,6 +211,9 @@
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/api/MissaoProximaResponse.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/api/MissaoResponse.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/api/MotivoRequest.java
+/home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/api/PoteImobilizadoResponse.java
+/home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/api/PotesImobilizadosAdminController.java
+/home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/api/PotesImobilizadosResponse.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/api/PreviaRecompensaResponse.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/api/RegistrarCheckinRequest.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/api/ResolverDisputaRequest.java
@@ -232,6 +235,7 @@
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/dominio/MissaoStateMachine.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/dominio/NivelInsuficienteException.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/dominio/ParametrosRecompensa.java
+/home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/dominio/PotesImobilizadosService.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/dominio/RegraExpiracao.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/dominio/StatusMissao.java
 /home/renan/Documentos/Projects/Omni-Tribo-PBL/services/api/src/main/java/com/omnitribo/missoes/dominio/TipoMissaoEvento.java

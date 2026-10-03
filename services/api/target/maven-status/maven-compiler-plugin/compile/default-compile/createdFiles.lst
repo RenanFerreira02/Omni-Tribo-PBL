@@ -110,12 +110,13 @@ com/omnitribo/carteira/api/CarteiraController.class
 com/omnitribo/integracoes/api/EnderecoResponse.class
 com/omnitribo/identidade/api/UsuarioSistema.class
 com/omnitribo/missoes/api/EdicaoMissaoVerificador.class
+com/omnitribo/missoes/api/PotesImobilizadosResponse.class
 com/omnitribo/missoes/dominio/ExpiracaoMissoesService.class
 com/omnitribo/compartilhado/dominio/AcessoNegadoException.class
-com/omnitribo/ApiApplication.class
 com/omnitribo/compartilhado/api/TipoProblema.class
 com/omnitribo/identidade/api/LoginRequest.class
 com/omnitribo/identidade/dominio/ExclusaoContaService.class
+com/omnitribo/ApiApplication.class
 com/omnitribo/carteira/dominio/TipoBeneficio.class
 com/omnitribo/geolocalizacao/dominio/ConsultaPrimeiroCheckinService.class
 com/omnitribo/identidade/infra/DadosPessoaisIdentidade.class
@@ -124,6 +125,7 @@ com/omnitribo/missoes/api/EdicaoMissaoVerificador$MissaoEdicaoConsistente.class
 com/omnitribo/identidade/dominio/EstadoDaConta.class
 com/omnitribo/missoes/infra/CacheMissoesProximas.class
 com/omnitribo/compartilhado/infra/DrenadorOutboxJob.class
+com/omnitribo/missoes/dominio/PotesImobilizadosService.class
 com/omnitribo/missoes/dominio/EstornoFinanciamentoService.class
 com/omnitribo/compartilhado/infra/CorrelationIdFilter.class
 com/omnitribo/compartilhado/infra/OpenApiConfig.class
@@ -270,9 +272,11 @@ com/omnitribo/missoes/dominio/ExpiracaoMissoesService$Candidata.class
 com/omnitribo/identidade/api/ConquistaResponse.class
 com/omnitribo/notificacoes/dominio/ParametrosNotificacoes.class
 com/omnitribo/identidade/api/UsuarioBuscaResponse.class
+com/omnitribo/missoes/api/PoteImobilizadoResponse.class
 com/omnitribo/compartilhado/api/RecursoAuditavel.class
 com/omnitribo/missoes/api/DestravarMissaoRequest.class
 com/omnitribo/carteira/dominio/AporteService.class
+com/omnitribo/missoes/api/PotesImobilizadosAdminController.class
 com/omnitribo/carteira/api/TransferenciaResponse.class
 com/omnitribo/identidade/dominio/PapelUsuario.class
 com/omnitribo/notificacoes/api/AlertaFiltroRequest.class

@@ -1,0 +1,4 @@
+# Saída de build do mini app Java e bibliotecas baixadas localmente.
+java/target/
+# Credencial local (a raiz já ignora .env; repetido aqui para a pasta ser autossuficiente).
+.env

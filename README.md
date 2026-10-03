@@ -553,7 +553,8 @@ Quatro garantias, cada uma com evidência executável em vez de afirmação:
 
 | Ordem | Documento | Por quê |
 |---|---|---|
-| 0 | [`docs/ENTREGA-FASE5.md`](docs/ENTREGA-FASE5.md) | **a entrega desta fase**: as três partes do enunciado, justificativa de stack, roadmap e as divergências declaradas |
+| 0 | [`Oracle/docs/ENTREGA-FASE6.md`](Oracle/docs/ENTREGA-FASE6.md) | **a entrega da Fase 6**: camada Oracle PL/SQL (modelo, DER, functions, procedures e a chamada pelo Java), com evidência executada |
+| 0 | [`docs/ENTREGA-FASE5.md`](docs/ENTREGA-FASE5.md) | a entrega da Fase 5: as três partes do enunciado, justificativa de stack, roadmap e as divergências declaradas |
 | 1 | [`docs/EVOLUCAO-ARQUITETURAL.md`](docs/EVOLUCAO-ARQUITETURAL.md) | a linha do tempo das decisões e o defeito econômico que a auditoria achou — como foi detectado e por que a reconciliação não o pegou |
 | 2 | [`docs/diagramas/`](docs/diagramas/) | o sistema em sete diagramas, incluindo a arquitetura-alvo em escala |
 | 3 | [`docs/ROTEIRO-DEMO.md`](docs/ROTEIRO-DEMO.md) | demonstração de 10 min com comandos exatos e plano B |
@@ -585,3 +586,4 @@ Referência completa:
 | `services/api/` | backend Spring Boot | `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` → `:8080` |
 | `apps/mobile/` | app Expo / React Native | `npm start` → QR no Expo Go |
 | `apps/dashboard/` | painel Angular (Parte 3 da F5) | `npm start` → `:4200` |
+| `Oracle/` | camada Oracle PL/SQL (Fase 6), autocontida | ver [`Oracle/README.md`](Oracle/README.md) |
