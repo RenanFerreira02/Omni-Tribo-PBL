@@ -1,0 +1,180 @@
+
+== Servidor ==
+
+BANNER
+--------------------------------------------------------------------------------
+Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
+
+== 00 · removendo instalacao anterior ==
+20 objeto(s) OT_ removido(s).
+
+Procedimento PL/SQL concluído com sucesso.
+
+== 01 · tabelas ==
+
+Table OT_TRIBO criado.
+
+Table OT_USUARIO criado.
+
+Index IDX_OT_USUARIO_TRIBO criado.
+
+Table OT_CARTEIRA criado.
+
+Table OT_LANCAMENTO criado.
+
+Index IDX_OT_LANCAMENTO_CARTEIRA criado.
+
+Index IDX_OT_LANCAMENTO_MISSAO criado.
+
+Table OT_MISSAO criado.
+
+Index IDX_OT_MISSAO_STATUS criado.
+
+Index IDX_OT_MISSAO_CRIADOR criado.
+
+Index IDX_OT_MISSAO_EXECUTOR criado.
+
+Table OT_MISSAO_EVENTO criado.
+
+Index IDX_OT_MISSAO_EVENTO_MISSAO criado.
+
+Table OT_CHECKIN criado.
+
+Index IDX_OT_CHECKIN_MISSAO criado.
+
+Table OT_PARCEIRO criado.
+
+Table OT_BENEFICIO criado.
+
+Index IDX_OT_BENEFICIO_PARCEIRO criado.
+
+Table OT_RESGATE criado.
+
+Index IDX_OT_RESGATE_USUARIO criado.
+
+Table OT_ALERTA criado.
+
+Index IDX_OT_ALERTA_USUARIO criado.
+
+Table OT_RELATORIO_TRIBO criado.
+
+Trigger TRG_OT_LANCAMENTO_IMUTAVEL compilado
+
+Trigger TRG_OT_MISSAO_EVENTO_IMUTAVEL compilado
+
+Trigger TRG_OT_CHECKIN_IMUTAVEL compilado
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+Comment criado.
+
+== 02 · carga do seed do projeto ==
+== 03 · carga dos cenarios simulados ==
+
+Procedimento PL/SQL concluído com sucesso.
+
+== 04 · functions ==
+
+Function FN_OT_NOVO_ID compilado
+
+Function FN_OT_FORMATAR_TOKENS compilado
+
+Function FN_OT_TAXA_CONCLUSAO_TRIBO compilado
+
+Function FN_OT_DIVERGENCIA_CARTEIRA compilado
+
+Function FN_OT_RESUMO_MISSAO compilado
+
+== 05 · procedures ==
+
+Procedure PRC_OT_VARRER_MISSOES_PARADAS compilado
+
+Procedure PRC_OT_RESGATAR_BENEFICIO compilado
+
+Procedure PRC_OT_RELATORIO_TRIBO compilado
+
+== Objetos instalados (todos devem estar VALID) ==
+
+OBJECT_TYPE  OBJECT_NAME                        STATUS  
+------------ ---------------------------------- --------
+TABLE        OT_ALERTA                          VALID   
+TABLE        OT_BENEFICIO                       VALID   
+TABLE        OT_CARTEIRA                        VALID   
+TABLE        OT_CHECKIN                         VALID   
+TABLE        OT_LANCAMENTO                      VALID   
+TABLE        OT_MISSAO                          VALID   
+TABLE        OT_MISSAO_EVENTO                   VALID   
+TABLE        OT_PARCEIRO                        VALID   
+TABLE        OT_RELATORIO_TRIBO                 VALID   
+TABLE        OT_RESGATE                         VALID   
+TABLE        OT_TRIBO                           VALID   
+TABLE        OT_USUARIO                         VALID   
+TRIGGER      TRG_OT_CHECKIN_IMUTAVEL            VALID   
+TRIGGER      TRG_OT_LANCAMENTO_IMUTAVEL         VALID   
+TRIGGER      TRG_OT_MISSAO_EVENTO_IMUTAVEL      VALID   
+FUNCTION     FN_OT_DIVERGENCIA_CARTEIRA         VALID   
+FUNCTION     FN_OT_FORMATAR_TOKENS              VALID   
+FUNCTION     FN_OT_NOVO_ID                      VALID   
+FUNCTION     FN_OT_RESUMO_MISSAO                VALID   
+FUNCTION     FN_OT_TAXA_CONCLUSAO_TRIBO         VALID   
+PROCEDURE    PRC_OT_RELATORIO_TRIBO             VALID   
+PROCEDURE    PRC_OT_RESGATAR_BENEFICIO          VALID   
+PROCEDURE    PRC_OT_VARRER_MISSOES_PARADAS      VALID   
+
+23 linhas selecionadas. 
+
+== Erros de compilacao (nenhuma linha = nenhum erro) ==
+
+0 linhas selecionadas. 
+
+== Linhas carregadas ==
+
+TABELA               LINHAS
+---------------- ----------
+OT_TRIBO                  4
+OT_USUARIO               14
+OT_CARTEIRA              13
+OT_LANCAMENTO            25
+OT_MISSAO                26
+OT_MISSAO_EVENTO          0
+OT_CHECKIN                5
+OT_PARCEIRO               4
+OT_BENEFICIO              7
+OT_RESGATE                2
+OT_ALERTA                 7
+
+11 linhas selecionadas. 
+
+== Instalacao concluida ==

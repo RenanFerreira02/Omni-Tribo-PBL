@@ -1,0 +1,6 @@
+saida/
+node_modules/
+# A foto é pessoal: fica fora do repositório público e entra só no PDF.
+foto.jpg
+foto.jpeg
+foto.png

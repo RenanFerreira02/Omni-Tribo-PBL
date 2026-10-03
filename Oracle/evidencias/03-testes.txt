@@ -1,0 +1,128 @@
+== Estado inicial ==
+  ok     carga deixa o ledger integro (0 carteiras divergentes)
+  ok     Renan comeca com 56 tokens (124 - 25 - 18 - 25)
+  ok     apoiador comeca com 4965 tokens (5000 - 15 - 20)
+== FN_OT_FORMATAR_TOKENS ==
+  ok     1234 -> "1.234 tokens"
+  ok     1 -> "1 token" (singular)
+  ok     0 -> "0 tokens"
+  ok     NULL -> travessao, nao zero
+== FN_OT_NOVO_ID ==
+  ok     formato 8-4-4-4-12 minusculo
+  ok     duas chamadas dao ids diferentes
+== FN_OT_TAXA_CONCLUSAO_TRIBO ==
+  ok     Pinheiros: 7 concluidas de 7 encerradas = 100
+  ok     Cidade Lider sem missao encerrada -> NULL, nao 0
+  ok     tribo inexistente levanta -20010
+== FN_OT_DIVERGENCIA_CARTEIRA ==
+  ok     carteira do Renan: divergencia 0
+  ok     carteira inexistente levanta -20011
+  ok     saldo adulterado em +7 e detectado como +7
+== FN_OT_RESUMO_MISSAO ==
+  ok     C1 mostra estado, recompensa, tempo e pote
+  ok     C4 (sem pote) nao mostra o trecho do pote
+  ok     missao inexistente devolve texto, nao erro
+== PRC_OT_VARRER_MISSOES_PARADAS ==
+  ok     prazo negativo levanta -20020
+FALHA  f6000000-0000-0000-0000-000000000006  ORA-20021: Estorno devolveria 0 tokens, mas o pote tem 10.
+Varredura concluída: 2 expirada(s), 2 concluída(s) por prazo, 60 tokens estornados, 1 falha(s).
+  ok     2 missoes expiradas (C1 e C3)
+  ok     2 missoes concluidas por prazo (C2 e C4)
+  ok     60 tokens estornados (25 + 15 + 20)
+  ok     1 falha isolada (C6, pote orfao)
+  ok     C1 EM_ANDAMENTO vencida -> EXPIRADA
+  ok     C2 AGUARDANDO_CONFIRMACAO vencida -> CONCLUIDA
+  ok     C3 ABERTA com janela vencida -> EXPIRADA
+  ok     C4 fonte CUNHAGEM -> CONCLUIDA
+  ok     C5 dentro do prazo continua EM_ANDAMENTO
+  ok     C6 que falhou continua EM_ANDAMENTO (desfeita ate o savepoint)
+  ok     potes de C1, C2 e C3 zerados
+  ok     pote de C5 intacto (18)
+  ok     pote de C6 intacto (10)
+  ok     Renan: 56 + 25 de estorno + 22 da entrega = 103
+  ok     apoiador recebe os DOIS estornos de volta: 5000
+  ok     Marlene recebe a recompensa do pote: 42 + 30 = 72
+  ok     Jonas nao recebe estorno de missao concluida: 50
+  ok     Marlene: XP 120 + 90 = 210
+  ok     Marlene: nivel derivado de 210 XP = 2
+  ok     Renan: XP 450 + 66 = 516
+  ok     Renan: nivel derivado de 516 XP = 3
+  ok     conservacao: a soma so muda pelos 22 tokens emitidos em C4
+  ok     ledger continua integro depois da varredura
+  ok     3 lancamentos de ESTORNO (um por financiamento)
+  ok     4 eventos de trilha gravados pelo sistema
+  ok     3 alertas de estorno aos financiadores
+  ok     2 alertas de missao expirada aos criadores
+  ok     1 alerta operacional da falha de C6, com o codigo do erro
+  ok     Cidade Lider apos a varredura: 2 de 4 encerradas = 50
+FALHA  f6000000-0000-0000-0000-000000000006  ORA-20021: Estorno devolveria 0 tokens, mas o pote tem 10.
+Varredura concluída: 0 expirada(s), 0 concluída(s) por prazo, 0 tokens estornados, 1 falha(s).
+  ok     segunda varredura: 0 expiradas
+  ok     segunda varredura: 0 concluidas
+  ok     segunda varredura: 0 tokens estornados
+  ok     segunda varredura nao move token nenhum
+FALHA  f6000000-0000-0000-0000-0000000000aa  ORA-20023: Não há check-in válido do executor: nada prova a execução.
+FALHA  f6000000-0000-0000-0000-000000000006  ORA-20021: Estorno devolveria 0 tokens, mas o pote tem 10.
+Varredura concluída: 0 expirada(s), 0 concluída(s) por prazo, 0 tokens estornados, 2 falha(s).
+  ok     sem check-in valido nao ha pagamento: 0 concluidas
+  ok     Gustavo continua com 0 tokens
+== PRC_OT_RESGATAR_BENEFICIO ==
+  ok     resgate debita o custo: 72 - 15 = 57
+  ok     saldo gravado na carteira e o devolvido
+  ok     primeira chamada nao e replay
+  ok     codigo de retirada tem 8 caracteres sem 0, O, 1, I
+  ok     resgate QUEIMA: a soma em circulacao cai exatamente 15
+  ok     lancamento RESGATE sem contraparte e sem missao, com o id do resgate
+  ok     resgate nasce PENDENTE com o custo congelado
+  ok     mesma chave: replay
+  ok     replay devolve o MESMO resgate e o MESMO codigo
+  ok     replay nao debita de novo: saldo segue 57
+  ok     chave igual de outro usuario gera resgate proprio
+  ok     Jonas: 50 - 15 = 35
+  ok     saldo insuficiente levanta -20033
+  ok     saldo insuficiente nao grava nada: Gustavo segue com 0
+  ok     beneficio inativo levanta -20031
+  ok     beneficio de parceiro inativo levanta -20031
+  ok     beneficio inexistente levanta o MESMO -20031
+  ok     usuario sem carteira levanta -20032
+  ok     chave nula levanta -20030
+  ok     ledger continua integro depois dos resgates
+== PRC_OT_RELATORIO_TRIBO ==
+Relatório de tokens — Tribo Cidade Líder
+membro         nível  missões   ganhou  financiou  resgatou   saldo
+-------------------------------------------------------------------
+@jonas             2        1       37         72        30      35
+@marlene           2        1       30         38        15      57
+@renan             3        1       22         94        25     103
+-------------------------------------------------------------------
+3 membro(s) · 89 tokens ganhos em recompensa de missão.
+  ok     Cidade Lider tem 3 membros ativos
+  ok     tokens ganhos pela tribo: 22 + 30 + 37 = 89
+  ok     3 linhas gravadas em OT_RELATORIO_TRIBO
+  ok     Renan ganhou 22
+  ok     Renan financiou 94 liquidos (38 + 38 + 25 + 18 - 25 de estorno)
+  ok     Marlene resgatou 15
+  ok     Marlene concluiu 1 missao
+Relatório de tokens — Tribo Cidade Líder
+membro         nível  missões   ganhou  financiou  resgatou   saldo
+-------------------------------------------------------------------
+@jonas             2        1       37         72        30      35
+@marlene           2        1       30         38        15      57
+@renan             3        1       22         94        25     103
+-------------------------------------------------------------------
+3 membro(s) · 89 tokens ganhos em recompensa de missão.
+  ok     segunda execucao substitui a fotografia, nao duplica
+  ok     tribo inexistente levanta -20040
+== Regras garantidas pelo banco ==
+  ok     UPDATE em OT_LANCAMENTO e rejeitado (-20090)
+  ok     DELETE em OT_LANCAMENTO e rejeitado (-20090)
+  ok     DELETE em OT_CHECKIN e rejeitado (-20092)
+  ok     saldo negativo e rejeitado pela CHECK (ORA-02290)
+  ok     beneficio de parceiro inexistente e rejeitado pela FK (ORA-02291)
+  ok     beneficio precificado em reais e rejeitado pela CHECK (ORA-02290)
+  ok     "reais" na descricao tambem e rejeitado (ORA-02290)
+
+== 90 de 90 testes passaram · ROLLBACK feito ==
+
+Procedimento PL/SQL concluído com sucesso.
+

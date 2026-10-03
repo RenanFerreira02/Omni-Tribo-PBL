@@ -1,0 +1,26 @@
+# Aplicação de demonstração da Fase 6: REST -> Java -> JDBC -> Oracle.
+# Independente de services/api — porta própria, banco próprio.
+server:
+  port: 8085        # longe de 8080 (API), 8081 (Metro/Expo), 8090 (actuator) e 4200 (dashboard)
+  error:
+    # Erro é RFC 9457 ProblemDetail, como em services/api. Nunca stack trace.
+    include-stacktrace: never
+    include-message: never
+
+spring:
+  application:
+    name: omnitribo-oracle-plsql
+  datasource:
+    # Nenhum segredo neste arquivo: os três valores vêm do ambiente (ver Oracle/.env.example).
+    # Sem default de propósito — subir sem credencial deve falhar no boot, não na primeira chamada.
+    url: ${ORACLE_URL}
+    username: ${ORACLE_USER}
+    password: ${ORACLE_PASSWORD}
+    hikari:
+      # O servidor é compartilhado pela faculdade inteira. Duas conexões bastam para a demo, e um
+      # pool maior só tiraria sessão de outro aluno.
+      maximum-pool-size: 2
+      minimum-idle: 0
+  jackson:
+    default-property-inclusion: non_null
+

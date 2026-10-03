@@ -1,0 +1,124 @@
+
+== 1. Ranking de tribos pela taxa de conclusao ==
+FN_OT_TAXA_CONCLUSAO_TRIBO na lista do SELECT e no ORDER BY.
+"sem dado" e diferente de 0%: a tribo ainda nao encerrou missao nenhuma.
+
+TRIBO                     MEMBROS TAXA_CONCLUSAO  
+---------------------- ---------- ----------------
+Tribo Pinheiros                 4 100,00 %        
+Tribo Cidade Líder              3 sem dado        
+Tribo Jardim América            2 sem dado        
+Tribo Vila Madalena             2 sem dado        
+
+== 2. Reconciliacao: carteira x livro-razao ==
+FN_OT_DIVERGENCIA_CARTEIRA na lista do SELECT. Zero em todas = ledger integro.
+
+HANDLE           SALDO_TOKENS DIVERGENCIA SITUACAO  
+---------------- ------------ ----------- ----------
+admin                       0           0 integra   
+alice                      41           0 integra   
+apoiador_dev             4965           0 integra   
+apoiador_teste           5000           0 integra   
+bob                       178           0 integra   
+carol                      72           0 integra   
+diana                      99           0 integra   
+erik                       38           0 integra   
+fernanda                    0           0 integra   
+gustavo                     0           0 integra   
+jonas                      50           0 integra   
+marlene                    42           0 integra   
+renan                      56           0 integra   
+
+A mesma function no WHERE: so as carteiras que divergem (nenhuma linha = tudo integro).
+
+== 3. Potes imobilizados: token preso em missao que nao terminou ==
+FN_OT_RESUMO_MISSAO formata a linha. E o diagnostico que a reconciliacao acima NAO faz:
+todas as carteiras estao integras e, ainda assim, ha token parado aqui.
+
+RESUMO
+------------------------------------------------------------------------------------------------------------------------------------------------------
+[Aguardando confirmação] Coletar eletrônicos velhos do condomínio · Coleta · 90 XP + 30 tokens · Cidade Líder/SP · há 4 dias · pote: 30 tokens
+[Em andamento] Mutirão: reforma da quadra da rua Tapes · Tribo · 120 XP + 40 tokens · Cidade Líder/SP · há 3 dias · pote: 40 tokens
+[Em andamento] Missão com pote órfão (cenário de falha) · Coleta · 30 XP + 10 tokens · Cidade Líder/SP · há 2 dias · pote: 10 tokens
+[Em andamento] Horta comunitária: rega da semana · Tribo · 54 XP + 18 tokens · Cidade Líder/SP · há 5 h · pote: 18 tokens
+
+== 4. Leituras criticas de GPS: check-ins rejeitados por motivo ==
+
+CODIGO_REJEICAO            LEITURAS DISTANCIA_MEDIA_M ACURACIA_MEDIA_M
+------------------------ ---------- ----------------- ----------------
+ACURACIA_INSUFICIENTE             1                35              180
+FORA_DO_RAIO                      1               430             12,5
+LOCALIZACAO_SIMULADA              1                22                9
+
+== 5. A economia em numeros ==
+FN_OT_FORMATAR_TOKENS formata cada valor. O aporte emite e o resgate queima
+financiamento e estorno so movem token entre carteira e pote.
+
+INDICADOR                                    VALOR           
+-------------------------------------------- ----------------
+Emitido por aporte de apoiador               10.000 tokens   
+Pago em recompensa de missao                 315 tokens      
+Financiado em potes (liquido de estorno)     264 tokens      
+Queimado em resgate de beneficio             40 tokens       
+Hoje em carteiras                            10.541 tokens   
+Hoje em potes de missao                      274 tokens      
+
+== 6. PRC_OT_VARRER_MISSOES_PARADAS ==
+Prazos padrao: 48 h de execucao, 72 h de confirmacao.
+FALHA  f6000000-0000-0000-0000-000000000006  ORA-20021: Estorno devolveria 0 tokens, mas o pote tem 10.
+Varredura concluída: 2 expirada(s), 2 concluída(s) por prazo, 60 tokens estornados, 1 falha(s).
+
+O que a varredura deixou: as missoes dos cenarios, pela function de resumo.
+
+RESUMO
+------------------------------------------------------------------------------------------------------------------------------------------------------
+[Expirada] Mutirão: reforma da quadra da rua Tapes · Tribo · 120 XP + 40 tokens · Cidade Líder/SP · há menos de 1 h
+[Concluída] Coletar eletrônicos velhos do condomínio · Coleta · 90 XP + 30 tokens · Cidade Líder/SP · há menos de 1 h
+[Expirada] Mutirão: pintar o muro da escola · Tribo · 114 XP + 20 tokens · Cidade Líder/SP · há menos de 1 h
+[Concluída] Entregar cesta básica à dona Neusa · Entrega · 66 XP + 22 tokens · Cidade Líder/SP · há menos de 1 h
+[Em andamento] Horta comunitária: rega da semana · Tribo · 54 XP + 18 tokens · Cidade Líder/SP · há 5 h · pote: 18 tokens
+[Em andamento] Missão com pote órfão (cenário de falha) · Coleta · 30 XP + 10 tokens · Cidade Líder/SP · há 2 dias · pote: 10 tokens
+
+Os alertas que ela registrou.
+
+TIPO                 HANDLE           CORPO                                                                                                                                                 
+-------------------- ---------------- ------------------------------------------------------------------------------------------------------------------------------------------------------
+ESTORNO_RECEBIDO     apoiador_dev     15 tokens devolvidos: a missão "Mutirão: reforma da quadra da rua Tapes" foi encerrada sem execução.                                                  
+ESTORNO_RECEBIDO     apoiador_dev     20 tokens devolvidos: a missão "Mutirão: pintar o muro da escola" foi encerrada sem execução.                                                         
+ESTORNO_RECEBIDO     renan            25 tokens devolvidos: a missão "Mutirão: reforma da quadra da rua Tapes" foi encerrada sem execução.                                                  
+MISSAO_CONCLUIDA     marlene          O prazo de confirmação de "Coletar eletrônicos velhos do condomínio" venceu e seu check-in valeu como prova: 90 XP e 30 tokens.                       
+MISSAO_CONCLUIDA     renan            O prazo de confirmação de "Entregar cesta básica à dona Neusa" venceu e seu check-in valeu como prova: 66 XP e 22 tokens.                             
+MISSAO_EXPIRADA      marlene          "Mutirão: reforma da quadra da rua Tapes" foi encerrada por prazo: a execução não foi comprovada por check-in.                                        
+MISSAO_EXPIRADA      renan            "Mutirão: pintar o muro da escola" foi encerrada por prazo sem que ninguém a aceitasse.                                                               
+VARREDURA_FALHOU     (operacao)       "Missão com pote órfão (cenário de falha)" (EM_ANDAMENTO): ORA-20021: Estorno devolveria 0 tokens, mas o pote tem 10.                                 
+
+A taxa de conclusao da Cidade Lider depois da varredura (antes era "sem dado").
+
+TRIBO                  TAXA_CONCLUSAO  
+---------------------- ----------------
+Tribo Cidade Líder     50,00 %         
+
+== 7. PRC_OT_RESGATAR_BENEFICIO ==
+Marlene troca 15 tokens por um cafe; a segunda chamada repete a MESMA chave.
+chamada 1: resgate 5cf152f3-9fbf-6e5d-e065-020c29df5990 · codigo JJR6K9UM · saldo 57 tokens · primeira vez
+chamada 2: resgate 5cf152f3-9fbf-6e5d-e065-020c29df5990 · codigo JJR6K9UM · saldo 57 tokens · REPLAY (nada foi debitado de novo)
+
+== 8. PRC_OT_RELATORIO_TRIBO ==
+Relatório de tokens — Tribo Cidade Líder
+membro         nível  missões   ganhou  financiou  resgatou   saldo
+-------------------------------------------------------------------
+@jonas             2        1       37         72        15      50
+@marlene           2        1       30         38        15      57
+@renan             3        1       22         94        25     103
+-------------------------------------------------------------------
+3 membro(s) · 89 tokens ganhos em recompensa de missão.
+
+A mesma fotografia, lida da tabela que a procedure gravou.
+
+HANDLE           MISSOES_CONCLUIDAS TOKENS_GANHOS TOKENS_FINANCIADOS TOKENS_RESGATADOS SALDO_TOKENS
+---------------- ------------------ ------------- ------------------ ----------------- ------------
+jonas                             1            37                 72                15           50
+marlene                           1            30                 38                15           57
+renan                             1            22                 94                25          103
+
+== ROLLBACK: o banco voltou ao estado da instalacao ==
