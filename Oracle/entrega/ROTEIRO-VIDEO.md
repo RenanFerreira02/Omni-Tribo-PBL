@@ -97,9 +97,9 @@ Vá de bloco em bloco: 201, 200, 422, 404.
 
 ## 4:35 – 5:00 · Slide 10 — Encerramento
 
-> "Um defeito só apareceu na execução real: saldo insuficiente respondia 500, com o teste unitário
-> passando. Foi corrigido. E os limites estão declarados: as procedures repetem regras que existem
-> em Java, sobre uma cópia dos dados. O código e as evidências estão no repositório. Obrigado."
+> "Esse foi o Omni-Tribo na Fase 6: o banco Oracle modelado e implantado, functions e procedures em
+> PL/SQL, e o back-end Java acionando tudo isso. O código, a documentação e as evidências estão no
+> repositório. Obrigado."
 
 ---
 

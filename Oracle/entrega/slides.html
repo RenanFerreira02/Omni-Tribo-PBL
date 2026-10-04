@@ -377,6 +377,12 @@
 			.duas > .saida.densa {
 				align-self: start;
 			}
+			.fecho {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+			}
 		</style>
 	</head>
 	<body>
@@ -617,18 +623,17 @@ marlene      RESGATE                15                27 resgate:bbbbbbbb-0000-0
 		<!-- 10 -->
 		<section class="slide">
 			<div class="rotulo">Encerramento</div>
-			<h1>O que a execução real ensinou, e os limites</h1>
-			<ul class="pontos">
-				<li><b>Defeito achado só na execução:</b> saldo insuficiente respondia 500. O teste unitário passava; a chamada ao Oracle acusou</li>
-				<li><b>Limite:</b> as procedures repetem regras que existem em Java e rodam sobre uma cópia dos dados</li>
-				<li><b>Limite:</b> não há sincronização contínua entre o PostgreSQL e o Oracle</li>
-				<li><b>Limite:</b> concorrência não foi medida no Oracle</li>
-			</ul>
-			<div class="links" style="margin-top: auto">
-				<div><span>Repositório</span>github.com/RenanFerreira02/Omni-Tribo-PBL</div>
-				<div><span>Vídeo</span><span class="video pendente">pendente — gravar e gerar de novo</span></div>
+			<div class="fecho">
+				<h1 class="capa">Obrigado!</h1>
+				<p class="lead" style="margin: 0">Omni-Tribo · Oracle PL/SQL integrado ao back-end Java</p>
+				<div class="integrante">Renan Ferreira</div>
+				<div class="rm">RM 555833 · FIAP · Sistemas de Informação</div>
+				<div class="links">
+					<div><span>Repositório</span>github.com/RenanFerreira02/Omni-Tribo-PBL</div>
+					<div><span>Vídeo</span><span class="video pendente">pendente — gravar e gerar de novo</span></div>
+				</div>
 			</div>
-			<div class="rodape"><span>Renan Ferreira · RM 555833</span><span>10 / 10</span></div>
+			<div class="rodape"><span>Omni-Tribo · PBL Fase 6</span><span>10 / 10</span></div>
 		</section>
 	</body>
 </html>
