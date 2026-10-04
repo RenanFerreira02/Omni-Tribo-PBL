@@ -1,257 +1,634 @@
 <!doctype html>
+<!--
+  Slides da entrega. Abre direto no navegador: as imagens usam caminho relativo a esta pasta.
+  Para o PDF (e para a versão com o link do vídeo), rode `node gerar.mjs`: ele embute as imagens
+  e preenche os campos de classe "video". A foto (foto.jpg) não é versionada.
+  Os blocos de classe "saida" dependem de espaços e quebras de linha: não os reindente.
+  Não escreva tags HTML literais neste comentário: o gerador procura por elas no arquivo inteiro.
+-->
 <html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<title>Omni-Tribo · PBL Fase 6</title>
-<style>
-  @page { size: 1280px 720px; margin: 0; }
-  :root {
-    --verde: #1f5a3d; --verde-claro: #e4f0e9; --tinta: #17212b; --cinza: #5d6b7a;
-    --linha: #dbe2e8; --papel: #fbfcfb; --ambar: #7a5410; --ambar-claro: #fdf0d8;
-    --rubro: #8f2a20; --rubro-claro: #fde6e3;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; }
-  body { font-family: "Noto Sans", "DejaVu Sans", Arial, sans-serif; color: var(--tinta); }
-  .slide {
-    width: 1280px; height: 720px; padding: 56px 72px 48px; background: var(--papel);
-    page-break-after: always; break-after: page; position: relative; overflow: hidden;
-    display: flex; flex-direction: column;
-  }
-  .slide:last-child { page-break-after: auto; break-after: auto; }
-  .rotulo { font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--verde); font-weight: 700; }
-  h1 { font-size: 44px; line-height: 1.12; margin: 10px 0 26px; font-weight: 700; letter-spacing: -.01em; }
-  h1.capa { font-size: 68px; margin: 14px 0 12px; }
-  p.lead { font-size: 25px; color: var(--cinza); margin: 0 0 28px; line-height: 1.35; }
-  ul { margin: 0; padding: 0; list-style: none; }
-  ul.pontos li { font-size: 25px; line-height: 1.36; padding: 0 0 15px 30px; position: relative; }
-  ul.pontos li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 11px; height: 11px; border-radius: 50%; background: var(--verde); }
-  b { font-weight: 700; }
-  code, .mono { font-family: "Noto Sans Mono", "DejaVu Sans Mono", monospace; }
-  code { font-size: .88em; background: #eef2f0; padding: 1px 6px; border-radius: 4px; }
-  .slide > .rodape { margin-top: auto; }
-  .rodape { display: flex; justify-content: space-between; font-size: 14px; color: var(--cinza); border-top: 1px solid var(--linha); padding-top: 12px; }
-  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; flex: 1; min-height: 0; }
-  .saida { font-family: "Noto Sans Mono", "DejaVu Sans Mono", monospace; font-size: 15.5px; line-height: 1.5; background: #12211a; color: #dcefe4; border-radius: 10px; padding: 18px 22px; white-space: pre; overflow: hidden; }
-  .saida .dim { color: #86a898; } .saida .ok { color: #8fe0b0; } .saida .alerta { color: #ffc98a; }
-  table { border-collapse: collapse; width: 100%; font-size: 21px; }
-  th { text-align: left; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--cinza); padding: 0 14px 8px 0; border-bottom: 2px solid var(--linha); }
-  td { padding: 11px 14px 11px 0; border-bottom: 1px solid var(--linha); vertical-align: top; }
-  .selo { display: inline-block; font-size: 15px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
-  .s-ok { background: var(--verde-claro); color: var(--verde); } .s-am { background: var(--ambar-claro); color: var(--ambar); } .s-ru { background: var(--rubro-claro); color: var(--rubro); }
-  /* capa */
-  .capa-grade { display: grid; grid-template-columns: 1fr 250px; gap: 56px; align-items: center; flex: 1; }
-  .foto { width: 250px; height: 250px; border-radius: 16px; object-fit: cover; border: 1px solid var(--linha); }
-  .foto-vazia { width: 250px; height: 250px; border-radius: 16px; border: 3px dashed #b9c4cc; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--cinza); font-size: 17px; padding: 20px; }
-  .integrante { font-size: 30px; font-weight: 700; margin-top: 30px; } .rm { font-size: 22px; color: var(--cinza); }
-  .links { margin-top: 26px; font-size: 19px; line-height: 1.7; } .links > div > span:first-child { color: var(--cinza); display: inline-block; width: 120px; }
-  .pendente { background: var(--ambar-claro); color: var(--ambar); padding: 1px 8px; border-radius: 4px; font-weight: 700; }
-  /* arquitetura */
-  .arq { display: grid; grid-template-columns: 220px 60px 290px 60px 1fr; align-items: center; row-gap: 26px; font-size: 20px; margin-top: 6px; }
-  .cx { border: 2px solid var(--linha); border-radius: 10px; padding: 14px 16px; background: #fff; text-align: center; line-height: 1.3; }
-  .cx small { display: block; color: var(--cinza); font-size: 15px; margin-top: 3px; }
-  .cx.novo { border-color: var(--verde); background: var(--verde-claro); }
-  .seta { text-align: center; color: var(--cinza); font-size: 28px; }
-  /* modelo */
-  .grupos { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-top: 4px; }
-  .grupo { border: 1px solid var(--linha); border-radius: 10px; background: #fff; padding: 14px 14px 8px; }
-  .grupo h3 { margin: 0 0 10px; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--verde); }
-  .grupo div { font-family: "Noto Sans Mono", "DejaVu Sans Mono", monospace; font-size: 15.5px; padding: 7px 9px; background: #f1f5f3; border-radius: 6px; margin-bottom: 8px; }
-  .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-  .num { border-left: 4px solid var(--verde); padding: 4px 0 4px 16px; }
-  .num strong { display: block; font-size: 50px; line-height: 1.05; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .num span { font-size: 17px; color: var(--cinza); line-height: 1.3; display: block; margin-top: 4px; }
-  img.captura { width: 100%; border: 1px solid var(--linha); border-radius: 10px; }
-</style>
-</head>
-<body>
+	<head>
+		<meta charset="utf-8" />
+		<title>Omni-Tribo · PBL Fase 6</title>
+		<style>
+			@page {
+				size: 1280px 720px;
+				margin: 0;
+			}
+			:root {
+				--verde: #1f5a3d;
+				--verde-claro: #e4f0e9;
+				--tinta: #17212b;
+				--cinza: #5d6b7a;
+				--linha: #dbe2e8;
+				--papel: #fbfcfb;
+				--ambar: #7a5410;
+				--ambar-claro: #fdf0d8;
+				--rubro: #8f2a20;
+				--rubro-claro: #fde6e3;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				margin: 0;
+			}
+			body {
+				font-family: 'Noto Sans', 'DejaVu Sans', Arial, sans-serif;
+				color: var(--tinta);
+			}
+			.slide {
+				width: 1280px;
+				height: 720px;
+				padding: 56px 72px 48px;
+				background: var(--papel);
+				page-break-after: always;
+				break-after: page;
+				position: relative;
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+			}
+			.slide:last-child {
+				page-break-after: auto;
+				break-after: auto;
+			}
+			.rotulo {
+				font-size: 15px;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--verde);
+				font-weight: 700;
+			}
+			h1 {
+				font-size: 44px;
+				line-height: 1.12;
+				margin: 10px 0 26px;
+				font-weight: 700;
+				letter-spacing: -0.01em;
+			}
+			h1.capa {
+				font-size: 68px;
+				margin: 14px 0 12px;
+			}
+			p.lead {
+				font-size: 25px;
+				color: var(--cinza);
+				margin: 0 0 28px;
+				line-height: 1.35;
+			}
+			ul {
+				margin: 0;
+				padding: 0;
+				list-style: none;
+			}
+			ul.pontos li {
+				font-size: 25px;
+				line-height: 1.36;
+				padding: 0 0 15px 30px;
+				position: relative;
+			}
+			ul.pontos li::before {
+				content: '';
+				position: absolute;
+				left: 2px;
+				top: 13px;
+				width: 11px;
+				height: 11px;
+				border-radius: 50%;
+				background: var(--verde);
+			}
+			b {
+				font-weight: 700;
+			}
+			code,
+			.mono {
+				font-family: 'Noto Sans Mono', 'DejaVu Sans Mono', monospace;
+			}
+			code {
+				font-size: 0.88em;
+				background: #eef2f0;
+				padding: 1px 6px;
+				border-radius: 4px;
+			}
+			.slide > .rodape {
+				margin-top: auto;
+			}
+			.rodape {
+				display: flex;
+				justify-content: space-between;
+				font-size: 14px;
+				color: var(--cinza);
+				border-top: 1px solid var(--linha);
+				padding-top: 12px;
+			}
+			.duas {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 40px;
+				flex: 1;
+				min-height: 0;
+			}
+			.saida {
+				margin: 0;
+				font-family: 'Noto Sans Mono', 'DejaVu Sans Mono', monospace;
+				font-size: 15.5px;
+				line-height: 1.5;
+				background: #12211a;
+				color: #dcefe4;
+				border-radius: 10px;
+				padding: 18px 22px;
+				white-space: pre;
+				overflow: hidden;
+			}
+			.saida .dim {
+				color: #86a898;
+			}
+			.saida .ok {
+				color: #8fe0b0;
+			}
+			.saida .alerta {
+				color: #ffc98a;
+			}
+			table {
+				border-collapse: collapse;
+				width: 100%;
+				font-size: 21px;
+			}
+			th {
+				text-align: left;
+				font-size: 14px;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--cinza);
+				padding: 0 14px 8px 0;
+				border-bottom: 2px solid var(--linha);
+			}
+			td {
+				padding: 11px 14px 11px 0;
+				border-bottom: 1px solid var(--linha);
+				vertical-align: top;
+			}
+			.selo {
+				display: inline-block;
+				font-size: 15px;
+				font-weight: 700;
+				padding: 2px 10px;
+				border-radius: 999px;
+			}
+			.s-ok {
+				background: var(--verde-claro);
+				color: var(--verde);
+			}
+			.s-am {
+				background: var(--ambar-claro);
+				color: var(--ambar);
+			}
+			.s-ru {
+				background: var(--rubro-claro);
+				color: var(--rubro);
+			}
+			/* capa */
+			.capa-grade {
+				display: grid;
+				grid-template-columns: 1fr 250px;
+				gap: 56px;
+				align-items: center;
+				flex: 1;
+			}
+			.foto {
+				width: 250px;
+				height: 250px;
+				border-radius: 16px;
+				object-fit: cover;
+				border: 1px solid var(--linha);
+			}
+			.foto-vazia {
+				width: 250px;
+				height: 250px;
+				border-radius: 16px;
+				border: 3px dashed #b9c4cc;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				text-align: center;
+				color: var(--cinza);
+				font-size: 17px;
+				padding: 20px;
+			}
+			.integrante {
+				font-size: 30px;
+				font-weight: 700;
+				margin-top: 30px;
+			}
+			.rm {
+				font-size: 22px;
+				color: var(--cinza);
+			}
+			.links {
+				margin-top: 26px;
+				font-size: 19px;
+				line-height: 1.7;
+			}
+			.links > div > span:first-child {
+				color: var(--cinza);
+				display: inline-block;
+				width: 120px;
+			}
+			.pendente {
+				background: var(--ambar-claro);
+				color: var(--ambar);
+				padding: 1px 8px;
+				border-radius: 4px;
+				font-weight: 700;
+			}
+			/* arquitetura */
+			.arq {
+				display: grid;
+				grid-template-columns: 220px 60px 290px 60px 1fr;
+				align-items: center;
+				row-gap: 26px;
+				font-size: 20px;
+				margin-top: 6px;
+			}
+			.cx {
+				border: 2px solid var(--linha);
+				border-radius: 10px;
+				padding: 14px 16px;
+				background: #fff;
+				text-align: center;
+				line-height: 1.3;
+			}
+			.cx small {
+				display: block;
+				color: var(--cinza);
+				font-size: 15px;
+				margin-top: 3px;
+			}
+			.cx.novo {
+				border-color: var(--verde);
+				background: var(--verde-claro);
+			}
+			.seta {
+				text-align: center;
+				color: var(--cinza);
+				font-size: 28px;
+			}
+			/* modelo */
+			.grupos {
+				display: grid;
+				grid-template-columns: repeat(5, 1fr);
+				gap: 16px;
+				margin-top: 4px;
+			}
+			.grupo {
+				border: 1px solid var(--linha);
+				border-radius: 10px;
+				background: #fff;
+				padding: 14px 14px 8px;
+			}
+			.grupo h3 {
+				margin: 0 0 10px;
+				font-size: 14px;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--verde);
+			}
+			.grupo div {
+				font-family: 'Noto Sans Mono', 'DejaVu Sans Mono', monospace;
+				font-size: 15.5px;
+				padding: 7px 9px;
+				background: #f1f5f3;
+				border-radius: 6px;
+				margin-bottom: 8px;
+			}
+			.numeros {
+				display: grid;
+				grid-template-columns: repeat(4, 1fr);
+				gap: 18px;
+			}
+			.num {
+				border-left: 4px solid var(--verde);
+				padding: 4px 0 4px 16px;
+			}
+			.num strong {
+				display: block;
+				font-size: 50px;
+				line-height: 1.05;
+				font-weight: 700;
+				font-variant-numeric: tabular-nums;
+			}
+			.num span {
+				font-size: 17px;
+				color: var(--cinza);
+				line-height: 1.3;
+				display: block;
+				margin-top: 4px;
+			}
+			img.captura {
+				width: 100%;
+				border: 1px solid var(--linha);
+				border-radius: 10px;
+			}
 
-<!-- 1 -->
-<section class="slide">
-  <div class="rotulo">FIAP · Sistemas de Informação · PBL Fase 6 · Smart HAS</div>
-  <div class="capa-grade">
-    <div>
-      <h1 class="capa">Omni-Tribo</h1>
-      <p class="lead" style="margin:0">Oracle PL/SQL integrado ao back-end Java</p>
-      <div class="integrante">Renan Ferreira</div>
-      <div class="rm">RM 555833</div>
-      <div class="links">
-        <div><span>Repositório</span>github.com/RenanFerreira02/Omni-Tribo-PBL</div>
-        <div><span>Vídeo</span>{{VIDEO}}</div>
-      </div>
-    </div>
-    {{FOTO}}
-  </div>
-  <div class="rodape"><span>Omni-Tribo · PBL Fase 6</span><span>1 / 10</span></div>
-</section>
+			/* Slides de evidência: a saída real é o elemento principal. */
+			.saida.densa {
+				font-size: 11.9px;
+				line-height: 1.44;
+				padding: 14px 18px;
+			}
+			.legenda {
+				font-size: 18px;
+				line-height: 1.4;
+				color: var(--cinza);
+				margin: -12px 0 14px;
+			}
+			h1 {
+				font-size: 40px;
+			}
+			.grupos.compactos {
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+			}
+			.grupos.compactos .grupo {
+				padding: 10px 10px 4px;
+			}
+			.grupos.compactos .grupo div {
+				font-size: 13.5px;
+				padding: 5px 7px;
+				margin-bottom: 6px;
+			}
+			ul.pontos.menores li {
+				font-size: 19px;
+				padding-bottom: 9px;
+			}
+			ul.pontos.menores li::before {
+				top: 9px;
+			}
+			.numeros.empilhados {
+				display: flex;
+				flex-direction: column;
+				gap: 26px;
+			}
+			.numeros.empilhados .num strong {
+				font-size: 44px;
+			}
+			.duas > .saida.densa {
+				align-self: start;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- 1 -->
+		<section class="slide">
+			<div class="rotulo">FIAP · Sistemas de Informação · PBL Fase 6 · Smart HAS</div>
+			<div class="capa-grade">
+				<div>
+					<h1 class="capa">Omni-Tribo</h1>
+					<p class="lead" style="margin: 0">Oracle PL/SQL integrado ao back-end Java</p>
+					<div class="integrante">Renan Ferreira</div>
+					<div class="rm">RM 555833</div>
+					<div class="links">
+						<div><span>Repositório</span>github.com/RenanFerreira02/Omni-Tribo-PBL</div>
+						<!-- <div><span>Vídeo</span><span class="video pendente">pendente — gravar e gerar de novo</span></div> -->
+					</div>
+				</div>
+				<img class="foto" src="foto.jpg" alt="Foto de Renan Ferreira" />
+			</div>
+			<div class="rodape"><span>Omni-Tribo · PBL Fase 6</span><span>1 / 10</span></div>
+		</section>
 
-<!-- 2 -->
-<section class="slide">
-  <div class="rotulo">O projeto</div>
-  <h1>Vizinho ajuda vizinho, e o bairro remunera esse cuidado</h1>
-  <ul class="pontos">
-    <li>Missões de bairro: mutirão, coleta de recicláveis, entrega solidária, ajuda</li>
-    <li>Prova por <b>check-in geolocalizado</b>; retribuição em XP e <b>token comunitário</b></li>
-    <li>Até a Fase 5: app mobile, API Spring Boot sobre PostgreSQL e dashboard Angular</li>
-    <li><b>Fase 6:</b> uma camada Oracle com functions e procedures, chamada pelo Java</li>
-  </ul>
-  <div class="rodape"><span>Omni-Tribo · PBL Fase 6</span><span>2 / 10</span></div>
-</section>
+		<!-- 2 -->
+		<section class="slide">
+			<div class="rotulo">O projeto</div>
+			<h1>Vizinho ajuda vizinho, e o bairro remunera esse cuidado</h1>
+			<ul class="pontos">
+				<li>Missões de bairro: mutirão, coleta de recicláveis, entrega solidária, ajuda</li>
+				<li>Prova por <b>check-in geolocalizado</b>; retribuição em XP e <b>token comunitário</b></li>
+				<li>Até a Fase 5: app mobile, API Spring Boot sobre PostgreSQL e dashboard Angular</li>
+				<li><b>Fase 6:</b> uma camada Oracle com functions e procedures, chamada pelo Java</li>
+			</ul>
+			<div class="rodape"><span>Omni-Tribo · PBL Fase 6</span><span>2 / 10</span></div>
+		</section>
 
-<!-- 3 -->
-<section class="slide">
-  <div class="rotulo">Parte 2 · Arquitetura</div>
-  <h1>O Oracle entra ao lado do PostgreSQL, não no lugar dele</h1>
-  <div class="arq">
-    <div class="cx">App mobile<small>React Native</small></div><div class="seta">→</div>
-    <div class="cx">API Spring Boot<small>services/api</small></div><div class="seta">→</div>
-    <div class="cx">PostgreSQL + PostGIS<small>sistema transacional, geoespacial</small></div>
+		<!-- 3 -->
+		<section class="slide">
+			<div class="rotulo">Parte 2 · Arquitetura</div>
+			<h1>O Oracle entra ao lado do PostgreSQL, não no lugar dele</h1>
+			<div class="arq">
+				<div class="cx">App mobile<small>React Native</small></div>
+				<div class="seta">→</div>
+				<div class="cx">API Spring Boot<small>services/api</small></div>
+				<div class="seta">→</div>
+				<div class="cx">PostgreSQL + PostGIS<small>sistema transacional, geoespacial</small></div>
 
-    <div class="cx">Dashboard<small>Angular</small></div><div class="seta">↗</div>
-    <div></div><div></div>
-    <div class="seta" style="font-size:19px">↓ exportação dos dados</div>
+				<div class="cx">Dashboard<small>Angular</small></div>
+				<div class="seta">↗</div>
+				<div></div>
+				<div></div>
+				<div class="seta" style="font-size: 19px">↓ exportação dos dados</div>
 
-    <div class="cx novo">Cliente REST</div><div class="seta">→</div>
-    <div class="cx novo">Java + JDBC<small>CallableStatement</small></div><div class="seta">→</div>
-    <div class="cx novo">Oracle 19c<small>12 tabelas · 5 functions · 3 procedures</small></div>
-  </div>
-  <div class="rodape"><span>Em verde: o que esta fase acrescentou</span><span>3 / 10</span></div>
-</section>
+				<div class="cx novo">Cliente REST</div>
+				<div class="seta">→</div>
+				<div class="cx novo">Java + JDBC<small>CallableStatement</small></div>
+				<div class="seta">→</div>
+				<div class="cx novo">Oracle 19c<small>12 tabelas · 5 functions · 3 procedures</small></div>
+			</div>
+			<div class="rodape"><span>Em verde: o que esta fase acrescentou</span><span>3 / 10</span></div>
+		</section>
 
-<!-- 4 -->
-<section class="slide">
-  <div class="rotulo">Parte 2 · Modelo relacional</div>
-  <h1>12 tabelas que levam as regras do sistema para o banco</h1>
-  <div class="grupos">
-    <div class="grupo"><h3>Identidade</h3><div>OT_TRIBO</div><div>OT_USUARIO</div></div>
-    <div class="grupo"><h3>Carteira</h3><div>OT_CARTEIRA</div><div>OT_LANCAMENTO</div><div>OT_RESGATE</div></div>
-    <div class="grupo"><h3>Missões</h3><div>OT_MISSAO</div><div>OT_MISSAO_EVENTO</div><div>OT_CHECKIN</div></div>
-    <div class="grupo"><h3>Catálogo</h3><div>OT_PARCEIRO</div><div>OT_BENEFICIO</div></div>
-    <div class="grupo"><h3>Saídas PL/SQL</h3><div>OT_ALERTA</div><div>OT_RELATORIO_TRIBO</div></div>
-  </div>
-  <ul class="pontos" style="margin-top:26px">
-    <li>Token é inteiro; saldo negativo é barrado por <code>CHECK</code></li>
-    <li>Extrato é <b>append-only</b>: trigger rejeita <code>UPDATE</code> e <code>DELETE</code></li>
-    <li>Dados do próprio sistema, <b>sem e-mail, senha ou coordenada</b></li>
-  </ul>
-  <div class="rodape"><span>DER completo e dicionário de dados no documento</span><span>4 / 10</span></div>
-</section>
+		<!-- 4 -->
+		<section class="slide">
+			<div class="rotulo">Parte 2 · Modelo e implantação</div>
+			<h1>12 tabelas implantadas no Oracle 19c da FIAP</h1>
+			<div class="duas" style="grid-template-columns: 0.85fr 1.15fr; gap: 28px">
+				<div>
+					<div class="grupos compactos">
+						<div class="grupo"><h3>Identidade</h3><div>OT_TRIBO</div><div>OT_USUARIO</div></div>
+						<div class="grupo"><h3>Carteira</h3><div>OT_CARTEIRA</div><div>OT_LANCAMENTO</div><div>OT_RESGATE</div></div>
+						<div class="grupo"><h3>Missões</h3><div>OT_MISSAO</div><div>OT_MISSAO_EVENTO</div><div>OT_CHECKIN</div></div>
+						<div class="grupo"><h3>Catálogo e saídas</h3><div>OT_PARCEIRO</div><div>OT_BENEFICIO</div><div>OT_ALERTA</div><div>OT_RELATORIO_TRIBO</div></div>
+					</div>
+					<ul class="pontos menores" style="margin-top: 16px">
+						<li>Token é inteiro; extrato é <b>append-only</b> por trigger</li>
+						<li>Dados do próprio sistema, <b>sem e-mail, senha ou coordenada</b></li>
+					</ul>
+				</div>
+<pre class="saida densa"><span class="dim">== Servidor ==</span>
+<span class="ok">Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production</span>
 
-<!-- 5 -->
-<section class="slide">
-  <div class="rotulo">Parte 3 · Functions</div>
-  <h1>Indicadores e texto formatado, usados dentro do SELECT</h1>
-  <div class="duas">
-    <table>
-      <tr><th>Function</th><th>Papel</th></tr>
-      <tr><td><code>FN_OT_TAXA_CONCLUSAO_TRIBO</code></td><td>Indicador: % de missões concluídas</td></tr>
-      <tr><td><code>FN_OT_DIVERGENCIA_CARTEIRA</code></td><td>Indicador: saldo × extrato</td></tr>
-      <tr><td><code>FN_OT_RESUMO_MISSAO</code></td><td>Dados formatados</td></tr>
-    </table>
-    <div class="saida"><span class="dim">TRIBO                 TAXA_CONCLUSAO</span>
-Tribo Pinheiros       <span class="ok">100,00 %</span>
-Tribo Cidade Líder    sem dado
-Tribo Vila Madalena   sem dado
+<span class="dim">OBJECT_TYPE  OBJECT_NAME                        STATUS</span>
+TABLE        OT_ALERTA                          VALID
+TABLE        OT_BENEFICIO                       VALID
+TABLE        OT_CARTEIRA                        VALID
+<span class="dim">…            (mais 9 tabelas OT_, todas VALID)</span>
+TRIGGER      TRG_OT_CHECKIN_IMUTAVEL            VALID
+TRIGGER      TRG_OT_LANCAMENTO_IMUTAVEL         VALID
+TRIGGER      TRG_OT_MISSAO_EVENTO_IMUTAVEL      VALID
+FUNCTION     FN_OT_DIVERGENCIA_CARTEIRA         VALID
+FUNCTION     FN_OT_FORMATAR_TOKENS              VALID
+FUNCTION     FN_OT_NOVO_ID                      VALID
+FUNCTION     FN_OT_RESUMO_MISSAO                VALID
+FUNCTION     FN_OT_TAXA_CONCLUSAO_TRIBO         VALID
+PROCEDURE    PRC_OT_RELATORIO_TRIBO             VALID
+PROCEDURE    PRC_OT_RESGATAR_BENEFICIO          VALID
+PROCEDURE    PRC_OT_VARRER_MISSOES_PARADAS      VALID
+<span class="ok">23 linhas selecionadas.</span>
 
-<span class="dim">RESUMO</span>
-[Em andamento] Mutirão: reforma da
-quadra · 120 XP + 40 tokens ·
-há 3 dias · <span class="alerta">pote: 40 tokens</span></div>
-  </div>
-  <div class="rodape"><span>IN, RETURN, EXCEPTION (NO_DATA_FOUND, ZERO_DIVIDE)</span><span>5 / 10</span></div>
-</section>
+<span class="dim">== Erros de compilacao (nenhuma linha = nenhum erro) ==</span>
+<span class="ok">0 linhas selecionadas.</span></pre>
+			</div>
+			<div class="rodape"><span>Saída real: Oracle/evidencias/01-instalacao.txt · DER e dicionário no documento</span><span>4 / 10</span></div>
+		</section>
 
-<!-- 6 -->
-<section class="slide">
-  <div class="rotulo">Parte 3 · Procedures</div>
-  <h1>A varredura devolve o token preso em missão parada</h1>
-  <div class="duas">
-    <ul class="pontos">
-      <li><b>Varredura:</b> missão vencida expira e estorna, ou conclui e paga quem comprovou presença</li>
-      <li><b>Resgate:</b> troca token por benefício</li>
-      <li><b>Relatório:</b> tokens por membro da tribo</li>
-      <li><code>CURSOR</code>, <code>LOOP</code>, <code>IF</code>, <code>SAVEPOINT</code>, <code>EXCEPTION</code></li>
-    </ul>
-    <div class="saida"><span class="alerta">FALHA  …0006  ORA-20021: Estorno
-devolveria 0 tokens, mas o pote
-tem 10.</span>
-Varredura concluída:
-  <span class="ok">2</span> expirada(s)
-  <span class="ok">2</span> concluída(s) por prazo
-  <span class="ok">60</span> tokens estornados
-  <span class="alerta">1</span> falha(s)
+		<!-- 5 -->
+		<section class="slide">
+			<div class="rotulo">Parte 3 · Functions</div>
+			<h1>Functions de indicador e de formatação, dentro do SELECT</h1>
+			<p class="legenda"><code>FN_OT_TAXA_CONCLUSAO_TRIBO</code> no ranking · <code>FN_OT_DIVERGENCIA_CARTEIRA</code> na reconciliação · <code>FN_OT_RESUMO_MISSAO</code> nos potes. Carteiras íntegras <b>e</b> token parado, ao mesmo tempo.</p>
+<pre class="saida densa"><span class="dim">== 1. Ranking de tribos pela taxa de conclusao ==</span>
+<span class="dim">TRIBO                     MEMBROS TAXA_CONCLUSAO</span>
+Tribo Pinheiros                 4 <span class="ok">100,00 %</span>
+Tribo Cidade Líder              3 sem dado
+Tribo Jardim América            2 sem dado
+Tribo Vila Madalena             2 sem dado
 
-<span class="dim">A missão corrompida é isolada e
-vira alerta; as outras seguem.</span></div>
-  </div>
-  <div class="rodape"><span>Nenhuma procedure faz COMMIT: a transação é de quem chama</span><span>6 / 10</span></div>
-</section>
+<span class="dim">== 2. Reconciliacao: carteira x livro-razao ==</span>
+<span class="dim">HANDLE           SALDO_TOKENS DIVERGENCIA SITUACAO</span>
+apoiador_dev             4965           0 <span class="ok">integra</span>
+jonas                      50           0 <span class="ok">integra</span>
+marlene                    42           0 <span class="ok">integra</span>
+renan                      56           0 <span class="ok">integra</span>
+<span class="dim">…                (13 carteiras, todas com divergência 0)</span>
 
-<!-- 7 -->
-<section class="slide">
-  <div class="rotulo">Parte 3 · Integração com o Java</div>
-  <h1>REST → Java → JDBC → Oracle</h1>
-  <table>
-    <tr><th style="width:44%">Chamada a POST /oracle/resgates</th><th style="width:12%">HTTP</th><th>Resposta</th></tr>
-    <tr><td>Resgate com saldo</td><td><span class="selo s-ok">201</span></td><td>código de retirada, saldo 27</td></tr>
-    <tr><td>A mesma chamada, mesma chave</td><td><span class="selo s-ok">200</span></td><td><b>mesmo resgate</b>, nada debitado de novo</td></tr>
-    <tr><td>Usuário sem saldo</td><td><span class="selo s-am">422</span></td><td>mensagem escrita pela procedure</td></tr>
-    <tr><td>Benefício inativo</td><td><span class="selo s-am">404</span></td><td>"Benefício indisponível."</td></tr>
-  </table>
-  <ul class="pontos" style="margin-top:24px">
-    <li>O Java confirma ou desfaz a transação; erro do banco nunca vaza para o cliente</li>
-  </ul>
-  <div class="rodape"><span>Aplicação Spring Boot em Oracle/java · CallableStatement</span><span>7 / 10</span></div>
-</section>
+<span class="dim">== 3. Potes imobilizados: token preso em missao que nao terminou ==</span>
+[Aguardando confirmação] Coletar eletrônicos velhos do condomínio · Coleta · 90 XP + 30 tokens · Cidade Líder/SP · há 4 dias · <span class="alerta">pote: 30 tokens</span>
+[Em andamento] Mutirão: reforma da quadra da rua Tapes · Tribo · 120 XP + 40 tokens · Cidade Líder/SP · há 3 dias · <span class="alerta">pote: 40 tokens</span>
+[Em andamento] Missão com pote órfão (cenário de falha) · Coleta · 30 XP + 10 tokens · Cidade Líder/SP · há 2 dias · <span class="alerta">pote: 10 tokens</span>
+[Em andamento] Horta comunitária: rega da semana · Tribo · 54 XP + 18 tokens · Cidade Líder/SP · há 5 h · <span class="alerta">pote: 18 tokens</span></pre>
+			<div class="rodape"><span>Saída real: Oracle/evidencias/02-consultas-de-uso.txt</span><span>5 / 10</span></div>
+		</section>
 
-<!-- 8 -->
-<section class="slide">
-  <div class="rotulo">Parte 1 · Aprimoramento da solução</div>
-  <h1>O painel passou a mostrar o token imobilizado</h1>
-  <div class="duas" style="grid-template-columns: 0.72fr 1.5fr; gap: 32px">
-    <ul class="pontos">
-      <li>Novo endpoint de administrador, do banco até o dashboard</li>
-      <li>A verificação de integridade dizia <b>"íntegro"</b> com <b>113 tokens presos</b></li>
-      <li>Pendência registrada desde agosto, fechada nesta fase</li>
-    </ul>
-    <img class="captura" src="{{CAPTURA}}" alt="Seção de potes imobilizados no dashboard">
-  </div>
-  <div class="rodape"><span>GET /api/v1/admin/missoes/potes-imobilizados</span><span>8 / 10</span></div>
-</section>
+		<!-- 6 -->
+		<section class="slide">
+			<div class="rotulo">Parte 3 · Procedures</div>
+			<h1>A varredura devolve o token preso e registra os alertas</h1>
+			<p class="legenda"><code>PRC_OT_VARRER_MISSOES_PARADAS</code>: dois cursores, <code>LOOP</code>, <code>IF</code>, <code>SAVEPOINT</code> e <code>EXCEPTION</code>. A missão corrompida é isolada e vira alerta; as outras quatro seguem.</p>
+<pre class="saida densa"><span class="dim">== 6. PRC_OT_VARRER_MISSOES_PARADAS ==</span>
+<span class="alerta">FALHA  f6000000-0000-0000-0000-000000000006  ORA-20021: Estorno devolveria 0 tokens, mas o pote tem 10.</span>
+<span class="ok">Varredura concluída: 2 expirada(s), 2 concluída(s) por prazo, 60 tokens estornados, 1 falha(s).</span>
 
-<!-- 9 -->
-<section class="slide">
-  <div class="rotulo">Resultados</div>
-  <h1>Tudo foi executado no Oracle da FIAP</h1>
-  <div class="numeros">
-    <div class="num"><strong>23</strong><span>objetos criados, todos válidos</span></div>
-    <div class="num"><strong>90 / 90</strong><span>asserções em PL/SQL</span></div>
-    <div class="num"><strong>580</strong><span>testes do back-end, 0 falhas</span></div>
-    <div class="num"><strong>1</strong><span>defeito achado só na execução real</span></div>
-  </div>
-  <ul class="pontos" style="margin-top:34px">
-    <li>O defeito: saldo insuficiente respondia 500. O teste unitário passava; a chamada real acusou</li>
-    <li><b>Limites:</b> as procedures repetem regras do Java sobre uma cópia dos dados; não há sincronização contínua</li>
-  </ul>
-  <div class="rodape"><span>Evidências em Oracle/evidencias</span><span>9 / 10</span></div>
-</section>
+[Expirada] Mutirão: reforma da quadra da rua Tapes · Tribo · 120 XP + 40 tokens · Cidade Líder/SP · há menos de 1 h
+[Concluída] Coletar eletrônicos velhos do condomínio · Coleta · 90 XP + 30 tokens · Cidade Líder/SP · há menos de 1 h
+[Expirada] Mutirão: pintar o muro da escola · Tribo · 114 XP + 20 tokens · Cidade Líder/SP · há menos de 1 h
+[Concluída] Entregar cesta básica à dona Neusa · Entrega · 66 XP + 22 tokens · Cidade Líder/SP · há menos de 1 h
+[Em andamento] Missão com pote órfão (cenário de falha) · Coleta · 30 XP + 10 tokens · Cidade Líder/SP · há 2 dias · pote: 10 tokens
 
-<!-- 10 -->
-<section class="slide">
-  <div class="rotulo">Demonstração</div>
-  <h1>O que o vídeo mostra rodando</h1>
-  <ul class="pontos">
-    <li>Instalação no Oracle e os 23 objetos válidos</li>
-    <li>Functions em consultas e a varredura de missões paradas</li>
-    <li>Resgate pelo Java: 201, repetição 200 e saldo insuficiente 422</li>
-    <li>Dashboard com a seção de potes imobilizados</li>
-  </ul>
-  <div class="links" style="margin-top:auto">
-    <div><span>Repositório</span>github.com/RenanFerreira02/Omni-Tribo-PBL</div>
-    <div><span>Vídeo</span>{{VIDEO}}</div>
-  </div>
-  <div class="rodape"><span>Renan Ferreira · RM 555833</span><span>10 / 10</span></div>
-</section>
+<span class="dim">TIPO                 HANDLE           CORPO</span>
+ESTORNO_RECEBIDO     apoiador_dev     15 tokens devolvidos: a missão &quot;Mutirão: reforma da quadra da rua Tapes&quot; foi encerrada sem execução.
+ESTORNO_RECEBIDO     apoiador_dev     20 tokens devolvidos: a missão &quot;Mutirão: pintar o muro da escola&quot; foi encerrada sem execução.
+ESTORNO_RECEBIDO     renan            25 tokens devolvidos: a missão &quot;Mutirão: reforma da quadra da rua Tapes&quot; foi encerrada sem execução.
+MISSAO_CONCLUIDA     marlene          O prazo de confirmação de &quot;Coletar eletrônicos velhos do condomínio&quot; venceu e seu check-in valeu como…
+MISSAO_CONCLUIDA     renan            O prazo de confirmação de &quot;Entregar cesta básica à dona Neusa&quot; venceu e seu check-in valeu como prova…
+MISSAO_EXPIRADA      marlene          &quot;Mutirão: reforma da quadra da rua Tapes&quot; foi encerrada por prazo: a execução não foi comprovada por…
+MISSAO_EXPIRADA      renan            &quot;Mutirão: pintar o muro da escola&quot; foi encerrada por prazo sem que ninguém a aceitasse.
+<span class="alerta">VARREDURA_FALHOU     (operacao)       &quot;Missão com pote órfão (cenário de falha)&quot; (EM_ANDAMENTO): ORA-20021: Estorno devolveria 0 tokens, ma…</span></pre>
+			<div class="rodape"><span>Saída real: Oracle/evidencias/02-consultas-de-uso.txt · nenhuma procedure faz COMMIT</span><span>6 / 10</span></div>
+		</section>
 
-</body>
+		<!-- 7 -->
+		<section class="slide">
+			<div class="rotulo">Parte 3 · Integração com o Java</div>
+			<h1>REST → Java → JDBC → Oracle</h1>
+			<p class="legenda"><code>POST /oracle/resgates</code> aciona <code>PRC_OT_RESGATAR_BENEFICIO</code> por <code>CallableStatement</code>. Repetir com a mesma chave devolve o mesmo resgate, sem debitar de novo.</p>
+<pre class="saida densa"><span class="dim"># Marlene (42 tokens) resgata um café de 15</span>
+$ curl -X POST /oracle/resgates -H &#x27;Idempotency-Key: evidencia-1&#x27; -d &#x27;{&quot;usuarioId&quot;:&quot;…902&quot;,&quot;beneficioId&quot;:&quot;…960&quot;}&#x27;
+<span class="ok">HTTP/1.1 201</span>  {&quot;resgateId&quot;:&quot;5cf14fff-5235-6e3f-e063-103ca8c009db&quot;,&quot;codigoRetirada&quot;:&quot;B3XMFQTL&quot;,&quot;saldoTokens&quot;:27,&quot;replay&quot;:false}
+
+<span class="dim"># a MESMA chamada, com a MESMA chave</span>
+$ (mesmo comando)
+<span class="ok">HTTP/1.1 200</span>  {&quot;resgateId&quot;:&quot;5cf14fff-5235-6e3f-e063-103ca8c009db&quot;,&quot;codigoRetirada&quot;:&quot;B3XMFQTL&quot;,&quot;saldoTokens&quot;:27,&quot;replay&quot;:true}
+
+<span class="dim"># Gustavo, que tem 0 tokens</span>
+$ curl -X POST /oracle/resgates -H &#x27;Idempotency-Key: evidencia-2&#x27; -d &#x27;{&quot;usuarioId&quot;:&quot;…905&quot;,&quot;beneficioId&quot;:&quot;…960&quot;}&#x27;
+<span class="alerta">HTTP/1.1 422</span>  {&quot;detail&quot;:&quot;Saldo de 0 tokens é insuficiente para resgatar este benefício, que custa 15.&quot;,&quot;status&quot;:422,&quot;title&quot;:&quot;Saldo insufi…
+
+<span class="dim"># benefício inativo</span>
+$ curl -X POST /oracle/resgates -H &#x27;Idempotency-Key: evidencia-3&#x27; -d &#x27;{&quot;usuarioId&quot;:&quot;…902&quot;,&quot;beneficioId&quot;:&quot;…965&quot;}&#x27;
+<span class="alerta">HTTP/1.1 404</span>  {&quot;detail&quot;:&quot;Benefício indisponível.&quot;,&quot;status&quot;:404,&quot;title&quot;:&quot;Benefício indisponível&quot;}
+
+<span class="dim"># conferido direto no Oracle: UM lançamento para as duas chamadas repetidas</span>
+<span class="dim">HANDLE       MOTIVO       VALOR_TOKENS SALDO_APOS_TOKENS CHAVE_IDEMPOTENCIA                                             CODIGO_R STATUS</span>
+marlene      RESGATE                15                27 resgate:bbbbbbbb-0000-0000-0000-000000000902:evidencia-1       B3XMFQTL PENDENTE</pre>
+			<div class="rodape"><span>Saída real: Oracle/evidencias/04-java-rest-jdbc-oracle.txt</span><span>7 / 10</span></div>
+		</section>
+
+		<!-- 8 -->
+		<section class="slide">
+			<div class="rotulo">Parte 1 · Aprimoramento da solução</div>
+			<h1>O painel passou a mostrar o token imobilizado</h1>
+			<div class="duas" style="grid-template-columns: 0.72fr 1.5fr; gap: 32px">
+				<ul class="pontos">
+					<li>Novo endpoint de administrador, do banco até o dashboard</li>
+					<li>A verificação de integridade dizia <b>"íntegro"</b> com <b>113 tokens presos</b></li>
+					<li>Pendência registrada desde agosto, fechada nesta fase</li>
+				</ul>
+				<img
+					class="captura"
+					src="imagens/dashboard-potes-imobilizados.png"
+					alt="Seção de potes imobilizados no dashboard" />
+			</div>
+			<div class="rodape"><span>GET /api/v1/admin/missoes/potes-imobilizados</span><span>8 / 10</span></div>
+		</section>
+
+		<!-- 9 -->
+		<section class="slide">
+			<div class="rotulo">Resultados</div>
+			<h1>Tudo foi executado no Oracle da FIAP</h1>
+			<div class="duas" style="grid-template-columns: 0.42fr 1.58fr; gap: 28px">
+				<div class="numeros empilhados">
+					<div class="num"><strong>23</strong><span>objetos criados, todos válidos</span></div>
+					<div class="num"><strong>90 / 90</strong><span>asserções em PL/SQL</span></div>
+					<div class="num"><strong>580</strong><span>testes do back-end, 0 falhas</span></div>
+				</div>
+<pre class="saida densa">  <span class="ok">ok</span>     carga deixa o ledger integro (0 carteiras divergentes)
+  <span class="ok">ok</span>     2 missoes expiradas (C1 e C3)
+  <span class="ok">ok</span>     2 missoes concluidas por prazo (C2 e C4)
+  <span class="ok">ok</span>     60 tokens estornados (25 + 15 + 20)
+  <span class="ok">ok</span>     1 falha isolada (C6, pote orfao)
+  <span class="ok">ok</span>     C5 dentro do prazo continua EM_ANDAMENTO
+  <span class="ok">ok</span>     apoiador recebe os DOIS estornos de volta: 5000
+  <span class="ok">ok</span>     conservacao: a soma so muda pelos 22 tokens emitidos em C4
+  <span class="ok">ok</span>     segunda varredura: 0 expiradas
+  <span class="ok">ok</span>     sem check-in valido nao ha pagamento: 0 concluidas
+  <span class="ok">ok</span>     resgate QUEIMA: a soma em circulacao cai exatamente 15
+  <span class="ok">ok</span>     replay devolve o MESMO resgate e o MESMO codigo
+  <span class="ok">ok</span>     chave igual de outro usuario gera resgate proprio
+  <span class="ok">ok</span>     saldo insuficiente levanta -20033
+  <span class="ok">ok</span>     UPDATE em OT_LANCAMENTO e rejeitado (-20090)
+  <span class="ok">ok</span>     beneficio precificado em reais e rejeitado pela CHECK (ORA-02290)
+<span class="dim">  …      (90 linhas no total, em Oracle/evidencias/03-testes.txt)</span>
+<span class="ok">== 90 de 90 testes passaram · ROLLBACK feito ==</span></pre>
+			</div>
+			<div class="rodape"><span>Saída real: Oracle/evidencias/03-testes.txt</span><span>9 / 10</span></div>
+		</section>
+
+		<!-- 10 -->
+		<section class="slide">
+			<div class="rotulo">Encerramento</div>
+			<h1>O que a execução real ensinou, e os limites</h1>
+			<ul class="pontos">
+				<li><b>Defeito achado só na execução:</b> saldo insuficiente respondia 500. O teste unitário passava; a chamada ao Oracle acusou</li>
+				<li><b>Limite:</b> as procedures repetem regras que existem em Java e rodam sobre uma cópia dos dados</li>
+				<li><b>Limite:</b> não há sincronização contínua entre o PostgreSQL e o Oracle</li>
+				<li><b>Limite:</b> concorrência não foi medida no Oracle</li>
+			</ul>
+			<div class="links" style="margin-top: auto">
+				<div><span>Repositório</span>github.com/RenanFerreira02/Omni-Tribo-PBL</div>
+				<div><span>Vídeo</span><span class="video pendente">pendente — gravar e gerar de novo</span></div>
+			</div>
+			<div class="rodape"><span>Renan Ferreira · RM 555833</span><span>10 / 10</span></div>
+		</section>
+	</body>
 </html>

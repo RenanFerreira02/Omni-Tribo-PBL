@@ -3,144 +3,107 @@
 Publicar no YouTube como **não listado**. Depois de publicar, gerar o pacote de novo com o link
 (ver [README.md](README.md)) — o enunciado pede o link no documento **e** nos slides.
 
-O vídeo tem duas partes: os slides (cerca de 2 min 20 s) e a demonstração rodando (cerca de
-2 min 30 s). **A demonstração é obrigatória** pelo enunciado; se o tempo apertar, corte fala de
-slide, não a demo.
+O vídeo é gravado **inteiro sobre os slides**: cada um traz, ao lado da explicação, a saída real da
+execução no Oracle da FIAP. Não é preciso abrir terminal.
 
 ## Antes de gravar
 
-Deixe tudo aberto e pronto. Nada de digitar senha ou esperar build com a gravação rodando.
-
 ```bash
-# Terminal 1 — banco Oracle no estado inicial
-export JAVA_HOME=~/.sdkman/candidates/java/current SQLCL=~/.local/share/sqlcl/bin/sql
-bash Oracle/executar.sh instalar.sql
-
-# Terminal 2 — Java que chama as procedures (porta 8085)
-set -a; source Oracle/.env; set +a
-services/api/mvnw -f Oracle/java/pom.xml spring-boot:run
-
-# Terminais 3 e 4 — sistema principal, para mostrar o dashboard
-make reset && make up                      # o banco de dev precisa estar na versão atual
-cd services/api && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-cd apps/dashboard && npm start             # http://localhost:4200
+cd Oracle/entrega
+node gerar.mjs
 ```
 
-Tenha abertos: o PDF dos slides em tela cheia, o terminal 1 com fonte grande, e o navegador em
-`localhost:4200` **já logado** como `admin@omnitribo.dev` / `Senha@123`, na tela `/admin`.
+Abra `saida/previa-slides.html` no navegador, em tela cheia (F11), e role de slide em slide. Ou use
+o PDF `saida/Omni-Tribo-Fase6-RM555833/Omni-Tribo - Fase 6 - Slides.pdf` em modo apresentação.
 
-Os comandos `curl` da demonstração estão em [`../README.md`](../README.md#4-java--oracle). Deixe-os
-copiados num arquivo de texto para colar.
+Nada precisa estar rodando.
 
-> O dashboard só mostra linhas em "Potes imobilizados" se houver missão parada no PostgreSQL de
-> dev, e o seed não tem nenhuma. Sem isso a seção aparece com zero — o que também é uma resposta
-> válida, mas rende menos na tela. Se quiser linhas, leve uma missão até `EM_ANDAMENTO` pelo app
-> antes de gravar.
+> **Sobre "a demonstração do aplicativo rodando".** O enunciado pede isso. Aqui o que aparece é a
+> saída de execuções reais, gravada em [`../evidencias/`](../evidencias/), e não a execução ao
+> vivo. Se quiser reforçar sem complicar a gravação, termine o vídeo com dez segundos do SQL
+> Developer aberto na lista de objetos `OT_`, ou do dashboard em `/admin`.
 
 ---
 
-## 0:00 – 0:20 · Identificação — slide 1
+## 0:00 – 0:20 · Slide 1 — Identificação
 
 > "Renan Ferreira, RM 555833, Sistemas de Informação. Este é o Omni-Tribo na Fase 6 do PBL: a
 > camada Oracle com PL/SQL, integrada ao back-end Java."
 
-## 0:20 – 0:40 · O projeto — slide 2
+## 0:20 – 0:40 · Slide 2 — O projeto
 
 > "O Omni-Tribo é um app de missões de bairro. O vizinho ajuda, comprova com check-in
 > geolocalizado e recebe um token comunitário. Até a Fase 5 eu tinha app, API e dashboard. Nesta
 > fase entrou o Oracle."
 
-## 0:40 – 1:05 · Arquitetura e modelo — slides 3 e 4
+## 0:40 – 1:00 · Slide 3 — Arquitetura
 
 > "O Oracle entra ao lado do PostgreSQL, não no lugar dele: o sistema depende do PostGIS para a
-> parte geoespacial. O Oracle recebe os dados do próprio sistema, em 12 tabelas, e é sobre elas que
-> o PL/SQL roda. As regras vieram junto: token é inteiro, o extrato é append-only por trigger, e
-> nenhum dado pessoal foi copiado."
+> parte geoespacial. O Oracle recebe os dados do próprio sistema, e é sobre eles que o PL/SQL roda."
 
-## 1:05 – 1:40 · Functions e procedures — slides 5 e 6
+## 1:00 – 1:35 · Slide 4 — Modelo e implantação
 
-> "São três functions principais: duas calculam indicadores — a taxa de conclusão da tribo e a
-> divergência entre carteira e extrato — e uma devolve o resumo da missão formatado. Todas rodam
-> dentro do SELECT."
+Aponte primeiro os grupos de tabelas, depois o bloco à direita.
+
+> "São 12 tabelas, que levam as regras do sistema para o banco: token é inteiro, o extrato é
+> append-only por trigger, e nenhum dado pessoal foi copiado."
 >
-> "E três procedures. A principal é a varredura: missão que parou além do prazo é encerrada, e o
-> token de quem financiou volta. Ela usa dois cursores, savepoint e tratamento de exceção: uma
-> missão corrompida é isolada, vira alerta, e as outras seguem."
+> "À direita está a saída da instalação no Oracle 19c da FIAP: tabelas, triggers, functions e
+> procedures, todos VALID, e zero erros de compilação."
 
-## 1:40 – 2:00 · Java — slide 7
+## 1:35 – 2:15 · Slide 5 — Functions
 
-> "A procedure de resgate é acionada pelo Java, por JDBC. A primeira chamada responde 201. Repetir
-> com a mesma chave responde 200 com o mesmo resgate, sem debitar de novo. Saldo insuficiente vira
-> 422 com a mensagem que a própria procedure escreveu."
+Percorra as três seções do bloco, de cima para baixo.
 
-## 2:00 – 2:20 · Parte 1 e resultados — slides 8 e 9
+> "As functions rodam dentro do SELECT. Na primeira consulta, a taxa de conclusão por tribo: quem
+> ainda não encerrou missão aparece como 'sem dado', não como zero por cento."
+>
+> "Na segunda, a reconciliação: todas as carteiras íntegras. E na terceira, a function de
+> formatação mostra quatro missões com token parado. Ou seja: carteiras certas e, ainda assim,
+> token preso. É esse o problema que a procedure resolve."
 
-> "Na melhoria do sistema, o painel passou a mostrar token imobilizado em missão parada — algo que
-> a verificação de integridade não enxergava. E tudo aqui foi executado no Oracle da FIAP: 23
-> objetos válidos e 90 de 90 testes."
+## 2:15 – 2:55 · Slide 6 — Procedure de varredura
+
+> "A varredura encerra missão que passou do prazo. Usa dois cursores, savepoint e tratamento de
+> exceção. O resultado está na segunda linha: duas expiradas, duas concluídas, 60 tokens devolvidos
+> e uma falha."
+>
+> "A falha é proposital: eu corrompi uma missão. A procedure a isolou, gravou o alerta em vermelho
+> lá embaixo e seguiu com as outras quatro. Os demais alertas são os avisos a quem recebeu estorno
+> e a quem foi pago."
+
+## 2:55 – 3:35 · Slide 7 — Java → Oracle
+
+Vá de bloco em bloco: 201, 200, 422, 404.
+
+> "A procedure de resgate é acionada pelo Java, por JDBC. A primeira chamada responde 201, com o
+> código de retirada. A mesma chamada de novo responde 200, com o mesmo resgate e replay
+> verdadeiro: nada foi debitado duas vezes."
+>
+> "Sem saldo, 422 com a mensagem que a própria procedure escreveu. Benefício inativo, 404. E a
+> última linha é a conferência direto no banco: um único lançamento para as duas chamadas."
+
+## 3:35 – 4:05 · Slide 8 — Dashboard
+
+> "Na melhoria do sistema, o painel de administração passou a mostrar o token imobilizado em missão
+> parada. A verificação de integridade dizia que estava tudo certo com 113 tokens presos. Era uma
+> pendência registrada desde agosto, e foi fechada nesta fase, do banco até a tela."
+
+## 4:05 – 4:35 · Slide 9 — Testes
+
+> "Tudo foi executado: 23 objetos válidos, 90 de 90 asserções em PL/SQL e 580 testes no back-end.
+> À direita, parte da saída: a conservação dos tokens, a idempotência do resgate e as regras que o
+> próprio banco garante, como rejeitar UPDATE no extrato."
+
+## 4:35 – 5:00 · Slide 10 — Encerramento
+
+> "Um defeito só apareceu na execução real: saldo insuficiente respondia 500, com o teste unitário
+> passando. Foi corrigido. E os limites estão declarados: as procedures repetem regras que existem
+> em Java, sobre uma cópia dos dados. O código e as evidências estão no repositório. Obrigado."
 
 ---
 
-## 2:20 – 4:50 · Demonstração — slide 10 e depois as telas
+## Se passar de 5 minutos
 
-Mostre o slide 10 por dois segundos e troque para o terminal.
-
-### 2:20 – 2:50 · Instalação (terminal 1)
-
-Role a saída de `instalar.sql` até a lista de objetos.
-
-> "Esta é a instalação no Oracle da FIAP. Tabelas, triggers, functions e procedures, todos VALID,
-> e nenhum erro de compilação."
-
-### 2:50 – 3:35 · Functions e varredura (terminal 1)
-
-```bash
-bash Oracle/executar.sh 06_consultas_de_uso.sql
-```
-
-Pare em três pontos da saída:
-
-1. **Seção 1**, o ranking de tribos.
-   > "A function de indicador dentro do SELECT. Tribo sem missão encerrada mostra 'sem dado', não
-   > zero por cento."
-2. **Seção 3**, os potes imobilizados.
-   > "A function de formatação. Quatro missões com token parado, e todas as carteiras íntegras logo
-   > acima."
-3. **Seção 6**, a varredura.
-   > "A procedure encerrou quatro missões, devolveu 60 tokens e isolou a quinta, que eu corrompi de
-   > propósito. Aqui embaixo estão os alertas que ela gravou."
-
-### 3:35 – 4:20 · Java chamando o Oracle (terminal 2 visível ao fundo)
-
-Cole os três `curl`, um de cada vez:
-
-> "Agora o Java. Resgate da Marlene: 201, com o código de retirada."
->
-> "A mesma chamada de novo: 200, replay verdadeiro, mesmo código, saldo igual."
->
-> "E o Gustavo, que não tem token: 422, com a mensagem da procedure."
-
-### 4:20 – 4:50 · Dashboard (navegador)
-
-Role a tela `/admin` até "Integridade do ledger" e "Potes imobilizados".
-
-> "E no sistema principal: a integridade do ledger diz que está tudo certo, e logo abaixo a seção
-> nova mostra o token que está preso em missão parada."
-
----
-
-## 4:50 – 5:00 · Encerramento
-
-> "O código, as evidências e a documentação estão no repositório. Obrigado."
-
----
-
-## Se algo falhar na gravação
-
-| Sintoma | O que fazer |
-|---|---|
-| `ORA-01017` ao conectar | Senha em `Oracle/.env` errada ou conta bloqueada |
-| A varredura mostra "0 expiradas" | O banco já foi varrido: rode `instalar.sql` de novo |
-| O resgate responde 200 logo na primeira chamada | A chave `Idempotency-Key` já foi usada: troque o valor ou reinstale |
-| A API principal não sobe | O banco de dev está defasado: `make reset` |
-| Passou de 5 minutos | Corte os slides 5 e 6 para uma frase cada; a demo fica |
+Corte nesta ordem: a segunda fala do slide 6 (os alertas), a segunda fala do slide 5, e o slide 3
+para uma frase só. Não corte os slides 4, 7 e 9: são os que provam a execução.

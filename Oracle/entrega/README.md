@@ -6,10 +6,10 @@ Gera o que a plataforma pede: o **documento em PDF**, a **apresentação em PDF*
 | Arquivo | Papel |
 |---|---|
 | [`gerar.mjs`](gerar.mjs) | Monta os dois PDFs e o ZIP |
-| [`slides.html`](slides.html) | Os 10 slides |
-| [`ROTEIRO-VIDEO.md`](ROTEIRO-VIDEO.md) | Roteiro do vídeo de 5 minutos, com a demonstração |
+| [`slides.html`](slides.html) | Os 10 slides, com a saída real das execuções embutida. Abre direto no navegador |
+| [`ROTEIRO-VIDEO.md`](ROTEIRO-VIDEO.md) | Roteiro do vídeo de 5 minutos, gravado inteiro sobre os slides |
 | `imagens/` | Captura do dashboard usada no documento e nos slides |
-| `saida/` | O que é gerado (não versionado) |
+| `saida/` | O que é gerado (não versionado), incluindo `previa-slides.html` para apresentar |
 
 O documento em PDF é montado a partir de [`../docs/`](../docs/): a entrega, o DER, a explicação
 do PL/SQL, o dicionário de dados e as evidências. Para mudar o texto, edite o Markdown de lá.

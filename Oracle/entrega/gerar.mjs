@@ -184,19 +184,30 @@ ${paraHtml(semTitulo(ler('evidencias', 'README.md')), path.join(oracle, 'evidenc
 
 // ───────────────────────────── slides ─────────────────────────────
 
+const semFoto = '<div class="foto-vazia">FOTO<br>salve como<br>Oracle/entrega/foto.jpg</div>';
+
 const htmlSlides = fs
   .readFileSync(path.join(aqui, 'slides.html'), 'utf8')
-  .replaceAll(
-    '{{VIDEO}}',
-    videoUrl ? escapar(videoUrl) : '<span class="pendente">pendente — gravar e gerar de novo</span>',
+  // O link do vídeo: o modelo traz o texto "pendente" dentro de <span class="video …">.
+  .replace(/<span class="video[^"]*">[\s\S]*?<\/span>/g, () =>
+    videoUrl
+      ? `<span class="video">${escapar(videoUrl)}</span>`
+      : '<span class="video pendente">pendente — gravar e gerar de novo</span>',
   )
-  .replace(
-    '{{FOTO}}',
-    foto
-      ? `<img class="foto" src="${dataUri(foto)}" alt="Foto de Renan Ferreira">`
-      : '<div class="foto-vazia">FOTO<br>salve como<br>Oracle/entrega/foto.jpg</div>',
-  )
-  .replace('{{CAPTURA}}', dataUri(path.join(aqui, 'imagens', 'dashboard-potes-imobilizados.png')));
+  // Toda imagem com caminho relativo é embutida: o PDF é gerado a partir de uma pasta temporária,
+  // onde "foto.jpg" não existe. É o que deixa o MESMO arquivo abrir direto no navegador e virar PDF.
+  .replace(/<img\b[^>]*\bsrc="([^"]+)"[^>]*>/g, (tag, src) => {
+    if (/^(data:|https?:)/.test(src)) return tag;
+    const arquivo = path.resolve(aqui, src);
+    if (fs.existsSync(arquivo)) return tag.replace(`src="${src}"`, `src="${dataUri(arquivo)}"`);
+    if (/class="foto"/.test(tag)) return semFoto; // já avisado lá em cima
+    throw new Error(`Imagem dos slides não encontrada: ${src}`);
+  });
+
+const sobrou = htmlSlides.match(/\{\{[A-Z]+\}\}/g);
+if (sobrou) {
+  throw new Error(`Marcador não preenchido nos slides: ${[...new Set(sobrou)].join(', ')}`);
+}
 
 // ───────────────────────────── PDFs ─────────────────────────────
 
@@ -226,6 +237,10 @@ const htmlDoc = path.join(tmp, 'documento.html');
 const htmlSld = path.join(tmp, 'slides.html');
 fs.writeFileSync(htmlDoc, htmlDocumento);
 fs.writeFileSync(htmlSld, htmlSlides);
+
+// O HTML dos slides já resolvido (foto, captura e link embutidos), para abrir no navegador ou
+// apresentar em tela cheia. Fica fora do pacote: o que se entrega é o PDF.
+fs.writeFileSync(path.join(saida, 'previa-slides.html'), htmlSlides);
 
 const pdfDocumento = path.join(pacote, 'Omni-Tribo - Fase 6 - Documentacao.pdf');
 const pdfSlides = path.join(pacote, 'Omni-Tribo - Fase 6 - Slides.pdf');
@@ -317,6 +332,7 @@ execFileSync('zip', ['-r', '-q', path.basename(zip), path.basename(pacote)], { c
 const tamanho = (arquivo) => `${(fs.statSync(arquivo).size / 1024).toFixed(0)} KB`;
 console.log(`Documento: ${path.relative(process.cwd(), pdfDocumento)} (${tamanho(pdfDocumento)})`);
 console.log(`Slides:    ${path.relative(process.cwd(), pdfSlides)} (${tamanho(pdfSlides)})`);
+console.log(`Prévia:    ${path.relative(process.cwd(), path.join(saida, 'previa-slides.html'))} (abra no navegador)`);
 console.log(`ZIP:       ${path.relative(process.cwd(), zip)} (${tamanho(zip)})`);
 for (const aviso of avisos) {
   console.log(`AVISO: ${aviso}`);
